@@ -5,6 +5,21 @@ Positioning: AYGO — You Plan. We Connect.
 Taglines: Make It Aygo. | go with the trends.  
 Target Release: Web + Mobile Responsive App (Philippines First, Multi-Country Affiliate Waitlist)
 
+## 0. Monorepo Target Architecture
+
+```
+aygo/
+├── apps/
+│   ├── web/          # Main platform (Web application console)
+│   ├── mobile/       # Mobile app (inDrive-inspired mobile UI)
+│   └── landing/      # Public landing page (Separate conversation)
+├── packages/
+│   ├── ui/           # Shared components and branding
+│   ├── types/        # Shared TypeScript types
+│   └── config/       # Shared configurations
+└── package.json
+```
+
 ---
 
 ## 1. Executive Summary & Core Workflow
