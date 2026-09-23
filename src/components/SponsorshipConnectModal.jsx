@@ -11,7 +11,6 @@ import {
   Sparkles,
   GraduationCap,
   Send,
-  Repeat,
   MessagesSquare
 } from 'lucide-react';
 import { SPONSORSHIP_LISTINGS } from '../data/mockData';
@@ -412,23 +411,32 @@ function BrandsView({ onInquiry }) {
   );
 }
 
-const ROLE_KEY = 'aygo.sponsorRole';
+// The role becomes permanent once an organizer publishes an event or a brand sends an inquiry
+const LOCK_KEY = 'aygo.sponsorRoleLocked';
+const PROFILE_KEY = 'aygo.sponsorProfile';
 const chatTime = () => new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
-function loadRole() {
+function readStorage(key) {
   try {
-    return localStorage.getItem(ROLE_KEY);
+    return localStorage.getItem(key);
   } catch {
     return null;
   }
 }
 
-function saveRole(role) {
+function writeStorage(key, value) {
   try {
-    if (role) localStorage.setItem(ROLE_KEY, role);
-    else localStorage.removeItem(ROLE_KEY);
+    localStorage.setItem(key, value);
   } catch {
-    // storage unavailable: keep the choice for this visit only
+    // storage unavailable: keep it for this visit only
+  }
+}
+
+function loadPublishedProfile() {
+  try {
+    return JSON.parse(readStorage(PROFILE_KEY)) || null;
+  } catch {
+    return null;
   }
 }
 
@@ -482,16 +490,23 @@ function RoleChooser({ onChoose }) {
           </span>
         </button>
       ))}
-      <p className="text-[12px] text-slate-500">You can switch anytime.</p>
+      <p className="text-[12px] text-slate-500">
+        Look around first. Your choice becomes permanent once you publish an event or send a sponsorship inquiry.
+      </p>
     </div>
   );
 }
 
 export default function SponsorshipConnectModal({ onClose, photos, onPhotosChange, registrationLink, onRegistrationLinkChange }) {
-  const [role, setRole] = useState(loadRole);
+  const [lockedRole, setLockedRole] = useState(() => readStorage(LOCK_KEY));
+  // Until the role is locked, every visit starts at the brand/organizer choice
+  const [role, setRole] = useState(lockedRole);
   const [activeTab, setActiveTab] = useState('main');
-  const [profile, setProfile] = useState(EMPTY_PROFILE);
-  const [published, setPublished] = useState(false);
+  const [savedProfile] = useState(loadPublishedProfile);
+  const [profile, setProfile] = useState(savedProfile || EMPTY_PROFILE);
+  const [published, setPublished] = useState(Boolean(savedProfile));
+  // Pending first action that will lock the role: { kind: 'publish' } or { kind: 'inquiry', target }
+  const [pendingLock, setPendingLock] = useState(null);
   const [threadsByRole, setThreadsByRole] = useState(SEED_THREADS);
   const [activeThreadId, setActiveThreadId] = useState(null);
 
@@ -502,10 +517,14 @@ export default function SponsorshipConnectModal({ onClose, photos, onPhotosChang
   const showForm = role === 'organizer' && activeTab === 'main' && !published;
 
   const chooseRole = (next) => {
-    saveRole(next);
     setRole(next);
     setActiveTab('main');
     setActiveThreadId(null);
+  };
+
+  const lockRole = () => {
+    writeStorage(LOCK_KEY, role);
+    setLockedRole(role);
   };
 
   const updateThreads = (fn) => setThreadsByRole((prev) => ({ ...prev, [role]: fn(prev[role]) }));
@@ -532,7 +551,7 @@ export default function SponsorshipConnectModal({ onClose, photos, onPhotosChang
   };
 
   // "Send inquiry" opens (or starts) a chat with that brand or event
-  const startInquiry = (target) => {
+  const openInquiry = (target) => {
     const exists = threads.some((t) => t.id === target.id);
     if (!exists) updateThreads((list) => [{ ...target, unread: 0, messages: [] }, ...list]);
     setActiveTab('chats');
@@ -540,35 +559,60 @@ export default function SponsorshipConnectModal({ onClose, photos, onPhotosChang
     if (!exists) setTimeout(() => sendMessage(target.id, INTRO[role](target)), 0);
   };
 
+  const startInquiry = (target) => {
+    if (!lockedRole && role === 'brand') setPendingLock({ kind: 'inquiry', target });
+    else openInquiry(target);
+  };
+
+  const publishNow = () => {
+    setPublished(true);
+    writeStorage(PROFILE_KEY, JSON.stringify(profile));
+    toast('Sponsorship profile published. Matching brands can now see it.');
+  };
+
   const handlePublish = () => {
     if (!canPublish) {
       toast('Add your event name, school or org, and expected attendance.');
       return;
     }
-    setPublished(true);
-    toast('Sponsorship profile published. Matching brands can now see it.');
+    if (!lockedRole) setPendingLock({ kind: 'publish' });
+    else publishNow();
   };
+
+  const confirmLock = () => {
+    const action = pendingLock;
+    setPendingLock(null);
+    lockRole();
+    if (action.kind === 'publish') publishNow();
+    else openInquiry(action.target);
+  };
+
+  const roleName = role === 'brand' ? 'brand' : 'organizer';
+  const otherRole = role === 'brand' ? 'organizer' : 'brand';
 
   return (
     <Sheet
       onClose={onClose}
       title="Sponsorship Connect"
-      subtitle={role === 'brand' ? 'Browsing as a brand · tap ⇄ to switch' : role === 'organizer' ? 'Browsing as an organizer · tap ⇄ to switch' : 'Match events with brands'}
+      subtitle={!role ? 'Match events with brands' : lockedRole ? (role === 'brand' ? 'Brand account' : 'Organizer account') : `Looking around as ${role === 'brand' ? 'a brand' : 'an organizer'}`}
       icon={Handshake}
       size="lg"
-      headerAction={role && (
-        <Button
-          size="sm"
-          variant="ghost"
-          className="self-center px-2.5"
-          icon={Repeat}
-          aria-label={`Switch to ${role === 'brand' ? 'organizer' : 'brand'}`}
-          onClick={() => chooseRole(role === 'brand' ? 'organizer' : 'brand')}
-        >
-          <span className="hidden sm:inline">Switch</span>
-        </Button>
-      )}
-      footer={showForm ? (
+      footer={pendingLock ? (
+        <div>
+          <p className="text-[15px] font-semibold text-slate-900">
+            Continue as {roleName === 'brand' ? 'a brand' : 'an organizer'}?
+          </p>
+          <p className="mt-0.5 text-[13px] text-slate-500">
+            {pendingLock.kind === 'publish' ? 'Publishing your event' : 'Sending your first inquiry'} makes this {roleName === 'brand' ? 'a brand' : 'an organizer'} account for good. You won't be able to change it to {otherRole === 'brand' ? 'a brand' : 'an organizer'} account later.
+          </p>
+          <div className="mt-3 flex gap-2">
+            <Button variant="secondary" size="lg" onClick={() => setPendingLock(null)}>Not yet</Button>
+            <Button size="lg" full onClick={confirmLock}>
+              {pendingLock.kind === 'publish' ? 'Publish event' : 'Send inquiry'}
+            </Button>
+          </div>
+        </div>
+      ) : showForm ? (
         <Button full size="lg" onClick={handlePublish}>
           Publish sponsorship profile
         </Button>
