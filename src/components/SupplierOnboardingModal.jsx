@@ -147,7 +147,7 @@ const PLANS = [
     price: `₱${MAKER_PRO_PRICE.firstMonth.toLocaleString('en-PH')}`,
     regular: `₱${MAKER_PRO_PRICE.monthly.toLocaleString('en-PH')}`,
     period: 'first month',
-    terms: `Then ₱${MAKER_PRO_PRICE.monthly.toLocaleString('en-PH')}/month after your first month. Cancel anytime.`,
+    terms: `Then ₱${MAKER_PRO_PRICE.monthly.toLocaleString('en-PH')}/month after your first month, or ₱${MAKER_PRO_PRICE.yearly.toLocaleString('en-PH')}/year (2 months free). Cancel anytime.`,
     perks: MAKER_PRO_PERKS.map((p) => p.title),
     note: 'Sponsoring events as a brand? Sponsorship Connect Pro is a separate plan with sponsor matching, sponsorship documents and reach reports.'
   }

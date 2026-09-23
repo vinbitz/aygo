@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   MessageSquare,
   MapPin,
@@ -129,12 +129,11 @@ export default function AygoSourcingView({
             <button
               type="button"
               onClick={() => onOpenCatalog()}
-              className="w-full bg-[#F4F3F0] hover:bg-[#ECEAE5] px-4 py-4 rounded-2xl flex items-center gap-3 text-left transition-colors active:scale-[0.99]"
+              aria-label="Search products, suppliers and services"
+              className="w-full h-16 bg-[#F4F3F0] hover:bg-[#ECEAE5] px-4 rounded-2xl flex items-center gap-3 text-left transition-colors active:scale-[0.99]"
             >
               <Search className="w-5 h-5 text-slate-900 shrink-0" strokeWidth={2.5} />
-              <span className="text-[17px] font-semibold text-slate-900 tracking-tight">
-                What do you need made?
-              </span>
+              <RotatingPrompt />
             </button>
 
           </section>
@@ -260,6 +259,33 @@ export default function AygoSourcingView({
         </Sheet>
       )}
     </div>
+  );
+}
+
+// Search prompts on the home sheet, one every 5 seconds
+const SEARCH_PROMPTS = [
+  'Find it. Customize it. Make it happen.',
+  'What are you looking for?',
+  'What do you need for your event?',
+  'Find what you need for your event',
+  'Search products & services',
+  'What can we help you find?',
+  'Find products, suppliers & services',
+  'Search for anything you need',
+  'What are we sourcing today?',
+  'What do you need today?',
+];
+
+function RotatingPrompt() {
+  const [index, setIndex] = useState(0);
+  useEffect(() => {
+    const t = setInterval(() => setIndex((i) => (i + 1) % SEARCH_PROMPTS.length), 5000);
+    return () => clearInterval(t);
+  }, []);
+  return (
+    <span key={index} className="min-w-0 line-clamp-2 text-[17px] leading-tight font-semibold text-slate-900 tracking-tight animate-fade-in" aria-hidden="true">
+      {SEARCH_PROMPTS[index]}
+    </span>
   );
 }
 

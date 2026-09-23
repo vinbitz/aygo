@@ -723,7 +723,7 @@ export default function SupplierPortalView({
           <span className="text-[19px] font-semibold">₱{MAKER_PRO_PRICE.firstMonth.toLocaleString('en-PH')}</span> first month
           <span className="ml-2 text-slate-400 line-through">₱{MAKER_PRO_PRICE.monthly.toLocaleString('en-PH')}</span>
         </p>
-        <p className="text-[12.5px] text-emerald-800/80">Then ₱{MAKER_PRO_PRICE.monthly.toLocaleString('en-PH')}/month. Cancel anytime.</p>
+        <p className="text-[12.5px] text-emerald-800/80">Then ₱{MAKER_PRO_PRICE.monthly.toLocaleString('en-PH')}/month, or ₱{MAKER_PRO_PRICE.yearly.toLocaleString('en-PH')}/year. Cancel anytime.</p>
         <Button className="mt-2.5" full icon={Crown} onClick={() => onOpenPro?.()}>Start Pro</Button>
       </div>
       <div className="mt-2 divide-y divide-slate-100">

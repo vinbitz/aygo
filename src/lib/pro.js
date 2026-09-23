@@ -54,14 +54,16 @@ export const PRO_PLANS = {
     headline: 'Win more jobs, faster.',
     firstMonth: 999,
     monthly: 1500,
+    yearly: 15000,
   },
   sponsorship: {
     id: 'sponsorship',
     name: 'Sponsorship Connect Pro',
     tagline: 'Close more sponsorship deals.',
     headline: 'Close more sponsorship deals.',
-    firstMonth: 999,
-    monthly: 1500,
+    firstMonth: 399,
+    monthly: 499,
+    yearly: 4990,
   },
 };
 
@@ -76,4 +78,4 @@ export const MAKER_PRO_PERKS = [
   { id: 'badge', title: 'Pro badge on your storefront and bids', text: 'Stand out to organizers comparing offers' },
 ];
 
-export const MAKER_PRO_PRICE = { firstMonth: PRO_PLANS.maker.firstMonth, monthly: PRO_PLANS.maker.monthly };
+export const MAKER_PRO_PRICE = { firstMonth: PRO_PLANS.maker.firstMonth, monthly: PRO_PLANS.maker.monthly, yearly: PRO_PLANS.maker.yearly };
