@@ -1,146 +1,143 @@
 import React, { useState } from 'react';
-import {
-  X,
-  Search,
-  MapPin,
-  Star,
-  ShieldCheck,
-  MessageSquare,
-  ChevronRight
-} from 'lucide-react';
+import { Search, MapPin, Star, ShieldCheck, MessageSquare, Clock, Crown, Store } from 'lucide-react';
 import { SUPPLIERS } from '../data/mockData';
+import { Sheet, Input, Badge, VerifiedBadge, Chip, EmptyState } from './ui';
 
-export default function VerifiedSuppliersModal({ isOpen, onClose, onSelectSupplier, onOpenChat }) {
+const CATEGORIES = [
+  { id: 'All', label: 'All', match: null },
+  { id: 'Apparel', label: 'Apparel', match: /apparel|shirt|garment|embroider/i },
+  { id: 'Print & Lanyards', label: 'Print & lanyards', match: /print|lanyard|badge|sticker/i },
+  { id: 'Bags', label: 'Bags', match: /bag|tote|pouch/i },
+  { id: 'Drinkware', label: 'Drinkware', match: /drinkware|tumbler|mug|bottle/i }
+];
+
+const searchableText = (s) =>
+  [s.name, s.tagline, s.city, ...(s.services || []).map((x) => x.name)].join(' ').toLowerCase();
+
+export default function VerifiedSuppliersModal({ isOpen, onClose, onSelectSupplier, onOpenChat, onChatSupplier }) {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
 
   if (!isOpen) return null;
 
-  const categories = ['All', 'Apparel', 'Print & Lanyards', 'Bags', 'Drinkware'];
+  const category = CATEGORIES.find((c) => c.id === selectedCategory);
+  const query = searchTerm.trim().toLowerCase();
 
-  const filtered = SUPPLIERS.filter(s => {
-    const matchCat = selectedCategory === 'All' || s.category === selectedCategory || (selectedCategory === 'Apparel' && s.name.includes('Apparel'));
-    const matchText = s.name.toLowerCase().includes(searchTerm.toLowerCase()) || s.city.toLowerCase().includes(searchTerm.toLowerCase());
+  const filtered = SUPPLIERS.filter((s) => {
+    const text = searchableText(s);
+    const matchCat = !category?.match || category.match.test(text);
+    const matchText = !query || text.includes(query);
     return matchCat && matchText;
   });
 
+  const handleChat = (s) => {
+    const chat = onChatSupplier || onOpenChat;
+    if (chat) chat(s);
+    onClose();
+  };
+
+  const handleView = (s) => {
+    if (onSelectSupplier) onSelectSupplier(s);
+    onClose();
+  };
+
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-950/70 backdrop-blur-sm flex justify-center items-center p-3 font-sans">
-      <div className="relative w-full max-w-2xl bg-white rounded-3xl shadow-2xl flex flex-col max-h-[90vh] overflow-hidden border border-slate-200">
-        
-        {/* Header */}
-        <div className="p-4 border-b border-slate-100 flex items-center justify-between bg-white">
-          <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-xl bg-blue-50 text-[#003CF5] flex items-center justify-center font-bold">
-              <ShieldCheck className="w-5 h-5" />
-            </div>
-            <div>
-              <h3 className="text-base font-black text-slate-950">Verified Suppliers & Makers</h3>
-              <p className="text-[11px] text-slate-500">Curated Metro Manila workshops with verified machinery and escrow guarantee.</p>
-            </div>
-          </div>
-
-          <button 
-            type="button" 
-            onClick={onClose}
-            className="w-8 h-8 rounded-full flex items-center justify-center text-slate-500 hover:bg-slate-100"
-          >
-            <X className="w-5 h-5" />
-          </button>
+    <Sheet
+      onClose={onClose}
+      size="lg"
+      icon={ShieldCheck}
+      title="Verified makers"
+      subtitle="Every maker here passed Aygo's business and document checks."
+    >
+      <div className="sticky top-0 z-10 bg-white pb-3 space-y-3">
+        <div className="relative">
+          <Search className="w-4 h-4 text-slate-400 absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none" />
+          <Input
+            type="search"
+            aria-label="Search makers"
+            placeholder="Search by name, product or city"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="pl-10"
+          />
         </div>
-
-        {/* Filter & Search Bar */}
-        <div className="p-4 border-b border-slate-100 bg-slate-50/70 space-y-3">
-          <div className="relative">
-            <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-            <input 
-              type="text" 
-              placeholder="Search by workshop name, machinery, or city..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-9 pr-4 py-2.5 rounded-xl border border-slate-200 bg-white text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-[#003CF5]"
-            />
-          </div>
-
-          <div className="flex items-center gap-1.5 overflow-x-auto custom-scroll pb-1">
-            {categories.map((c) => (
-              <button
-                key={c}
-                type="button"
-                onClick={() => setSelectedCategory(c)}
-                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap ${
-                  selectedCategory === c
-                    ? 'bg-[#003CF5] text-white shadow-2xs'
-                    : 'bg-white border border-slate-200 text-slate-600 hover:border-slate-300'
-                }`}
-              >
-                {c}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Supplier List */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-3 custom-scroll">
-          {filtered.map((s) => (
-            <div 
-              key={s.id}
-              className="p-4 rounded-2xl bg-white border border-slate-200 hover:border-blue-300 hover:shadow-md transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3"
-            >
-              <div className="space-y-1">
-                <div className="flex items-center gap-2">
-                  <h4 className="font-black text-slate-900 text-sm">{s.name}</h4>
-                  <span className="text-[10px] font-bold text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded-full flex items-center gap-1">
-                    <ShieldCheck className="w-3 h-3" />
-                    Verified
-                  </span>
-                </div>
-                <p className="text-xs text-slate-500 font-medium">{s.tagline}</p>
-                <div className="flex flex-wrap items-center gap-3 text-xs text-slate-600 pt-1">
-                  <span className="flex items-center gap-1 text-slate-500">
-                    <MapPin className="w-3.5 h-3.5 text-[#003CF5]" />
-                    {s.city}
-                  </span>
-                  <span className="flex items-center gap-1 text-amber-600 font-bold">
-                    <Star className="w-3.5 h-3.5 fill-amber-500 text-amber-500" />
-                    {s.rating} ({s.jobsCompleted} orders)
-                  </span>
-                  <span className="text-[11px] font-bold text-[#003CF5] bg-blue-50 px-2 py-0.5 rounded">
-                    Lead time: {s.avgLeadTime}
-                  </span>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-2 flex-shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-100">
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (onOpenChat) onOpenChat(s);
-                    onClose();
-                  }}
-                  className="px-3.5 py-2 rounded-xl bg-blue-50 hover:bg-blue-100 text-[#003CF5] text-xs font-bold flex items-center gap-1.5 transition-colors"
-                >
-                  <MessageSquare className="w-3.5 h-3.5" />
-                  <span>Chat</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (onSelectSupplier) onSelectSupplier(s);
-                    onClose();
-                  }}
-                  className="px-3.5 py-2 rounded-xl bg-[#003CF5] hover:bg-blue-700 text-white text-xs font-bold flex items-center gap-1.5 shadow-2xs transition-colors"
-                >
-                  <span>View Hub</span>
-                  <ChevronRight className="w-3.5 h-3.5" />
-                </button>
-              </div>
-            </div>
+        <div className="flex gap-2 overflow-x-auto no-scrollbar -mx-5 px-5">
+          {CATEGORIES.map((c) => (
+            <Chip key={c.id} selected={selectedCategory === c.id} onClick={() => setSelectedCategory(c.id)} className="h-10">
+              {c.label}
+            </Chip>
           ))}
         </div>
-
       </div>
-    </div>
+
+      <p className="text-[13px] text-slate-500 mb-2">
+        {filtered.length} {filtered.length === 1 ? 'maker' : 'makers'}
+      </p>
+
+      {filtered.length === 0 ? (
+        <EmptyState
+          icon={Search}
+          title="No makers match"
+          text="Try another category or a shorter search."
+        />
+      ) : (
+        <ul className="space-y-2">
+          {filtered.map((s) => (
+            <li key={s.id} className="flex items-stretch gap-2 rounded-2xl border border-slate-200 hover:border-slate-300 transition-colors">
+              <button
+                type="button"
+                onClick={() => handleView(s)}
+                aria-label={`View ${s.name}`}
+                className="flex-1 min-w-0 flex items-start gap-3 p-3 text-left rounded-2xl"
+              >
+                <span className="w-14 h-14 rounded-2xl overflow-hidden bg-[#F4F3F0] shrink-0 flex items-center justify-center">
+                  {s.avatar ? (
+                    <img src={s.avatar} alt={s.name} className="w-full h-full object-cover"
+                      loading="lazy"
+                      onError={(e) => { e.currentTarget.style.visibility = 'hidden'; }}
+                    />
+                  ) : (
+                    <Store className="w-5 h-5 text-slate-400" />
+                  )}
+                </span>
+                <span className="flex-1 min-w-0">
+                  <span className="block text-[15px] font-semibold text-slate-900 leading-snug">{s.name}</span>
+                  <span className="mt-1 flex flex-wrap gap-1">
+                    <VerifiedBadge />
+                    {s.proStorefront && <Badge tone="violet" icon={Crown}>Pro</Badge>}
+                  </span>
+                  <span className="mt-1 block text-[13px] text-slate-500 line-clamp-1">{s.tagline}</span>
+                  <span className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[13px] text-slate-500">
+                    <span className="inline-flex items-center gap-1 text-slate-900 font-medium">
+                      <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
+                      {s.rating}
+                      <span className="font-normal text-slate-500">({s.reviewsCount})</span>
+                    </span>
+                    <span className="inline-flex items-center gap-1">
+                      <MapPin className="w-3.5 h-3.5" />
+                      {s.city}
+                    </span>
+                    <span className="inline-flex items-center gap-1">
+                      <Clock className="w-3.5 h-3.5" />
+                      {s.avgLeadTime}
+                    </span>
+                  </span>
+                </span>
+              </button>
+              <div className="flex items-center pr-3">
+                <button
+                  type="button"
+                  onClick={() => handleChat(s)}
+                  aria-label={`Chat with ${s.name}`}
+                  className="w-11 h-11 rounded-full bg-[#F4F3F0] hover:bg-[#ECEAE5] text-slate-800 flex items-center justify-center transition-colors"
+                >
+                  <MessageSquare className="w-4 h-4" />
+                </button>
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
+    </Sheet>
   );
 }
