@@ -4,6 +4,7 @@ import { CATEGORIES } from '../data/mockData';
 import { analyzeSourcingRequest } from '../services/jevAiService';
 import { Sheet, Button, Field, Input, Textarea, Chip, Tabs, Section, cx } from './ui';
 import { peso } from '../lib/marketplace';
+import { usePro } from '../state/pro';
 
 const MODES = [
   { id: 'single', label: 'Single category', icon: Tag },
@@ -56,9 +57,16 @@ export default function CreateRequestModal({
   const isPackage = requestMode === 'package';
   const unitPrice = Number(targetBudget) / (Number(quantity) || 1);
 
-  const handleAssist = async () => {
+  const pro = usePro();
+  const assistLeft = pro.remaining('assist');
+
+  const handleAssist = () => {
     const text = (prompt || title || specs).trim();
     if (!text) return;
+    pro.gate('assist', () => runAssist(text));
+  };
+
+  const runAssist = async (text) => {
     setIsAiAnalyzing(true);
     try {
       const result = await analyzeSourcingRequest(text);
@@ -164,7 +172,9 @@ export default function CreateRequestModal({
                 <Check className="w-3.5 h-3.5 text-emerald-600" /> Filled in below. Check and adjust.
               </span>
             ) : (
-              <span className="text-[12px] text-slate-500">Aygo Assist fills in the form for you.</span>
+              <span className="text-[12px] text-slate-500">
+                Aygo Assist fills in the form for you.{!pro.isPro && ` ${assistLeft} free ${assistLeft === 1 ? 'try' : 'tries'} left.`}
+              </span>
             )}
             <Button size="sm" variant="primary" onClick={handleAssist} disabled={isAiAnalyzing || !(prompt || title).trim()} icon={isAiAnalyzing ? Loader2 : Sparkles} className={isAiAnalyzing ? '[&>svg]:animate-spin' : ''}>
               {isAiAnalyzing ? 'Reading…' : 'Fill for me'}

@@ -9,17 +9,15 @@ import {
   Coffee,
   ShoppingBag,
   Tag,
-  Sparkles,
-  FileText,
   Megaphone,
   Download,
   Globe,
-  CalendarDays
+  LayoutGrid
 } from 'lucide-react';
 import { PRESET_VENUES } from '../data/mockData';
 import AygoGoogleMap from './AygoGoogleMap';
 import RequestOffers from './RequestOffers';
-import { Sheet, Button, Input, ListRow, Section } from './ui';
+import { Sheet, Button, Input, ListRow, Section, Logo } from './ui';
 
 const CATEGORY_TILES = [
   { id: 'apparel', label: 'Apparel', Icon: Shirt, tint: { bg: 'bg-blue-100', fg: 'text-[#003CF5]' } },
@@ -44,11 +42,9 @@ export default function AygoSourcingView({
   request,
   onAcceptBid,
   onCompareBids,
-  onOpenMockupStudio,
-  onOpenDocs,
   onOpenSponsorship,
-  onOpenWaitlist,
-  onOpenWorkspace
+  onOpenTools,
+  onOpenWaitlist
 }) {
   const [localVenue, setLocalVenue] = useState(PRESET_VENUES[0]);
   const [isLocationModalOpen, setIsLocationModalOpen] = useState(false);
@@ -100,6 +96,12 @@ export default function AygoSourcingView({
         />
       </div>
 
+      {/* Floating shortcuts on the map (the sheet scrolls over them on phones) */}
+      <div className="absolute z-20 right-4 bottom-[calc(58vh+72px)] lg:right-6 lg:bottom-20 flex flex-col items-end gap-2.5">
+        <FloatingButton icon={Megaphone} tone="text-rose-500" label="Sponsors" onClick={onOpenSponsorship} />
+        <FloatingButton icon={LayoutGrid} tone="text-[#003CF5]" label="Tools" onClick={onOpenTools} />
+      </div>
+
       {/* 2. BOTTOM SHEET: scrolls up over the map on mobile, floating panel on desktop */}
       <div className="absolute inset-0 z-30 overflow-y-auto no-scrollbar overscroll-contain pointer-events-none lg:inset-auto lg:top-20 lg:bottom-4 lg:left-6 lg:w-[400px] lg:rounded-[28px]">
         {/* Map peek area on mobile (touches pass through to the map) */}
@@ -109,8 +111,12 @@ export default function AygoSourcingView({
 
           {/* SECTION 1: Search */}
           <section className="bg-white rounded-[28px] px-4 pt-2.5 pb-4">
-            <div className="flex justify-center pb-3">
+            <div className="flex justify-center pb-3 lg:hidden">
               <div className="w-9 h-1 bg-slate-200 rounded-full" />
+            </div>
+            <div className="hidden lg:flex items-center gap-2 pt-2 pb-3">
+              <Logo variant="icon" className="w-8 h-8" />
+              <Logo className="h-6" />
             </div>
 
             <button
@@ -172,17 +178,11 @@ export default function AygoSourcingView({
             onNewRequest={() => onRequestNewJob && onRequestNewJob()}
           />
 
-          {/* SECTION 4: Tools */}
-          <section className="bg-white rounded-[28px] px-4 py-2">
-            <ListRow icon={CalendarDays} tone="blue" title="Event workspace" subtitle="All supplies, budget and checklist in one place" onClick={onOpenWorkspace} />
-            <ListRow icon={Sparkles} tone="violet" title="Mockup studio" subtitle="Put your logo on shirts, totes, tumblers" onClick={onOpenMockupStudio} />
-            <ListRow icon={FileText} tone="amber" title="Quotes & documents" subtitle="RFQ, purchase order, comparison sheet" onClick={onOpenDocs} />
-            <ListRow icon={Megaphone} tone="rose" title="Sponsorship Connect" subtitle="Find brands to back your event" onClick={onOpenSponsorship} />
-          </section>
-
           {/* SECTION 5: Get the app + international waitlist */}
-          <section className="rounded-[28px] p-4 bg-[#003CF5] text-white">
-            <p className="text-[17px] font-semibold">Make It Aygo.</p>
+          <section className="relative overflow-hidden rounded-[28px] p-4 bg-[#003CF5] text-white">
+            <Logo variant="icon" className="absolute -right-5 -top-5 w-28 h-28 opacity-25 rotate-12" />
+            <Logo tone="white" className="h-6" />
+            <p className="mt-2 text-[17px] font-semibold">Make It Aygo.</p>
             <p className="text-[13px] text-blue-100 mt-0.5">Get offers on the go with the Aygo app.</p>
             <div className="mt-3 flex flex-wrap gap-2">
               <a href="https://aygo.store" target="_blank" rel="noreferrer" className="h-10 px-4 rounded-2xl bg-white text-[#003CF5] text-[14px] font-semibold inline-flex items-center gap-2">
@@ -244,5 +244,19 @@ export default function AygoSourcingView({
         </Sheet>
       )}
     </div>
+  );
+}
+
+function FloatingButton({ icon: Icon, tone, label, onClick }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-label={label}
+      className="h-11 pl-3 pr-3.5 rounded-full bg-white shadow-xl border border-slate-200/80 flex items-center gap-2 text-[13px] font-semibold text-slate-800 hover:bg-slate-50 active:scale-95 transition-all"
+    >
+      <Icon className={`w-5 h-5 ${tone}`} />
+      {label}
+    </button>
   );
 }

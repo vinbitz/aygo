@@ -53,3 +53,19 @@ Use these instead of hand-rolled markup so every screen feels the same:
 | `toast()` (`src/lib/toast`) | Feedback after actions. Never use `alert()`. |
 
 Rules: one primary button per view, sticky in the `footer` when it completes the flow; 44px minimum tap targets; sentence-case labels (no ALL CAPS), no text under 11px.
+
+## Brand
+- Marks live in `src/assets/brand/` (cut from `public/aygo-wordmark.jpg` and `public/aygo-app-icon.jpg`): `wordmark-blue.png`, `wordmark-white.png`, `icon-192.png`. Use them through `<Logo />` (`variant="wordmark" | "icon"`, `tone="blue" | "white"`).
+- Placements: side menu header, desktop sheet header, "Get the app" card, Pro screen, generated documents, splash screen (`index.html`).
+- Taglines: use "You Plan. We Connect." and "Make It Aygo." Do not use the banner line "go with the trends."
+- Brand blue `#003CF5` (UI); app icon background `#0060FC` (splash, theme color).
+
+## Home layout update
+- The sheet holds only the core flow: search, request type + categories, live offers, and the "Get the app" card.
+- Sponsorship Connect and Tools are floating buttons on the map (right side, above the locate button). Tools opens a sheet with Event workspace, AI mockup studio, Quotes & documents and Compare offers.
+
+## Pro (free vs Aygo Pro)
+- Pro tools: Aygo Assist, AI mockup studio, branded documents, offer comparison, event workspace (`src/lib/pro.js`).
+- Free plan: 3 uses of each (`FREE_USES`), counted on open; then the Aygo Pro screen (`ProUpgradeSheet`). Always free: posting requests, offers, chat, accepting, Sponsorship Connect.
+- Gate new Pro features with `usePro().gate('feature', open)`; show remaining tries with `remaining('feature')`.
+- Prices in `ProUpgradeSheet.jsx` (`PRO_PRICING`) are placeholders.

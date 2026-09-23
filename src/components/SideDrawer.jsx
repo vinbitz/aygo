@@ -4,8 +4,6 @@ import {
   Map as MapIcon,
   Clock,
   Users,
-  Sparkles,
-  FileText,
   Bell,
   Settings,
   HelpCircle,
@@ -15,15 +13,13 @@ import {
   Wallet,
   Gift,
   UserCheck,
-  Handshake,
   Store,
   Crown,
   ChevronRight,
   Star,
-  CalendarDays
 } from 'lucide-react';
 import { toast } from '../lib/toast';
-import { ListRow, Badge, Button } from './ui';
+import { ListRow, Badge, Button, Logo } from './ui';
 
 /** Small red counter used for unread items */
 function CountBadge({ count }) {
@@ -58,15 +54,13 @@ export default function SideDrawer({
   },
   onOpenUserProfile,
   onOpenAppSettings,
-  onOpenMockup,
-  onOpenDocs,
-  onOpenSponsorship,
   onOpenMessages,
   onOpenSupplierSetup,
   onOpenBalance,
   onOpenSuppliers,
   onOpenHistory,
-  onOpenWorkspace,
+  onOpenPro,
+  isPro = false,
   onOpenReferral,
   onOpenOnboarding,
   isSupplierMode = false,
@@ -131,8 +125,9 @@ export default function SideDrawer({
         {/* Profile header */}
         <div className="bg-white rounded-b-[28px] px-4 pt-[max(16px,env(safe-area-inset-top))] pb-4">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-[15px] font-semibold text-slate-900 tracking-tight">
-              aygo<span className="text-[#003CF5]">.</span>
+            <span className="flex items-center gap-2">
+              <Logo variant="icon" className="w-8 h-8" />
+              <Logo className="h-6" />
             </span>
             <button
               type="button"
@@ -186,9 +181,6 @@ export default function SideDrawer({
           <MenuGroup title="Sourcing">
             <ListRow icon={MapIcon} tone="blue" title="Home map" subtitle="Find makers near your venue" onClick={onClose} />
             <ListRow icon={Clock} tone="slate" title="My requests" subtitle="Active bids and past orders" onClick={go(onOpenHistory)} />
-            {onOpenWorkspace && (
-              <ListRow icon={CalendarDays} tone="violet" title="Event workspace" subtitle="Budget, suppliers and checklist" onClick={go(onOpenWorkspace)} />
-            )}
             <ListRow
               icon={MessageSquare}
               tone="blue"
@@ -214,13 +206,6 @@ export default function SideDrawer({
               />
             </MenuGroup>
           )}
-
-          {/* Tools */}
-          <MenuGroup title="Tools">
-            <ListRow icon={Sparkles} tone="violet" title="Mockup studio" subtitle="Preview your designs on merch" onClick={go(onOpenMockup)} />
-            <ListRow icon={FileText} tone="slate" title="Documents" subtitle="RFQs, POs and quotes" onClick={go(onOpenDocs)} />
-            <ListRow icon={Handshake} tone="amber" title="Sponsorship Connect" subtitle="Match with event sponsors" onClick={go(onOpenSponsorship)} />
-          </MenuGroup>
 
           {/* Account */}
           <MenuGroup title="Account">
@@ -298,14 +283,14 @@ export default function SideDrawer({
           {/* Aygo Pro upsell */}
           <button
             type="button"
-            onClick={() => toast('Aygo Pro is coming soon. We will let you know when it launches.')}
+            onClick={go(onOpenPro)}
             className="w-full flex items-center gap-3 rounded-[28px] bg-white hover:bg-[#FBFAF8] text-left p-4 transition-colors active:scale-[0.99]"
           >
             <span className="w-10 h-10 rounded-full bg-amber-50 text-amber-600 flex items-center justify-center shrink-0">
               <Crown className="w-5 h-5" />
             </span>
             <span className="flex-1 min-w-0">
-              <span className="flex items-center gap-1.5 text-[15px] font-semibold text-slate-900">Aygo Pro <Badge tone="amber">Soon</Badge></span>
+              <span className="flex items-center gap-1.5 text-[15px] font-semibold text-slate-900">Aygo Pro {isPro ? <Badge tone="violet">Active</Badge> : <Badge tone="blue">3 free tries</Badge>}</span>
               <span className="block text-[13px] text-slate-500 leading-snug">Your event sourcing workspace</span>
             </span>
             <ChevronRight className="w-4 h-4 text-slate-400 shrink-0" />

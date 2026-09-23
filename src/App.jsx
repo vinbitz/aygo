@@ -4,6 +4,7 @@ import AygoSourcingView from './components/AygoSourcingView';
 import Toaster from './components/Toaster';
 import { toast } from './lib/toast';
 import useMarketplace from './state/useMarketplace';
+import { usePro } from './state/pro';
 import { peso } from './lib/marketplace';
 
 // Popups are loaded on first open so the home screen ships a smaller bundle
@@ -20,6 +21,7 @@ const SupplierOnboardingModal = lazy(() => import('./components/SupplierOnboardi
 const VerifiedSuppliersModal = lazy(() => import('./components/VerifiedSuppliersModal'));
 const RequestHistoryModal = lazy(() => import('./components/RequestHistoryModal'));
 const BiddingComparisonModal = lazy(() => import('./components/BiddingComparisonModal'));
+const ToolsSheet = lazy(() => import('./components/ToolsSheet'));
 const EventWorkspace = lazy(() => import('./components/EventWorkspace'));
 const InternationalWaitlistModal = lazy(() => import('./components/InternationalWaitlistModal'));
 const SupplierPortalView = lazy(() => import('./components/SupplierPortalView'));
@@ -50,6 +52,18 @@ export default function App() {
   const [isWaitlistOpen, setIsWaitlistOpen] = useState(false);
   const [isWorkspaceOpen, setIsWorkspaceOpen] = useState(false);
   const [setupSupplier, setSetupSupplier] = useState(null);
+  const [isToolsOpen, setIsToolsOpen] = useState(false);
+
+  // Pro tools: 3 free uses each on the Free plan, then the Aygo Pro paywall
+  const pro = usePro();
+  const openMockup = () => pro.gate('mockup', () => setIsMockupOpen(true));
+  const openDocs = () => pro.gate('documents', () => setIsDocsOpen(true));
+  const openWorkspace = () => pro.gate('workspace', () => setIsWorkspaceOpen(true));
+  const openCompare = () => pro.gate('compare', () => setIsCompareOpen(true));
+  const openTool = (feature) => {
+    setIsToolsOpen(false);
+    ({ mockup: openMockup, documents: openDocs, workspace: openWorkspace, compare: openCompare })[feature]?.();
+  };
 
   // Requests, live offers, counter-offers and bookings
   const market = useMarketplace({
@@ -131,9 +145,6 @@ export default function App() {
         onClose={() => setIsDrawerOpen(false)}
         userProfile={userProfile}
         onOpenUserProfile={() => setIsUserProfileOpen(true)}
-        onOpenMockup={() => setIsMockupOpen(true)}
-        onOpenDocs={() => setIsDocsOpen(true)}
-        onOpenSponsorship={() => setIsSponsorshipOpen(true)}
         onOpenMessages={() => {
           setChatSupplier(null);
           setIsMessagesOpen(true);
@@ -143,7 +154,8 @@ export default function App() {
         onOpenOnboarding={() => setIsOnboardingOpen(true)}
         onOpenSuppliers={() => setIsSuppliersOpen(true)}
         onOpenHistory={() => setIsHistoryOpen(true)}
-        onOpenWorkspace={() => setIsWorkspaceOpen(true)}
+        onOpenPro={() => pro.openPaywall(null)}
+        isPro={pro.isPro}
         onOpenAppSettings={() => setIsAppSettingsOpen(true)}
         isSupplierMode={isSupplierMode}
         onOpenSupplierSetup={() => setIsSupplierSetupOpen(true)}
@@ -161,7 +173,7 @@ export default function App() {
                 setChatSupplier(supplier);
                 setIsMessagesOpen(true);
               }}
-              onOpenMockupStudio={() => setIsMockupOpen(true)}
+              onOpenMockupStudio={openMockup}
             />
           </Suspense>
         ) : (
@@ -182,12 +194,10 @@ export default function App() {
             }}
             request={market.activeRequest}
             onAcceptBid={acceptOffer}
-            onCompareBids={() => setIsCompareOpen(true)}
-            onOpenMockupStudio={() => setIsMockupOpen(true)}
-            onOpenDocs={() => setIsDocsOpen(true)}
+            onCompareBids={openCompare}
             onOpenSponsorship={() => setIsSponsorshipOpen(true)}
             onOpenWaitlist={() => setIsWaitlistOpen(true)}
-            onOpenWorkspace={() => setIsWorkspaceOpen(true)}
+            onOpenTools={() => setIsToolsOpen(true)}
           />
         )}
       </main>
@@ -247,7 +257,7 @@ export default function App() {
           initialLocation={`${activeVenue.name}, ${activeVenue.address}`}
           initialDeliveryDate={deliveryDate}
           onClose={() => setIsCreateOpen(false)}
-          onOpenMockupStudio={() => setIsMockupOpen(true)}
+          onOpenMockupStudio={openMockup}
           onCreateRequest={(draft) => {
             const req = market.createRequest(draft);
             setActiveItem({
@@ -417,11 +427,13 @@ export default function App() {
             setIsWorkspaceOpen(false);
             setIsCreateOpen(true);
           }}
-          onOpenDocs={() => setIsDocsOpen(true)}
-          onOpenMockup={() => setIsMockupOpen(true)}
+          onOpenDocs={openDocs}
+          onOpenMockup={openMockup}
           onOpenSponsorship={() => setIsSponsorshipOpen(true)}
         />
       )}
+
+      {isToolsOpen && <ToolsSheet onClose={() => setIsToolsOpen(false)} onOpen={openTool} />}
 
       </Suspense>
     </div>

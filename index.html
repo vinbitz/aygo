@@ -5,14 +5,20 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>AYGO — You Plan. We Connect. | Sourcing & Bidding Platform</title>
     <meta name="description" content="Make It Aygo. Sourcing event supplies and services made fast, transparent, and competitive with real-time bidding." />
-    <link rel="icon" type="image/jpeg" href="/aygo-app-icon.jpg" />
-    <link rel="apple-touch-icon" href="/aygo-app-icon.jpg" />
+    <link rel="icon" type="image/jpeg" href="aygo-app-icon.jpg" />
+    <meta name="theme-color" content="#0060FC" />
+    <link rel="apple-touch-icon" href="aygo-app-icon.jpg" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=Syne:wght@600;700;800&display=swap" rel="stylesheet" />
   </head>
   <body class="bg-canvas text-ink-950 antialiased font-sans">
-    <div id="root"></div>
+    <div id="root">
+      <!-- Splash shown until the app mounts -->
+      <div style="position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:#0060FC">
+        <img src="aygo-app-icon.jpg" alt="Aygo" width="112" height="112" style="border-radius:26px" />
+      </div>
+    </div>
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>

@@ -9,3 +9,4 @@ export { default as ListRow } from './ListRow';
 export { default as IconCircle, TINTS } from './IconCircle';
 export { default as Section, Panel } from './Section';
 export { default as EmptyState } from './EmptyState';
+export { default as Logo } from './Logo';

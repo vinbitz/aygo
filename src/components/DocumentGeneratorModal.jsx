@@ -17,7 +17,7 @@ import {
 } from 'lucide-react';
 import { toast } from '../lib/toast';
 import { INITIAL_REQUESTS } from '../data/mockData';
-import { Sheet, Button, Field, Input, Tabs, Chip, cx } from './ui';
+import { Sheet, Button, Field, Input, Tabs, Chip, cx, Logo } from './ui';
 
 const REQUEST = INITIAL_REQUESTS[0];
 const peso = (n) => '₱' + Number(n).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -277,7 +277,7 @@ function DocumentPreview({ doc, brand, logo }) {
       )}
 
       <footer className="mt-6 pt-3 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-400">
-        <span>Generated with Aygo</span>
+        <span className="inline-flex items-center gap-1.5"><Logo variant="icon" className="w-4 h-4" />Generated with Aygo</span>
         <span>{number}</span>
       </footer>
     </article>
