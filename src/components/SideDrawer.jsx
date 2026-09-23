@@ -14,13 +14,25 @@ import {
   Building2,
   Coins,
   Award,
-  UserCheck
+  UserCheck,
+  TrendingUp
 } from 'lucide-react';
 import { toast } from '../lib/toast';
 
 export default function SideDrawer({ 
   isOpen, 
   onClose, 
+  userProfile = {
+    firstName: 'Marvin',
+    lastName: 'Barrios',
+    email: 'marvin.barrios@gmail.com',
+    phone: '9175550199',
+    city: 'Taguig City (BGC)',
+    rating: 4.84,
+    eventsCount: 7
+  },
+  onOpenUserProfile,
+  onOpenAppSettings,
   onOpenMockup, 
   onOpenDocs, 
   onOpenSponsorship, 
@@ -36,6 +48,8 @@ export default function SideDrawer({
 }) {
   if (!isOpen) return null;
 
+  const initials = `${(userProfile.firstName || 'M').charAt(0)}${(userProfile.lastName || 'B').charAt(0)}`.toUpperCase();
+
   return (
     <div className="fixed inset-0 z-50 flex">
       {/* Backdrop */}
@@ -47,18 +61,41 @@ export default function SideDrawer({
       {/* Drawer Panel */}
       <div className="relative w-80 max-w-[85vw] bg-white h-full shadow-2xl z-10 flex flex-col justify-between overflow-y-auto font-sans">
         
-        {/* Top Profile Card (from Screenshot: Marvin · 4.84) */}
-        <div className="p-5 border-b border-slate-100 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-full bg-slate-200 overflow-hidden border border-slate-300 flex items-center justify-center font-bold text-slate-700 text-base">
-              MB
+        {/* Top Profile Card (Clickable to Edit Profile) */}
+        <div className="p-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+          <div 
+            onClick={() => {
+              if (onOpenUserProfile) onOpenUserProfile();
+              onClose();
+            }}
+            className="flex items-center gap-3 cursor-pointer group flex-1 mr-2"
+            title="Click to edit profile"
+          >
+            <div 
+              className="w-12 h-12 rounded-full overflow-hidden border-2 border-white shadow-sm flex items-center justify-center font-black text-white text-base transition-transform group-hover:scale-105 shrink-0"
+              style={{ backgroundColor: userProfile.avatarUrl ? '#0f172a' : (userProfile.avatarColor || '#003CF5') }}
+            >
+              {userProfile.avatarUrl ? (
+                <img src={userProfile.avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
+              ) : (
+                <span>{initials}</span>
+              )}
             </div>
-            <div>
-              <h3 className="font-bold text-base text-slate-950">Marvin</h3>
-              <p className="text-xs text-amber-600 font-bold mt-0.5">Rating: 4.84 (7 events)</p>
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-1.5">
+                <h3 className="font-bold text-sm sm:text-base text-slate-950 truncate group-hover:text-[#003CF5] transition-colors">
+                  {userProfile.firstName} {userProfile.lastName}
+                </h3>
+              </div>
+              <p className="text-[11px] text-amber-600 font-bold mt-0.5 truncate">
+                ★ {userProfile.rating || 4.84} · {userProfile.city || 'Taguig City'}
+              </p>
+              <span className="text-[10px] font-bold text-[#003CF5] group-hover:underline block mt-0.5">
+                Edit Profile →
+              </span>
             </div>
           </div>
-          <button onClick={onClose} className="p-1 rounded-lg text-slate-400 hover:text-slate-700">
+          <button onClick={onClose} className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors">
             <X className="w-5 h-5" />
           </button>
         </div>
@@ -159,9 +196,9 @@ export default function SideDrawer({
             </span>
           </button>
 
-          {/* 8. Setting */}
+          {/* 8. Setting (App settings modal) */}
           <button 
-            onClick={() => { toast('Settings.'); onClose(); }} 
+            onClick={() => { if (onOpenAppSettings) onOpenAppSettings(); else if (onOpenUserProfile) onOpenUserProfile(); onClose(); }} 
             className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-slate-50 text-left transition-colors"
           >
             <Settings className="w-4 h-4 text-slate-500" />
@@ -177,7 +214,24 @@ export default function SideDrawer({
             <span>Help & Support</span>
           </button>
 
-          {/* 10. Invite & Earn */}
+          {/* 10. How do you want to get income with us? */}
+          <button 
+            onClick={() => { onOpenOnboarding(); onClose(); }} 
+            className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl bg-blue-50/80 hover:bg-blue-100/80 border border-blue-200 text-left transition-all group"
+          >
+            <div className="flex items-center gap-3">
+              <TrendingUp className="w-4 h-4 text-[#003CF5]" />
+              <div>
+                <span className="font-extrabold text-slate-950 block leading-tight">How do you want to get income with us?</span>
+                <span className="text-[10px] text-slate-500 font-medium">Makers, Fleet & Ambassadors</span>
+              </div>
+            </div>
+            <span className="text-[9px] font-black text-[#003CF5] bg-white px-2 py-0.5 rounded-full border border-blue-200 shrink-0">
+              EARN
+            </span>
+          </button>
+
+          {/* 11. Invite & Earn */}
           <button 
             onClick={() => { onOpenReferral(); onClose(); }} 
             className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl hover:bg-slate-50 text-left transition-colors"

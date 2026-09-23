@@ -1,6 +1,7 @@
 import React from 'react';
 import {
-  X
+  X,
+  Sparkles
 } from 'lucide-react';
 import { SUPPLIERS } from '../data/mockData';
 
@@ -16,7 +17,12 @@ export default function BiddingComparisonModal({ onClose, onSelectSupplier }) {
       rating: '4.9 (215 reviews)',
       inclusions: 'Free digital mockup, individual polybagging, safety breakaway buckle, free Metro Manila delivery',
       terms: '50% downpayment, balance upon pickup/delivery',
-      isBestValue: true
+      isBestValue: true,
+      aiScore: {
+        score: '98%',
+        summary: 'Excellent Budget Fit · Fastest Turnaround (4 days) · Feasible Metro Logistics',
+        badge: 'Top Recommendation'
+      }
     },
     {
       supplier: SUPPLIERS[0], // Thread & Co.
@@ -28,7 +34,12 @@ export default function BiddingComparisonModal({ onClose, onSelectSupplier }) {
       rating: '4.9 (142 reviews)',
       inclusions: 'Satin lanyard + heavy-duty trigger snap hook + clear PVC badge holder included in bundle',
       terms: '50% downpayment, balance upon delivery',
-      isBestValue: false
+      isBestValue: false,
+      aiScore: {
+        score: '93%',
+        summary: 'High Quality Craftsmanship · Includes Complete Bundle Accessories',
+        badge: 'Verified Match'
+      }
     }
   ];
 
@@ -72,6 +83,24 @@ export default function BiddingComparisonModal({ onClose, onSelectSupplier }) {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
+                <tr className="bg-blue-50/50">
+                  <td className="p-3 bg-blue-50/80 font-bold text-[#003CF5] flex items-center gap-1.5">
+                    <Sparkles className="w-3.5 h-3.5 text-[#003CF5] animate-pulse" />
+                    <span>Aygo Assist Fit Score</span>
+                  </td>
+                  {comparisonData.map((c, i) => (
+                    <td key={i} className="p-3 border-l border-blue-100 bg-blue-50/30">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="text-sm font-black text-[#003CF5]">{c.aiScore.score} Match</span>
+                        <span className="text-[9px] font-bold text-blue-700 bg-white border border-blue-200 px-2 py-0.5 rounded-full">
+                          {c.aiScore.badge}
+                        </span>
+                      </div>
+                      <p className="text-[10px] text-slate-600 font-medium mt-1">{c.aiScore.summary}</p>
+                    </td>
+                  ))}
+                </tr>
+
                 <tr>
                   <td className="p-3 bg-slate-50 font-bold text-slate-600">Unit Price & Total</td>
                   {comparisonData.map((c, i) => (

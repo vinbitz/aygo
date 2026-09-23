@@ -11,6 +11,9 @@ node_modules
 dist
 dist-ssr
 *.local
+.env
+.env.*
+*.env
 
 # Editor directories and files
 .vscode/*
@@ -19,11 +22,8 @@ dist-ssr
 .DS_Store
 *.suo
 *.ntvs*
-*.njsproj
-*.sln
 *.sw?
 
-# Local environment
-.env
-.env.*
+.agents/
+skills-lock.json
 !.env.example

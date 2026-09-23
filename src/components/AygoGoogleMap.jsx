@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { SUPPLIERS } from '../data/mockData';
 import {
+  MapPin,
   Navigation,
   ChevronRight,
   Search
@@ -192,24 +193,24 @@ export default function AygoGoogleMap({
       mapInstanceRef.current = map;
       infoWindowRef.current = new window.google.maps.InfoWindow();
 
-      // 1. Destination Pin (Delivery Venue) - Styled as sleek inDrive black pin with !
+      // 1. Destination Pin (Delivery Venue) - Styled as sleek Aygo Blue Location Pin
       const destMarker = new window.google.maps.Marker({
         position: initialCenter,
         map,
         title: activeLocation.name || activeLocation.address,
         icon: {
-          path: 'M -14,-32 L 14,-32 C 19,-32 21,-30 21,-25 L 21,-11 C 21,-6 19,-4 14,-4 L 3,-4 L 0,0 L -3,-4 L -14,-4 C -19,-4 -21,-6 -21,-11 L -21,-25 C -21,-30 -19,-32 -14,-32 Z',
-          scale: 1.1,
-          fillColor: '#0F172A',
+          path: 'M 0,0 C -2,-20 -14,-20 -14,-34 A 14,14 0 1,1 14,-34 C 14,-20 2,-20 0,0 Z',
+          scale: 1.15,
+          fillColor: '#003CF5',
           fillOpacity: 1,
-          strokeWeight: 2,
+          strokeWeight: 2.5,
           strokeColor: '#FFFFFF',
-          labelOrigin: new window.google.maps.Point(0, -18)
+          labelOrigin: new window.google.maps.Point(0, -34)
         },
         label: {
-          text: '!',
+          text: '★',
           color: '#FFFFFF',
-          fontSize: '13px',
+          fontSize: '11px',
           fontWeight: '900'
         },
         zIndex: 999
@@ -411,17 +412,18 @@ export default function AygoGoogleMap({
           {/* Sourcing Area Radius Pulse (Electric Blue) */}
           <div className="absolute w-72 h-72 rounded-full border border-[#003CF5]/30 bg-[#003CF5]/5 animate-pulse pointer-events-none" />
 
-          {/* Centered inDrive-Style Black Pin [ ! ] */}
-          <div className="relative z-10 flex flex-col items-center -translate-y-4 pointer-events-none">
-            <div className="w-10 h-10 rounded-2xl bg-slate-950 border-2 border-white shadow-xl flex items-center justify-center text-white font-black text-lg">
-              !
+          {/* Centered Aygo Delivery Venue Pin */}
+          <div className="relative z-10 flex flex-col items-center -translate-y-5 pointer-events-none">
+            <div className="w-11 h-11 rounded-2xl bg-[#003CF5] border-2 border-white shadow-xl shadow-blue-500/30 flex items-center justify-center text-white">
+              <MapPin className="w-6 h-6 stroke-[2.5]" />
             </div>
-            <div className="w-0 h-0 border-x-[6px] border-x-transparent border-t-[8px] border-t-slate-950 -mt-0.5" />
-            <div className="w-2.5 h-1 rounded-full bg-slate-900/40 blur-[1px] mt-0.5" />
+            <div className="w-0 h-0 border-x-[6px] border-x-transparent border-t-[8px] border-t-[#003CF5] -mt-0.5" />
+            <div className="w-3 h-1 rounded-full bg-blue-900/30 blur-[1px] mt-0.5" />
             
-            {/* City Label under pin matching inspo */}
-            <span className="mt-1 text-[11px] font-black text-slate-800 bg-white/90 px-2 py-0.5 rounded-md shadow-xs backdrop-blur-xs">
-              Makati / BGC
+            {/* City Label under pin */}
+            <span className="mt-1.5 text-[11px] font-black text-slate-800 bg-white/95 px-2.5 py-0.5 rounded-full shadow-md border border-slate-200 backdrop-blur-xs flex items-center gap-1.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-[#003CF5] animate-ping" />
+              <span>{activeLocation.name || 'Delivery Venue'}</span>
             </span>
           </div>
 

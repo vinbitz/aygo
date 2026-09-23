@@ -17,6 +17,9 @@ const ReferralRewardsModal = lazy(() => import('./components/ReferralRewardsModa
 const SupplierOnboardingModal = lazy(() => import('./components/SupplierOnboardingModal'));
 const VerifiedSuppliersModal = lazy(() => import('./components/VerifiedSuppliersModal'));
 const RequestHistoryModal = lazy(() => import('./components/RequestHistoryModal'));
+const SupplierPortalView = lazy(() => import('./components/SupplierPortalView'));
+const UserProfileModal = lazy(() => import('./components/UserProfileModal'));
+const AppSettingsModal = lazy(() => import('./components/AppSettingsModal'));
 
 export default function App() {
   const [selectedSupplier, setSelectedSupplier] = useState(null);
@@ -34,17 +37,28 @@ export default function App() {
   const [isOnboardingOpen, setIsOnboardingOpen] = useState(false);
   const [isSuppliersOpen, setIsSuppliersOpen] = useState(false);
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
+  const [isUserProfileOpen, setIsUserProfileOpen] = useState(false);
+  const [isAppSettingsOpen, setIsAppSettingsOpen] = useState(false);
   const [createMode, setCreateMode] = useState('single');
   const [createCategory, setCreateCategory] = useState('apparel');
 
+  // Customer / User Profile State (First Name, Last Name, Email, +63 Phone, City)
+  const [userProfile, setUserProfile] = useState({
+    firstName: 'Marvin',
+    lastName: 'Barrios',
+    email: 'marvin.barrios@gmail.com',
+    phone: '9175550199',
+    formattedPhone: '+63 917 555 0199',
+    city: 'Taguig City (BGC)',
+    organization: 'Aygo Event Sourcing Lead',
+    avatarUrl: '',
+    avatarColor: '#003CF5',
+    rating: 4.84,
+    eventsCount: 7
+  });
+
   const handleToggleSupplierMode = () => {
-    setIsSupplierMode(prev => {
-      const next = !prev;
-      if (next) {
-        setIsSupplierSetupOpen(true);
-      }
-      return next;
-    });
+    setIsSupplierMode(prev => !prev);
   };
 
   // Shared Location & Date State (Synchronized across Top Bar, Sourcing Radar, and Item Requests)
@@ -79,6 +93,8 @@ export default function App() {
       <SideDrawer
         isOpen={isDrawerOpen}
         onClose={() => setIsDrawerOpen(false)}
+        userProfile={userProfile}
+        onOpenUserProfile={() => setIsUserProfileOpen(true)}
         onOpenMockup={() => setIsMockupOpen(true)}
         onOpenDocs={() => setIsDocsOpen(true)}
         onOpenSponsorship={() => setIsSponsorshipOpen(true)}
@@ -91,29 +107,44 @@ export default function App() {
         onOpenOnboarding={() => setIsOnboardingOpen(true)}
         onOpenSuppliers={() => setIsSuppliersOpen(true)}
         onOpenHistory={() => setIsHistoryOpen(true)}
+        onOpenAppSettings={() => setIsAppSettingsOpen(true)}
         isSupplierMode={isSupplierMode}
         onOpenSupplierSetup={() => setIsSupplierSetupOpen(true)}
         onToggleSupplierMode={handleToggleSupplierMode}
       />
 
-      {/* Main Minimalist Workspace: Place + Items to Purchase */}
+      {/* Main Minimalist Workspace: Customer Sourcing View VS Dedicated Supplier Portal Hub */}
       <main className="flex-1">
-        <AygoSourcingView
-          onOpenDrawer={() => setIsDrawerOpen(true)}
-          activeVenue={activeVenue}
-          onSelectVenue={(v) => setActiveVenue(v)}
-          deliveryType={deliveryType}
-          onSelectSupplier={(supplier) => setSelectedSupplier(supplier)}
-          onOpenChatWithSupplier={(supplier) => {
-            setChatSupplier(supplier);
-            setIsMessagesOpen(true);
-          }}
-          onRequestNewJob={(mode = 'single', cat = 'apparel') => {
-            setCreateMode(mode);
-            setCreateCategory(cat);
-            setIsCreateOpen(true);
-          }}
-        />
+        {isSupplierMode ? (
+          <Suspense fallback={null}>
+            <SupplierPortalView
+              onOpenDrawer={() => setIsDrawerOpen(true)}
+              onSwitchToCustomer={() => setIsSupplierMode(false)}
+              onOpenChatWithCustomer={(supplier) => {
+                setChatSupplier(supplier);
+                setIsMessagesOpen(true);
+              }}
+              onOpenMockupStudio={() => setIsMockupOpen(true)}
+            />
+          </Suspense>
+        ) : (
+          <AygoSourcingView
+            onOpenDrawer={() => setIsDrawerOpen(true)}
+            activeVenue={activeVenue}
+            onSelectVenue={(v) => setActiveVenue(v)}
+            deliveryType={deliveryType}
+            onSelectSupplier={(supplier) => setSelectedSupplier(supplier)}
+            onOpenChatWithSupplier={(supplier) => {
+              setChatSupplier(supplier);
+              setIsMessagesOpen(true);
+            }}
+            onRequestNewJob={(mode = 'single', cat = 'apparel') => {
+              setCreateMode(mode);
+              setCreateCategory(cat);
+              setIsCreateOpen(true);
+            }}
+          />
+        )}
       </main>
 
       <Toaster />
@@ -269,6 +300,37 @@ export default function App() {
               specs: req.specs || 'Standard production specifications',
               isPackage: req.title.toLowerCase().includes('package')
             });
+          }}
+        />
+      )}
+      {/* Customer / Organizer User Profile & Account Settings Modal (Matching Screenshots 1 & 3) */}
+      {isUserProfileOpen && (
+        <UserProfileModal
+          isOpen={isUserProfileOpen}
+          onClose={() => setIsUserProfileOpen(false)}
+          userProfile={userProfile}
+          onSaveProfile={(updatedProfile) => {
+            setUserProfile(updatedProfile);
+          }}
+          onOpenSettings={() => {
+            setIsUserProfileOpen(false);
+            setIsAppSettingsOpen(true);
+          }}
+          onOpenOnboarding={() => {
+            setIsUserProfileOpen(false);
+            setIsOnboardingOpen(true);
+          }}
+        />
+      )}
+
+      {/* App Settings Modal (Matching Screenshot 2) */}
+      {isAppSettingsOpen && (
+        <AppSettingsModal
+          isOpen={isAppSettingsOpen}
+          onClose={() => setIsAppSettingsOpen(false)}
+          onOpenProfileSettings={() => {
+            setIsAppSettingsOpen(false);
+            setIsUserProfileOpen(true);
           }}
         />
       )}

@@ -9,7 +9,6 @@ import {
   DollarSign,
   Check,
   CheckCheck,
-  User,
   Building2
 } from 'lucide-react';
 import { SUPPLIERS } from '../data/mockData';
@@ -299,35 +298,6 @@ export default function AygoMessagingModal({
           </div>
 
           <div className="flex items-center gap-2">
-            {/* Demo Perspective Switcher (Customer vs Supplier) */}
-            <div className="hidden sm:flex items-center gap-1 bg-slate-100 p-1 rounded-xl border border-slate-200 text-xs font-bold">
-              <span className="text-slate-400 text-[10px] px-1 uppercase tracking-wider">Send As:</span>
-              <button
-                type="button"
-                onClick={() => setSenderRole('customer')}
-                className={`px-2.5 py-1 rounded-lg transition-all flex items-center gap-1 ${
-                  senderRole === 'customer'
-                    ? 'bg-white text-[#003CF5] shadow-xs'
-                    : 'text-slate-600 hover:text-slate-900'
-                }`}
-              >
-                <User className="w-3 h-3" />
-                <span>Customer</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setSenderRole('supplier')}
-                className={`px-2.5 py-1 rounded-lg transition-all flex items-center gap-1 ${
-                  senderRole === 'supplier'
-                    ? 'bg-[#003CF5] text-white shadow-xs'
-                    : 'text-slate-600 hover:text-slate-900'
-                }`}
-              >
-                <Building2 className="w-3 h-3" />
-                <span>Supplier</span>
-              </button>
-            </div>
-
             <button
               onClick={onClose}
               className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-500 hover:text-slate-800 transition-colors"

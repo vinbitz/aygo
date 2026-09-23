@@ -228,7 +228,7 @@ export default function SupplierProfileSetupModal({
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
-                    Direct Contact Person
+                    Contact Person (First & Last Name)
                   </label>
                   <input
                     type="text"
@@ -241,29 +241,38 @@ export default function SupplierProfileSetupModal({
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
-                    Direct Phone / Viber / WhatsApp
+                    Direct Phone (+63 Philippines)
                   </label>
-                  <input
-                    type="text"
-                    required
-                    value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
-                    placeholder="e.g. +63 917 555 0101"
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 font-semibold text-xs focus:outline-none focus:ring-2 focus:ring-[#003CF5]"
-                  />
+                  <div className="flex rounded-xl overflow-hidden border border-slate-300 focus-within:border-[#003CF5] focus-within:ring-2 focus-within:ring-[#003CF5]/20 bg-slate-50">
+                    <div className="flex items-center gap-1.5 px-3 py-2 bg-slate-200/80 border-r border-slate-300 text-slate-900 font-black text-xs select-none">
+                      <span>🇵🇭</span>
+                      <span>+63</span>
+                    </div>
+                    <input
+                      type="text"
+                      required
+                      value={phone.replace(/^\+?63\s*/, '')}
+                      onChange={(e) => {
+                        const raw = e.target.value.replace(/\D/g, '').slice(0, 10);
+                        setPhone(`+63 ${raw}`);
+                      }}
+                      placeholder="917 555 0101"
+                      className="w-full bg-transparent px-3 py-2 text-xs font-black text-slate-900 focus:outline-none font-mono"
+                    />
+                  </div>
                 </div>
               </div>
 
               <div>
                 <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
-                  Email Address
+                  Business / Contact Email
                 </label>
                 <input
                   type="email"
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="e.g. contact@workshop.ph"
+                  placeholder="e.g. patricia@threadco.example"
                   className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 font-semibold text-xs focus:outline-none focus:ring-2 focus:ring-[#003CF5]"
                 />
               </div>
