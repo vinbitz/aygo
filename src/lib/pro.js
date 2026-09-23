@@ -43,7 +43,7 @@ export const PRO_PLANS = {
     name: 'Aygo Pro for Organizers',
     tagline: 'Your event sourcing workspace.',
     headline: 'Plan every event in one place.',
-    firstMonth: 199,
+    firstMonth: 399,
     monthly: 499,
     yearly: 4990,
   },
