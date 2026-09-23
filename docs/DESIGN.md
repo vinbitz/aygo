@@ -1,6 +1,6 @@
 # AYGO Home Screen Design Guide
 
-Reference for the home screen design (tag `design-v1`). Keep these rules when changing the UI.
+Reference for the home screen design (commit `c0e11f4` on branch `claude/github-improvement-review-y630pv`). Keep these rules when changing the UI.
 Live preview of this version: https://claude.ai/artifact/E3oHgi3iLeh8XqHjF6G2cP (private).
 
 ## Layout
@@ -33,5 +33,5 @@ Live preview of this version: https://claude.ai/artifact/E3oHgi3iLeh8XqHjF6G2cP 
 
 ## Restoring this version
 ```bash
-git checkout design-v1 -- src/components/AygoSourcingView.jsx src/components/AygoGoogleMap.jsx src/index.css
+git checkout c0e11f4 -- src/components/AygoSourcingView.jsx src/components/AygoGoogleMap.jsx src/index.css
 ```
