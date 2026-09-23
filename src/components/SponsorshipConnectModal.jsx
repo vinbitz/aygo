@@ -10,13 +10,16 @@ import {
   Pencil,
   Sparkles,
   GraduationCap,
-  Send
+  Send,
+  Repeat,
+  MessagesSquare
 } from 'lucide-react';
 import { SPONSORSHIP_LISTINGS } from '../data/mockData';
 import { toast } from '../lib/toast';
 import EventPhotos from './EventPhotos';
 import RegistrationLink from './RegistrationLink';
 import { SponsorPerksPicker, SponsorPerksList } from './SponsorPerks';
+import SponsorChat from './SponsorChat';
 import { perkLabel } from '../lib/sponsorPerks';
 import { Sheet, Button, Field, Input, Textarea, Tabs, Chip, Badge, Panel, IconCircle } from './ui';
 
@@ -233,7 +236,7 @@ function OrganizerProfileForm({ profile, setProfile, photos, onPhotosChange, reg
   );
 }
 
-function OrganizerProfileView({ profile, onEdit, photos, registrationLink }) {
+function OrganizerProfileView({ profile, onEdit, photos, registrationLink, onInquiry }) {
   // Match on what the event needs and on what the brand wants in return
   const matches = BRANDS.map((b) => {
     const wantsMet = (b.wants || []).filter((w) => w in (profile.perks || {}));
@@ -324,7 +327,7 @@ function OrganizerProfileView({ profile, onEdit, photos, registrationLink }) {
                 variant="outline"
                 icon={Send}
                 className="h-11 shrink-0"
-                onClick={() => toast(`Inquiry sent to ${b.name}.`)}
+                onClick={() => onInquiry({ id: b.id, name: b.name, subtitle: `${b.industry} · brand`, kind: 'brand' })}
               >
                 Send inquiry
               </Button>
@@ -336,7 +339,7 @@ function OrganizerProfileView({ profile, onEdit, photos, registrationLink }) {
   );
 }
 
-function BrandsView() {
+function BrandsView({ onInquiry }) {
   const [kind, setKind] = useState('All');
   const list = OPPORTUNITIES.filter((o) => kind === 'All' || o.kind === kind);
 
@@ -398,7 +401,7 @@ function BrandsView() {
             <Button
               icon={Handshake}
               className="w-full sm:w-auto"
-              onClick={() => toast(`Inquiry sent to the organizers of ${item.eventTitle}.`)}
+              onClick={() => onInquiry({ id: item.id, name: item.eventTitle, subtitle: item.organization, kind: 'organizer' })}
             >
               Send inquiry
             </Button>
@@ -409,14 +412,133 @@ function BrandsView() {
   );
 }
 
+const ROLE_KEY = 'aygo.sponsorRole';
+const chatTime = () => new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+function loadRole() {
+  try {
+    return localStorage.getItem(ROLE_KEY);
+  } catch {
+    return null;
+  }
+}
+
+function saveRole(role) {
+  try {
+    if (role) localStorage.setItem(ROLE_KEY, role);
+    else localStorage.removeItem(ROLE_KEY);
+  } catch {
+    // storage unavailable: keep the choice for this visit only
+  }
+}
+
+// Starter conversations so each side sees how chat works
+const SEED_THREADS = {
+  organizer: [
+    {
+      id: 'b2', name: 'Lakbay Telco', subtitle: 'Telecom · brand', kind: 'brand', unread: 1,
+      messages: [{ id: 'm1', from: 'them', text: 'Hi! We saw your event on Aygo. How many reels can you do for our data promo?', time: '9:12 AM' }],
+    },
+  ],
+  brand: [
+    {
+      id: 'spon-1', name: 'DevCon Manila Hackathon 2026', subtitle: 'Junior Developers Society', kind: 'organizer', unread: 1,
+      messages: [{ id: 'm1', from: 'them', text: 'Thanks for checking our event! Our Swag sponsor package includes your logo on 450 tote bags.', time: '8:40 AM' }],
+    },
+  ],
+};
+
+const INTRO = {
+  organizer: (t) => `Hi ${t.name}! We'd love to have you as a sponsor. Here's our event profile on Aygo.`,
+  brand: (t) => `Hi ${t.name} team! We're interested in sponsoring your event. Can we talk about the packages?`,
+};
+
+const REPLY = {
+  organizer: 'Thanks for reaching out! Send us your audience size and what sponsors get, and we will review it this week.',
+  brand: 'Thank you! We would be happy to discuss. Which package are you looking at?',
+};
+
+function RoleChooser({ onChoose }) {
+  const options = [
+    { id: 'organizer', icon: GraduationCap, title: "I'm organizing an event", text: 'Create a sponsorship profile, show what sponsors get, and find brands.' },
+    { id: 'brand', icon: Building2, title: "I'm a brand or company", text: 'Browse student and community events and sponsor the right ones.' },
+  ];
+  return (
+    <div className="space-y-3">
+      <p className="text-[15px] text-slate-700">First, tell us who you are.</p>
+      {options.map(({ id, icon: Icon, title, text }) => (
+        <button
+          key={id}
+          type="button"
+          onClick={() => onChoose(id)}
+          className="w-full flex items-center gap-4 rounded-[22px] border border-slate-200 hover:border-[#003CF5] hover:bg-blue-50/40 p-4 text-left transition-colors active:scale-[0.99]"
+        >
+          <span className="w-12 h-12 rounded-full bg-blue-50 text-[#003CF5] flex items-center justify-center shrink-0">
+            <Icon className="w-6 h-6" />
+          </span>
+          <span className="flex-1">
+            <span className="block text-[17px] font-semibold text-slate-900">{title}</span>
+            <span className="block text-[13px] text-slate-500 leading-snug">{text}</span>
+          </span>
+        </button>
+      ))}
+      <p className="text-[12px] text-slate-500">You can switch anytime.</p>
+    </div>
+  );
+}
+
 export default function SponsorshipConnectModal({ onClose, photos, onPhotosChange, registrationLink, onRegistrationLinkChange }) {
-  // Brands view first: organizers see who sponsors events before creating a profile
-  const [activeTab, setActiveTab] = useState('brands');
+  const [role, setRole] = useState(loadRole);
+  const [activeTab, setActiveTab] = useState('main');
   const [profile, setProfile] = useState(EMPTY_PROFILE);
   const [published, setPublished] = useState(false);
+  const [threadsByRole, setThreadsByRole] = useState(SEED_THREADS);
+  const [activeThreadId, setActiveThreadId] = useState(null);
+
+  const threads = role ? threadsByRole[role] : [];
+  const unread = threads.reduce((n, t) => n + (t.unread || 0), 0);
 
   const canPublish = profile.eventName.trim() && profile.org.trim() && profile.attendance.trim();
-  const showForm = activeTab === 'organizers' && !published;
+  const showForm = role === 'organizer' && activeTab === 'main' && !published;
+
+  const chooseRole = (next) => {
+    saveRole(next);
+    setRole(next);
+    setActiveTab('main');
+    setActiveThreadId(null);
+  };
+
+  const updateThreads = (fn) => setThreadsByRole((prev) => ({ ...prev, [role]: fn(prev[role]) }));
+
+  const openThread = (id) => {
+    setActiveThreadId(id);
+    updateThreads((list) => list.map((t) => (t.id === id ? { ...t, unread: 0 } : t)));
+  };
+
+  const sendMessage = (threadId, text) => {
+    const msg = { id: `m${Date.now()}`, from: 'me', text, time: chatTime() };
+    updateThreads((list) => list.map((t) => (t.id === threadId ? { ...t, messages: [...t.messages, msg], typing: true } : t)));
+    const currentRole = role;
+    setTimeout(() => {
+      setThreadsByRole((prev) => ({
+        ...prev,
+        [currentRole]: prev[currentRole].map((t) =>
+          t.id === threadId
+            ? { ...t, typing: false, messages: [...t.messages, { id: `r${Date.now()}`, from: 'them', text: REPLY[currentRole], time: chatTime() }] }
+            : t
+        ),
+      }));
+    }, 1600);
+  };
+
+  // "Send inquiry" opens (or starts) a chat with that brand or event
+  const startInquiry = (target) => {
+    const exists = threads.some((t) => t.id === target.id);
+    if (!exists) updateThreads((list) => [{ ...target, unread: 0, messages: [] }, ...list]);
+    setActiveTab('chats');
+    openThread(target.id);
+    if (!exists) setTimeout(() => sendMessage(target.id, INTRO[role](target)), 0);
+  };
 
   const handlePublish = () => {
     if (!canPublish) {
@@ -431,35 +553,59 @@ export default function SponsorshipConnectModal({ onClose, photos, onPhotosChang
     <Sheet
       onClose={onClose}
       title="Sponsorship Connect"
-      subtitle="Match student and community events with brands"
+      subtitle={role === 'brand' ? 'Browsing as a brand · tap ⇄ to switch' : role === 'organizer' ? 'Browsing as an organizer · tap ⇄ to switch' : 'Match events with brands'}
       icon={Handshake}
       size="lg"
-      footer={
-        showForm ? (
-          <Button full size="lg" onClick={handlePublish}>
-            Publish sponsorship profile
-          </Button>
-        ) : null
-      }
+      headerAction={role && (
+        <Button
+          size="sm"
+          variant="ghost"
+          className="self-center px-2.5"
+          icon={Repeat}
+          aria-label={`Switch to ${role === 'brand' ? 'organizer' : 'brand'}`}
+          onClick={() => chooseRole(role === 'brand' ? 'organizer' : 'brand')}
+        >
+          <span className="hidden sm:inline">Switch</span>
+        </Button>
+      )}
+      footer={showForm ? (
+        <Button full size="lg" onClick={handlePublish}>
+          Publish sponsorship profile
+        </Button>
+      ) : null}
     >
-      <Tabs
-        className="mb-4"
-        value={activeTab}
-        onChange={setActiveTab}
-        tabs={[
-          { id: 'brands', label: 'For brands', icon: Building2 },
-          { id: 'organizers', label: 'For organizers', icon: GraduationCap }
-        ]}
-      />
-
-      {activeTab === 'organizers' ? (
-        published ? (
-          <OrganizerProfileView profile={profile} photos={photos} registrationLink={registrationLink} onEdit={() => setPublished(false)} />
-        ) : (
-          <OrganizerProfileForm profile={profile} setProfile={setProfile} photos={photos} onPhotosChange={onPhotosChange} registrationLink={registrationLink} onRegistrationLinkChange={onRegistrationLinkChange} />
-        )
+      {!role ? (
+        <RoleChooser onChoose={chooseRole} />
       ) : (
-        <BrandsView />
+        <>
+          <Tabs
+            className="mb-4"
+            value={activeTab}
+            onChange={(t) => { setActiveTab(t); if (t !== 'chats') setActiveThreadId(null); }}
+            tabs={[
+              role === 'brand'
+                ? { id: 'main', label: 'Events', icon: GraduationCap }
+                : { id: 'main', label: 'My event', icon: GraduationCap },
+              { id: 'chats', label: unread ? `Chats (${unread})` : 'Chats', icon: MessagesSquare },
+            ]}
+          />
+
+          {activeTab === 'chats' ? (
+            <SponsorChat
+              threads={threads}
+              activeId={activeThreadId}
+              onOpen={openThread}
+              onBack={() => setActiveThreadId(null)}
+              onSend={sendMessage}
+            />
+          ) : role === 'brand' ? (
+            <BrandsView onInquiry={startInquiry} />
+          ) : published ? (
+            <OrganizerProfileView profile={profile} photos={photos} registrationLink={registrationLink} onEdit={() => setPublished(false)} onInquiry={startInquiry} />
+          ) : (
+            <OrganizerProfileForm profile={profile} setProfile={setProfile} photos={photos} onPhotosChange={onPhotosChange} registrationLink={registrationLink} onRegistrationLinkChange={onRegistrationLinkChange} />
+          )}
+        </>
       )}
     </Sheet>
   );
