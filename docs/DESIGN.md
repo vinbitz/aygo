@@ -56,9 +56,10 @@ Rules: one primary button per view, sticky in the `footer` when it completes the
 
 ## Brand
 - Marks live in `src/assets/brand/` (cut from `public/aygo-wordmark.jpg` and `public/aygo-app-icon.jpg`): `wordmark-blue.png`, `wordmark-white.png`, `icon-192.png`. Use them through `<Logo />` (`variant="wordmark" | "icon"`, `tone="blue" | "white"`).
-- Placements: side menu header, desktop sheet header, "Get the app" card, Pro screen, generated documents, splash screen (`index.html`).
+- In-app placements: side menu header, Pro screen, generated documents. Keep the home sheet and "Get the app" card logo-free.
+- Site icon (browser tab, bookmarks, home screen, search results, link previews): `public/favicon.ico`, `favicon-32.png`, `apple-touch-icon.png`, `icon-192.png`, `icon-512.png`, `site.webmanifest`, plus Open Graph and Organization logo tags in `index.html`. Regenerate them from `public/aygo-app-icon.jpg` if the icon changes.
 - Taglines: use "You Plan. We Connect." and "Make It Aygo." Do not use the banner line "go with the trends."
-- Brand blue `#003CF5` (UI); app icon background `#0060FC` (splash, theme color).
+- Brand blue `#003CF5` (UI); app icon background `#0060FC` (theme color, manifest).
 
 ## Home layout update
 - The sheet holds only the core flow: search, request type + categories, live offers, and the "Get the app" card.

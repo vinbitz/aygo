@@ -24,7 +24,7 @@ import {
 import { PRESET_VENUES } from '../data/mockData';
 import AygoGoogleMap from './AygoGoogleMap';
 import RequestOffers from './RequestOffers';
-import { Sheet, Button, Input, ListRow, Section, Logo, TINTS } from './ui';
+import { Sheet, Button, Input, ListRow, Section, TINTS } from './ui';
 import { CATALOG_CATEGORIES } from '../data/catalog';
 
 const CHIP_ICONS = { Shirt, ShoppingBag, Coffee, Printer, NotebookPen, Cpu, Umbrella, Leaf, Gift, Package, Store, PartyPopper, Megaphone };
@@ -116,12 +116,8 @@ export default function AygoSourcingView({
 
           {/* SECTION 1: Search */}
           <section className="bg-white rounded-[28px] px-4 pt-2.5 pb-4">
-            <div className="flex justify-center pb-3 lg:hidden">
+            <div className="flex justify-center pb-3">
               <div className="w-9 h-1 bg-slate-200 rounded-full" />
-            </div>
-            <div className="hidden lg:flex items-center gap-2 pt-2 pb-3">
-              <Logo variant="icon" className="w-8 h-8" />
-              <Logo className="h-6" />
             </div>
 
             <button
@@ -191,10 +187,8 @@ export default function AygoSourcingView({
           />
 
           {/* SECTION 5: Get the app + international waitlist */}
-          <section className="relative overflow-hidden rounded-[28px] p-4 bg-[#003CF5] text-white">
-            <Logo variant="icon" className="absolute -right-5 -top-5 w-28 h-28 opacity-25 rotate-12" />
-            <Logo tone="white" className="h-6" />
-            <p className="mt-2 text-[17px] font-semibold">Make It Aygo.</p>
+          <section className="rounded-[28px] p-4 bg-[#003CF5] text-white">
+            <p className="text-[17px] font-semibold">Make It Aygo.</p>
             <p className="text-[13px] text-blue-100 mt-0.5">Get offers on the go with the Aygo app.</p>
             <div className="mt-3 flex flex-wrap gap-2">
               <a href="https://aygo.store" target="_blank" rel="noreferrer" className="h-10 px-4 rounded-2xl bg-white text-[#003CF5] text-[14px] font-semibold inline-flex items-center gap-2">

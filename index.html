@@ -5,20 +5,31 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>AYGO — You Plan. We Connect. | Sourcing & Bidding Platform</title>
     <meta name="description" content="Make It Aygo. Sourcing event supplies and services made fast, transparent, and competitive with real-time bidding." />
-    <link rel="icon" type="image/jpeg" href="aygo-app-icon.jpg" />
+    <!-- Site icon for browser tabs, bookmarks, home screens and search results -->
+    <link rel="icon" href="favicon.ico" sizes="48x48" />
+    <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png" />
+    <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png" />
+    <link rel="apple-touch-icon" href="apple-touch-icon.png" />
+    <link rel="manifest" href="site.webmanifest" />
     <meta name="theme-color" content="#0060FC" />
-    <link rel="apple-touch-icon" href="aygo-app-icon.jpg" />
+    <!-- Link previews (Messenger, Facebook, Viber, X) -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Aygo" />
+    <meta property="og:title" content="Aygo | You Plan. We Connect." />
+    <meta property="og:description" content="Tell Aygo what your event needs. Verified makers send their best offers. You choose." />
+    <meta property="og:url" content="https://aygo.store" />
+    <meta property="og:image" content="https://aygo.store/icon-512.png" />
+    <meta name="twitter:card" content="summary" />
+    <!-- Logo for Google search results -->
+    <script type="application/ld+json">
+      {"@context":"https://schema.org","@type":"Organization","name":"Aygo","url":"https://aygo.store","logo":"https://aygo.store/icon-512.png"}
+    </script>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=Syne:wght@600;700;800&display=swap" rel="stylesheet" />
   </head>
   <body class="bg-canvas text-ink-950 antialiased font-sans">
-    <div id="root">
-      <!-- Splash shown until the app mounts -->
-      <div style="position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:#0060FC">
-        <img src="aygo-app-icon.jpg" alt="Aygo" width="112" height="112" style="border-radius:26px" />
-      </div>
-    </div>
+    <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>
