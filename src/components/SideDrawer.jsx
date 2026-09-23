@@ -18,6 +18,9 @@ import {
   Crown,
   ChevronRight,
   Star,
+  Gavel,
+  Truck,
+  UserRound,
 } from 'lucide-react';
 import { toast } from '../lib/toast';
 import { ListRow, Badge, Button, Logo } from './ui';
@@ -67,6 +70,8 @@ export default function SideDrawer({
   onOpenReferral,
   onOpenOnboarding,
   isSupplierMode = false,
+  onOpenMakerTab,
+  makerProfile = null,
   onToggleSupplierMode
 }) {
   const panelRef = useRef(null);
@@ -100,7 +105,9 @@ export default function SideDrawer({
 
   if (!isOpen) return null;
 
-  const initials = `${(userProfile.firstName || 'M').charAt(0)}${(userProfile.lastName || 'B').charAt(0)}`.toUpperCase();
+  const initials = isSupplierMode && makerProfile
+    ? makerProfile.name.split(' ').slice(0, 2).map((w) => w.charAt(0)).join('').toUpperCase()
+    : `${(userProfile.firstName || 'M').charAt(0)}${(userProfile.lastName || 'B').charAt(0)}`.toUpperCase();
 
   // Run a callback (if provided) and close the drawer
   const go = (fn) => () => {
@@ -144,7 +151,7 @@ export default function SideDrawer({
 
           <button
             type="button"
-            onClick={go(onOpenUserProfile)}
+            onClick={go(isSupplierMode ? onOpenSupplierSetup : onOpenUserProfile)}
             className="w-full flex items-center gap-3 p-3 rounded-2xl bg-[#F4F3F0] hover:bg-[#ECEAE5] text-left transition-colors active:scale-[0.99]"
           >
             <span
@@ -159,15 +166,15 @@ export default function SideDrawer({
             </span>
             <span className="flex-1 min-w-0">
               <span className="block text-[17px] font-semibold text-slate-900 truncate">
-                {userProfile.firstName} {userProfile.lastName}
+                {isSupplierMode && makerProfile ? makerProfile.name : `${userProfile.firstName} ${userProfile.lastName}`}
               </span>
               <span className="flex items-center gap-1 text-[13px] text-slate-500 truncate">
                 <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400 shrink-0" />
                 {userProfile.rating || 4.84}
                 <span className="text-slate-300">·</span>
-                <span className="truncate">{userProfile.city || 'Taguig City'}</span>
+                <span className="truncate">{isSupplierMode && makerProfile ? makerProfile.city : userProfile.city || 'Taguig City'}</span>
               </span>
-              <span className="block text-[13px] font-medium text-[#003CF5] mt-0.5">View profile</span>
+              <span className="block text-[13px] font-medium text-[#003CF5] mt-0.5">{isSupplierMode ? 'Edit maker profile' : 'View profile'}</span>
             </span>
             <ChevronRight className="w-4 h-4 text-slate-400 shrink-0" />
           </button>
@@ -181,25 +188,44 @@ export default function SideDrawer({
 
         <div className="flex-1 px-2 py-2 space-y-2">
           {/* Sourcing */}
-          <MenuGroup title="Sourcing">
-            <ListRow icon={MapIcon} tone="blue" title="Home map" subtitle="Find makers near your venue" onClick={onClose} />
-            <ListRow icon={Clock} tone="slate" title="My requests" subtitle="Active bids and past orders" onClick={go(onOpenHistory)} />
-            <ListRow
-              icon={MessageSquare}
-              tone="blue"
-              title="Messages"
-              subtitle="Chat with your makers"
-              onClick={go(onOpenMessages)}
-              trailing={unreadMessages > 0 ? <CountBadge count={unreadMessages} /> : undefined}
-            />
-            <ListRow icon={Users} tone="green" title="Suppliers" subtitle="Browse verified makers" onClick={go(onOpenSuppliers)} />
-            <ListRow icon={CalendarClock} tone="violet" title="Calls & availability" subtitle="Who can call you, and when you're free" onClick={go(onOpenAvailability)} />
-          </MenuGroup>
+          {isSupplierMode ? (
+            <MenuGroup title="Your work">
+              <ListRow icon={MapIcon} tone="blue" title="Requests near you" subtitle="Map of open requests to bid on" onClick={go(() => onOpenMakerTab?.('requests'))} />
+              <ListRow icon={Gavel} tone="violet" title="My bids" subtitle="Pending, countered, won" onClick={go(() => onOpenMakerTab?.('bids'))} />
+              <ListRow icon={Truck} tone="amber" title="Orders & payouts" subtitle="Production steps and released payments" onClick={go(() => onOpenMakerTab?.('orders'))} />
+              <ListRow icon={Store} tone="green" title="Storefront" subtitle="Samples, reviews and your Pro plan" onClick={go(() => onOpenMakerTab?.('store'))} />
+              <ListRow
+                icon={MessageSquare}
+                tone="blue"
+                title="Messages"
+                subtitle="Chat with organizers"
+                onClick={go(onOpenMessages)}
+                trailing={unreadMessages > 0 ? <CountBadge count={unreadMessages} /> : undefined}
+              />
+              <ListRow icon={CalendarClock} tone="violet" title="Calls & availability" subtitle="Who can call you, and when you're free" onClick={go(onOpenAvailability)} />
+            </MenuGroup>
+          ) : (
+            <MenuGroup title="Sourcing">
+              <ListRow icon={MapIcon} tone="blue" title="Home map" subtitle="Find makers near your venue" onClick={onClose} />
+              <ListRow icon={Clock} tone="slate" title="My requests" subtitle="Active bids and past orders" onClick={go(onOpenHistory)} />
+              <ListRow
+                icon={MessageSquare}
+                tone="blue"
+                title="Messages"
+                subtitle="Chat with your makers"
+                onClick={go(onOpenMessages)}
+                trailing={unreadMessages > 0 ? <CountBadge count={unreadMessages} /> : undefined}
+              />
+              <ListRow icon={Users} tone="green" title="Suppliers" subtitle="Browse verified makers" onClick={go(onOpenSuppliers)} />
+              <ListRow icon={CalendarClock} tone="violet" title="Calls & availability" subtitle="Who can call you, and when you're free" onClick={go(onOpenAvailability)} />
+            </MenuGroup>
+          )}
 
           {/* Supplier-only tools */}
           {isSupplierMode && (
             <MenuGroup title="Your workshop">
               <ListRow icon={Building2} tone="violet" title="Maker profile" subtitle="Services, pricing and portfolio" onClick={go(onOpenSupplierSetup)} />
+              <ListRow icon={UserRound} tone="slate" title="Your account" subtitle="Name, contact and password" onClick={go(onOpenUserProfile)} />
               <ListRow
                 icon={UserCheck}
                 tone="amber"
@@ -216,8 +242,8 @@ export default function SideDrawer({
             <ListRow
               icon={Wallet}
               tone="green"
-              title="Wallet"
-              subtitle="Balance & payments"
+              title={isSupplierMode ? 'Earnings' : 'Wallet'}
+              subtitle={isSupplierMode ? 'Payouts and withdrawals' : 'Balance & payments'}
               onClick={go(onOpenBalance)}
               trailing={<span className="text-[13px] font-semibold text-emerald-700 shrink-0">₱15,000</span>}
             />
@@ -225,14 +251,14 @@ export default function SideDrawer({
               icon={Gift}
               tone="rose"
               title="Refer & earn"
-              subtitle="Get ₱500 per partner"
+              subtitle={isSupplierMode ? 'Get ₱500 per maker you invite' : 'Get ₱500 per partner'}
               onClick={go(onOpenReferral)}
             />
             <ListRow
               icon={Bell}
               tone="slate"
               title="Notifications"
-              subtitle="Offers, payments and messages"
+              subtitle={isSupplierMode ? 'New requests, payments and messages' : 'Offers, payments and messages'}
               onClick={go(onOpenMessages)}
               trailing={unreadMessages > 0 ? <CountBadge count={unreadMessages} /> : undefined}
             />
@@ -296,7 +322,7 @@ export default function SideDrawer({
             </span>
             <span className="flex-1 min-w-0">
               <span className="flex items-center gap-1.5 text-[15px] font-semibold text-slate-900">Aygo Pro {isPro ? <Badge tone="violet">Active</Badge> : <Badge tone="blue">3 free tries</Badge>}</span>
-              <span className="block text-[13px] text-slate-500 leading-snug">Your event sourcing workspace</span>
+              <span className="block text-[13px] text-slate-500 leading-snug">{isSupplierMode ? 'Aygo Pro for Suppliers · win more jobs' : 'Your event sourcing workspace'}</span>
             </span>
             <ChevronRight className="w-4 h-4 text-slate-400 shrink-0" />
           </button>

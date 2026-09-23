@@ -46,6 +46,7 @@ export default function App() {
   const [chatIncoming, setChatIncoming] = useState(null);
   const [isSupplierSetupOpen, setIsSupplierSetupOpen] = useState(false);
   const [isSupplierMode, setIsSupplierMode] = useState(false);
+  const [makerTab, setMakerTab] = useState('requests');
   const [isBalanceOpen, setIsBalanceOpen] = useState(false);
   const [isAvailabilityOpen, setIsAvailabilityOpen] = useState(false);
   const [isReferralOpen, setIsReferralOpen] = useState(false);
@@ -231,6 +232,8 @@ export default function App() {
         isSupplierMode={isSupplierMode}
         onOpenSupplierSetup={() => setIsSupplierSetupOpen(true)}
         onToggleSupplierMode={handleToggleSupplierMode}
+        onOpenMakerTab={setMakerTab}
+        makerProfile={SUPPLIERS.find((x) => x.id === 's3')}
       />
 
       {/* Main Minimalist Workspace: Customer Sourcing View VS Dedicated Supplier Portal Hub */}
@@ -239,7 +242,8 @@ export default function App() {
           <Suspense fallback={null}>
             <SupplierPortalView
               onOpenDrawer={() => setIsDrawerOpen(true)}
-              onSwitchToCustomer={() => setIsSupplierMode(false)}
+              activeTab={makerTab}
+              onTabChange={setMakerTab}
               onOpenChatWithCustomer={(party, incoming = null) => openChat(party, incoming)}
               onOpenDocuments={openDocs}
               onOpenPro={() => pro.openPaywall(null, 'maker')}

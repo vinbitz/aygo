@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   Inbox,
   Gavel,
@@ -27,6 +27,7 @@ import {
   CornerDownRight,
   Users,
   Boxes,
+  LayoutList,
   Award,
   FileText,
   Crown
@@ -34,6 +35,7 @@ import {
 import { SUPPLIERS } from '../data/mockData';
 import { MAKER_PRO_PRICE, MAKER_PRO_PERKS, PRO_PLANS } from '../lib/pro';
 import { organizerParty } from '../lib/chatStore';
+import SupplierMap from './SupplierMap';
 import { toast } from '../lib/toast';
 import {
   Sheet,
@@ -63,6 +65,7 @@ const REQUEST_FILTERS = ['All', 'Apparel', 'Event print', 'Drinkware', 'Bags'];
 const INITIAL_REQUESTS = [
   {
     id: 'req-101',
+    pin: { x: 28, y: 34 }, // spot on the map, in percent
     item: 'Custom satin lanyards',
     category: 'Event print',
     organizer: 'BGC Tech Summit',
@@ -78,6 +81,7 @@ const INITIAL_REQUESTS = [
   },
   {
     id: 'req-102',
+    pin: { x: 72, y: 30 }, // spot on the map, in percent
     item: 'Navy dri-fit shirts',
     category: 'Apparel',
     organizer: 'Pinoy Runners Manila',
@@ -93,6 +97,7 @@ const INITIAL_REQUESTS = [
   },
   {
     id: 'req-103',
+    pin: { x: 24, y: 70 }, // spot on the map, in percent
     item: 'Laser-engraved tumblers',
     category: 'Drinkware',
     organizer: 'Fintech Leadership Forum',
@@ -108,6 +113,7 @@ const INITIAL_REQUESTS = [
   },
   {
     id: 'req-104',
+    pin: { x: 76, y: 68 }, // spot on the map, in percent
     item: 'Canvas tote bags',
     category: 'Bags',
     organizer: 'PH Startup Assembly',
@@ -122,6 +128,33 @@ const INITIAL_REQUESTS = [
     specs: '12oz natural canvas, 2-colour silkscreen on one side.'
   }
 ];
+
+// A request that arrives while the maker is looking at the map
+const NEW_REQUEST = {
+  id: 'req-new-1',
+  pin: { x: 52, y: 86 }, // spot on the map, in percent
+  item: 'Canvas tote bags with 1-color print',
+  category: 'Bags',
+  organizer: 'Ateneo Org Fair',
+  qty: 250,
+  budget: 21000,
+  deadline: 'Oct 24',
+  deadlineISO: '2026-10-24',
+  venue: 'Ateneo de Manila, Quezon City',
+  distance: '6.4 km',
+  posted: 'Just now',
+  bidsCount: 0,
+  specs: '12oz natural canvas, 1-color screen print on one side, 38 × 42 cm.'
+};
+
+const VIEW_KEY = 'aygo.makerView';
+const loadView = () => {
+  try {
+    return localStorage.getItem(VIEW_KEY) === 'board' ? 'board' : 'map';
+  } catch {
+    return 'map';
+  }
+};
 
 const INITIAL_BIDS = [
   { id: 'bid-1', requestId: 'req-101', item: 'Custom satin lanyards', organizer: 'BGC Tech Summit', qty: 300, price: 46, days: 4, status: 'Pending', sent: '2 hr ago' },
@@ -184,6 +217,8 @@ const TABS = [
   { id: 'orders', label: 'Orders', icon: Truck },
   { id: 'store', label: 'Storefront', icon: Store }
 ];
+
+const TAB_TITLES = { requests: 'Requests', bids: 'My bids', orders: 'Orders', store: 'Storefront' };
 
 const EMPTY_SAMPLE = { name: '', event: '', price: '', image: '' };
 
@@ -249,18 +284,33 @@ function Meta({ icon: Icon, children }) {
 
 export default function SupplierPortalView({
   onOpenDrawer,
-  onSwitchToCustomer,
+  activeTab: tabProp,
+  onTabChange,
   onOpenChatWithCustomer,
   onOpenMockupStudio,
   onOpenDocuments,
   onOpenPro
 }) {
-  const [activeTab, setActiveTab] = useState('requests');
+  const [innerTab, setInnerTab] = useState('requests');
+  const activeTab = tabProp || innerTab;
+  const setActiveTab = (t) => (onTabChange ? onTabChange(t) : setInnerTab(t));
+  // Requests as a map (like the organizer home) or as a board
+  const [view, setViewState] = useState(loadView);
+  const setView = (v) => {
+    setViewState(v);
+    try {
+      localStorage.setItem(VIEW_KEY, v);
+    } catch {
+      // storage unavailable
+    }
+  };
+  const [selectedReqId, setSelectedReqId] = useState(null);
+  const [incomingId, setIncomingId] = useState(null);
   const [requestFilter, setRequestFilter] = useState('All');
   const [bidFilter, setBidFilter] = useState('all');
 
   const [profile, setProfile] = useState({
-    name: 'JJT Digital & Craft Garments',
+    name: SUPPLIERS.find((s) => s.id === 's3')?.name || 'JJT Digital',
     tagline: 'Sublimation, DTF and silkscreen press in Parañaque',
     contactPerson: 'Joshua Tan',
     phone: '+63 917 143 5890',
@@ -273,6 +323,15 @@ export default function SupplierPortalView({
   const [profileForm, setProfileForm] = useState(null);
 
   const [requests, setRequests] = useState(INITIAL_REQUESTS);
+
+  // Demo: a new request pops up a few seconds after opening
+  useEffect(() => {
+    const t = setTimeout(() => {
+      setRequests((prev) => (prev.some((r) => r.id === NEW_REQUEST.id) ? prev : [NEW_REQUEST, ...prev]));
+      setIncomingId(NEW_REQUEST.id);
+    }, 6000);
+    return () => clearTimeout(t);
+  }, []);
   const [bids, setBids] = useState(INITIAL_BIDS);
   const [orders, setOrders] = useState(INITIAL_ORDERS);
   const [samples, setSamples] = useState(INITIAL_SAMPLES);
@@ -913,6 +972,37 @@ export default function SupplierPortalView({
   );
 
   const content = { requests: requestsTab, bids: bidsTab, orders: ordersTab, store: storeTab }[activeTab];
+  const mapMode = activeTab === 'requests' && view === 'map';
+
+  const menuButton = (
+    <button
+      type="button"
+      onClick={onOpenDrawer}
+      aria-label="Open menu"
+      title="Open Menu"
+      className="relative w-11 h-11 rounded-full bg-white shadow-lg border border-slate-200/90 flex flex-col items-center justify-center gap-1 shrink-0 hover:bg-slate-50 transition-colors active:scale-95"
+    >
+      <span className="w-4 h-0.5 bg-slate-900 rounded-full" />
+      <span className="w-4 h-0.5 bg-slate-900 rounded-full" />
+      <span className="w-4 h-0.5 bg-slate-900 rounded-full" />
+    </button>
+  );
+
+  const viewSwitch = (
+    <div role="group" aria-label="Show requests as" className="flex rounded-full bg-white shadow-lg border border-slate-200/90 p-1">
+      {[{ id: 'map', label: 'Map', icon: MapPin }, { id: 'board', label: 'Board', icon: LayoutList }].map(({ id, label, icon: Icon }) => (
+        <button
+          key={id}
+          type="button"
+          aria-pressed={view === id}
+          onClick={() => setView(id)}
+          className={cx('h-9 px-3 rounded-full inline-flex items-center gap-1.5 text-[13px] font-semibold transition-colors', view === id ? 'bg-[#003CF5] text-white' : 'text-slate-700 hover:bg-[#F4F3F0]')}
+        >
+          <Icon className="w-4 h-4" /> {label}
+        </button>
+      ))}
+    </div>
+  );
   const badgeFor = { requests: requests.length, bids: pendingCount, orders: activeOrders };
 
   /* ------------------------------------------------------------------ */
@@ -921,30 +1011,54 @@ export default function SupplierPortalView({
 
   return (
     <div className="min-h-screen bg-[#F2F1ED] font-sans text-slate-900 selection:bg-[#003CF5] selection:text-white">
-      {/* Header */}
-      <header className="sticky top-0 z-30 bg-white/95 backdrop-blur border-b border-slate-100">
-        <div className="desk-zoom max-w-6xl mx-auto h-16 px-4 sm:px-6 flex items-center gap-3">
-          <button
-            type="button"
-            onClick={onOpenDrawer}
-            aria-label="Open menu"
-            className="w-11 h-11 rounded-full bg-[#F4F3F0] hover:bg-[#ECEAE5] flex flex-col items-center justify-center gap-1 shrink-0 transition-colors active:scale-95"
-          >
-            <span className="w-4 h-0.5 bg-slate-900 rounded-full" />
-            <span className="w-4 h-0.5 bg-slate-900 rounded-full" />
-            <span className="w-4 h-0.5 bg-slate-900 rounded-full" />
-          </button>
-          <div className="flex-1 min-w-0">
-            <p className="text-[13px] text-slate-500 leading-tight">Supplier mode</p>
-            <p className="text-[15px] font-semibold text-slate-900 truncate leading-tight">{profile.name}</p>
+      {/* Top bar: menu, and on Requests the Map / Board switch */}
+      {!mapMode && (
+        <header className="sticky top-0 z-30 bg-[#F2F1ED]/95 backdrop-blur">
+          <div className="desk-zoom max-w-6xl mx-auto h-16 px-4 sm:px-6 flex items-center gap-3">
+            {menuButton}
+            <h1 className="flex-1 min-w-0 text-[19px] font-semibold text-slate-900 tracking-tight truncate">{TAB_TITLES[activeTab]}</h1>
+            {activeTab === 'requests' && viewSwitch}
           </div>
-          <Button variant="outline" icon={ArrowLeftRight} onClick={() => onSwitchToCustomer?.()} aria-label="Switch to organizer">
-            <span className="hidden sm:inline">Switch to organizer</span>
-            <span className="sm:hidden">Organizer</span>
-          </Button>
-        </div>
-      </header>
+        </header>
+      )}
 
+      {mapMode && (
+        <SupplierMap
+          requests={requests}
+          bidByRequest={bidByRequest}
+          selectedId={selectedReqId}
+          onSelect={(id) => {
+            setSelectedReqId(id);
+            if (id === incomingId) setIncomingId(null);
+          }}
+          incomingId={incomingId}
+          onDismissIncoming={() => setIncomingId(null)}
+          onBid={openBid}
+          onAsk={organizerChat}
+          workshopName={profile.name}
+          topBar={
+            <div className="desk-zoom absolute top-3 left-3 right-3 sm:top-4 sm:left-4 sm:right-4 z-30 flex items-center gap-2 pointer-events-none">
+              <span className="pointer-events-auto">{menuButton}</span>
+              <nav aria-label="Supplier sections" className="hidden lg:flex ml-[460px] 2xl:ml-[520px] gap-1 rounded-full bg-white/95 shadow-lg border border-slate-200/90 p-1 pointer-events-auto">
+                {TABS.map(({ id, label }) => (
+                  <button
+                    key={id}
+                    type="button"
+                    onClick={() => setActiveTab(id)}
+                    className={cx('h-9 px-3.5 rounded-full text-[13px] font-semibold', activeTab === id ? 'bg-slate-900 text-white' : 'text-slate-700 hover:bg-[#F4F3F0]')}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </nav>
+              <span className="flex-1" />
+              <span className="pointer-events-auto">{viewSwitch}</span>
+            </div>
+          }
+        />
+      )}
+
+      {!mapMode && (
       <div className="desk-zoom max-w-6xl mx-auto lg:px-6 lg:py-6 lg:grid lg:grid-cols-[280px_minmax(0,1fr)] lg:gap-6">
         {/* Desktop sidebar */}
         <aside className="hidden lg:block">
@@ -988,6 +1102,7 @@ export default function SupplierPortalView({
         {/* Main content */}
         <main className="pt-2 pb-28 lg:py-0 max-w-2xl lg:max-w-none w-full mx-auto lg:mx-0">{content}</main>
       </div>
+      )}
 
       {/* Mobile bottom tab bar */}
       <nav
