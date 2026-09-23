@@ -71,6 +71,22 @@ function findBid(supplierId) {
   return null;
 }
 
+/** Maps a marketplace offer ({ bid, request }) to the fields this screen displays */
+function toLegacyOffer({ bid, request }) {
+  const qty = request.quantity || 1;
+  return {
+    request: { ...request, targetPricePerUnit: request.targetBudget / qty },
+    bid: {
+      ...bid,
+      totalPrice: bid.total,
+      leadTime: `${bid.leadDays} business days`,
+      committedDelivery: new Date(bid.deliveryDate).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }),
+      status: bid.status === 'accepted' ? 'Accepted' : bid.status === 'countered' ? 'Counter-offer sent' : 'Waiting for your decision',
+      inclusions: Array.isArray(bid.inclusions) ? bid.inclusions.join(' · ') : bid.inclusions,
+    },
+  };
+}
+
 /** Next three weekdays, formatted for the call slot picker */
 function upcomingDays() {
   const days = [];
@@ -120,7 +136,8 @@ export default function SupplierProfileModal({
   onClose,
   onAcceptBid,
   onOpenChat,
-  onOpenSupplierSetup
+  onOpenSupplierSetup,
+  liveOffer
 }) {
   const [activeTab, setActiveTab] = useState('about');
   const [counterPrice, setCounterPrice] = useState('');
@@ -140,7 +157,8 @@ export default function SupplierProfileModal({
   const serviceAreas =
     supplier.serviceAreas || [...new Set(['Metro Manila', supplier.city, 'Nearby provinces'].filter(Boolean))];
   const socials = supplier.socials || {};
-  const bidMatch = findBid(supplier.id);
+  // Prefer this maker's live offer on the organizer's active request, else sample data
+  const bidMatch = liveOffer ? toLegacyOffer(liveOffer) : findBid(supplier.id);
   const bid = bidMatch?.bid;
   const request = bidMatch?.request;
   const callDays = upcomingDays();

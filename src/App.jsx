@@ -49,6 +49,7 @@ export default function App() {
   const [isCompareOpen, setIsCompareOpen] = useState(false);
   const [isWaitlistOpen, setIsWaitlistOpen] = useState(false);
   const [isWorkspaceOpen, setIsWorkspaceOpen] = useState(false);
+  const [setupSupplier, setSetupSupplier] = useState(null);
 
   // Requests, live offers, counter-offers and bookings
   const market = useMarketplace({
@@ -197,13 +198,18 @@ export default function App() {
       {selectedSupplier && (
         <SupplierProfileModal
           supplier={selectedSupplier}
+          liveOffer={(() => {
+            const bid = market.activeRequest?.bids.find((b) => b.supplierId === selectedSupplier.id);
+            return bid ? { bid, request: market.activeRequest } : null;
+          })()}
           onClose={() => setSelectedSupplier(null)}
           onAcceptBid={handleAcceptBid}
           onOpenChat={(supplier) => {
             setChatSupplier(supplier);
             setIsMessagesOpen(true);
           }}
-          onOpenSupplierSetup={() => {
+          onOpenSupplierSetup={(supplier) => {
+            setSetupSupplier(supplier || selectedSupplier);
             setIsSupplierSetupOpen(true);
           }}
         />
@@ -225,8 +231,8 @@ export default function App() {
       {isSupplierSetupOpen && (
         <SupplierProfileSetupModal
           isOpen={isSupplierSetupOpen}
-          onClose={() => setIsSupplierSetupOpen(false)}
-          initialSupplier={selectedSupplier || chatSupplier}
+          onClose={() => { setIsSupplierSetupOpen(false); setSetupSupplier(null); }}
+          initialSupplier={setupSupplier || selectedSupplier || chatSupplier}
           onSaveProfile={(updatedProfile) => {
             setSelectedSupplier(updatedProfile);
           }}
