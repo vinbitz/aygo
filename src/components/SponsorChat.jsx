@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { ChevronLeft, Send, Building2, GraduationCap, MessagesSquare, ShieldCheck, Phone, Crown, Gift, CreditCard, CheckCheck, FolderUp, CalendarClock } from 'lucide-react';
+import { ChevronLeft, Send, Building2, GraduationCap, MessagesSquare, ShieldCheck, Phone, Crown, Gift, CreditCard, CheckCheck, FolderUp, CalendarClock, FileText } from 'lucide-react';
 import { Input, EmptyState, Button, Chip, cx } from './ui';
 import { maskContactInfo } from '../lib/contactGuard';
 import { toast } from '../lib/toast';
@@ -7,6 +7,9 @@ import { canCall } from '../lib/pro';
 import { packageAmount, SPONSOR_PAY_METHODS } from '../lib/sponsorDeals';
 import { FileRequestCard, BrandFilesCard } from './BrandFiles';
 import { SchedulePanel, MeetingCard } from './ScheduleCall';
+import { ProChip, DocumentPicker, DocumentCard } from './ChatTools';
+import { SPONSOR_DOCS } from '../lib/chatDocs';
+import { usePro } from '../state/pro';
 import { peso } from '../lib/marketplace';
 
 /**
@@ -77,10 +80,12 @@ function SelectionCard({ m, canPay, onPay }) {
   );
 }
 
-export default function SponsorChat({ threads, activeId, onOpen, onBack, onSend, onCall, viewerIsPro, onChoosePackage, onPayPackage, onSendPackages, onRequestFiles, onSendFiles, brandKit, onBookCall }) {
+export default function SponsorChat({ threads, activeId, onOpen, onBack, onSend, onCall, viewerIsPro, onChoosePackage, onPayPackage, onSendPackages, onRequestFiles, onSendFiles, brandKit, onBookCall, onSendDocument }) {
   const active = threads.find((t) => t.id === activeId);
   const [draft, setDraft] = useState('');
   const [scheduling, setScheduling] = useState(false);
+  const [pickingDoc, setPickingDoc] = useState(false);
+  const pro = usePro();
   const endRef = useRef(null);
 
   useEffect(() => {
@@ -202,6 +207,7 @@ export default function SponsorChat({ threads, activeId, onOpen, onBack, onSend,
               />
             )}
             {m.type === 'brand_files' && <BrandFilesCard m={m} />}
+            {m.type === 'document' && <DocumentCard doc={m.doc} />}
             {m.type === 'meeting' && (
               <MeetingCard
                 meeting={m.meeting}
@@ -221,6 +227,9 @@ export default function SponsorChat({ threads, activeId, onOpen, onBack, onSend,
 
       {(onSendPackages || onRequestFiles || onBookCall) && (
         <div className="px-3 pt-2 flex gap-2 overflow-x-auto no-scrollbar">
+          {onSendDocument && (
+            <ProChip feature="documents" icon={FileText} gateOnClick={false} onClick={() => setPickingDoc(true)}>Documents</ProChip>
+          )}
           {onBookCall && <Chip icon={CalendarClock} onClick={() => setScheduling(true)}>Book a call</Chip>}
           {onSendPackages && <Chip icon={Gift} onClick={() => onSendPackages(active.id)}>Send our packages</Chip>}
           {onRequestFiles && <Chip icon={FolderUp} onClick={() => onRequestFiles(active.id)}>Request brand files</Chip>}
@@ -246,6 +255,17 @@ export default function SponsorChat({ threads, activeId, onOpen, onBack, onSend,
         </button>
       </div>
 
+      {pickingDoc && (
+        <DocumentPicker
+          docs={SPONSOR_DOCS}
+          subtitle={`For ${active.name}`}
+          onClose={() => setPickingDoc(false)}
+          onPick={(d) => pro.gate('documents', () => {
+            setPickingDoc(false);
+            onSendDocument(active.id, { name: `${d.name} — ${active.name}.pdf`, meta: d.meta });
+          })}
+        />
+      )}
       {scheduling && (
         <SchedulePanel
           name={active.name}

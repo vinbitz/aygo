@@ -21,7 +21,8 @@ import {
   PhoneCall,
   Crown,
   X,
-  CalendarClock
+  CalendarClock,
+  Sparkles
 } from 'lucide-react';
 import { SUPPLIERS } from '../data/mockData';
 import { toast } from '../lib/toast';
@@ -33,6 +34,8 @@ import { canCall } from '../lib/pro';
 import CallScreen from './CallScreen';
 import { callLength } from '../lib/calls';
 import { SchedulePanel, MeetingCard } from './ScheduleCall';
+import { ProChip, DocumentPicker } from './ChatTools';
+import { ORDER_DOCS } from '../lib/chatDocs';
 import { Sheet, Button, Chip, VerifiedBadge, Badge, IconCircle, cx, inputClass } from './ui';
 
 const ME_NAME = 'Marvin (Organizer)';
@@ -503,6 +506,7 @@ export default function AygoMessagingModal({
   const [payFull, setPayFull] = useState(false);
   const [inCall, setInCall] = useState(null); // null, or { video }
   const [showSchedule, setShowSchedule] = useState(false);
+  const [showDocs, setShowDocs] = useState(false);
   // Package a maker just sent from their portal
   const [trackedPackageId, setTrackedPackageId] = useState(null);
 
@@ -616,7 +620,7 @@ export default function AygoMessagingModal({
       mockupData: {
         title: activeItem?.title || 'Satin event lanyard',
         spec: activeItem?.specs || 'Full-color sublimation · 2-sided · metal hook',
-        status: 'Shared from Studio'
+        status: 'AI mockup'
       }
     });
   };
@@ -637,8 +641,19 @@ export default function AygoMessagingModal({
     });
   };
 
+  // Pro tools: free users get 3 tries of each, then the Go Pro screen
+  const sendAiMockup = () => pro.gate('mockup', handleSendActiveMockup);
+
+  const sendDocument = (d) =>
+    pro.gate('documents', () => {
+      handleSendMessage(`Here is the ${d.name.toLowerCase()}.`, 'document', {
+        docData: { name: `${d.name} — ${request.item}.pdf`, meta: `${d.meta} · Made with Aygo` }
+      });
+      setShowDocs(false);
+    });
+
   const handleAttach = (id) => {
-    if (id === 'mockup') return handleSendActiveMockup();
+    if (id === 'mockup') return sendAiMockup();
     if (id === 'location') return handleSendDeliveryPlace();
     if (id === 'photo') {
       return handleSendMessage('Reference photo for the print colors.', 'image', {
@@ -656,9 +671,8 @@ export default function AygoMessagingModal({
       });
     }
     if (id === 'document') {
-      return handleSendMessage('Sharing our RFQ for this request.', 'document', {
-        docData: { name: 'RFQ — ' + request.item + '.pdf', meta: 'Request for quotation · 1 page' }
-      });
+      setShowAttachMenu(false);
+      return setShowDocs(true);
     }
   };
 
@@ -940,7 +954,8 @@ export default function AygoMessagingModal({
           {/* Composer */}
           <div className="border-t border-slate-100 bg-white px-3 sm:px-4 pt-2.5 pb-[max(12px,env(safe-area-inset-bottom))] space-y-2.5">
             <div className={cx('gap-2 overflow-x-auto no-scrollbar -mx-1 px-1', showAttachMenu ? 'hidden' : 'flex')}>
-              <Chip icon={Package} onClick={handleSendActiveMockup}>Share mockup</Chip>
+              <ProChip feature="documents" icon={FileText} gateOnClick={false} onClick={() => setShowDocs(true)}>Documents</ProChip>
+              <ProChip feature="mockup" icon={Sparkles} onClick={handleSendActiveMockup}>AI mockup</ProChip>
               <Chip icon={CalendarClock} onClick={() => setShowSchedule(true)}>Book a call</Chip>
               <Chip icon={Wallet} selected={showCounterBox} onClick={() => setShowCounterBox((v) => !v)}>Counter-offer</Chip>
               <Chip icon={MapPin} onClick={handleSendDeliveryPlace}>Send venue</Chip>
@@ -1018,6 +1033,14 @@ export default function AygoMessagingModal({
           </>
           )}
 
+          {showDocs && (
+            <DocumentPicker
+              docs={ORDER_DOCS}
+              subtitle={`For ${request.item} · ${currentSupplier.shortName || currentSupplier.name}`}
+              onPick={sendDocument}
+              onClose={() => setShowDocs(false)}
+            />
+          )}
           {showSchedule && (
             <SchedulePanel name={currentSupplier.name} onClose={() => setShowSchedule(false)} onBook={bookCall} />
           )}

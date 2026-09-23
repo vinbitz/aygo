@@ -25,7 +25,7 @@ import {
 } from 'lucide-react';
 import { toast } from '../lib/toast';
 import { Sheet, Button, Field, Input, Select, Badge, IconCircle, Panel, cx } from './ui';
-import { MAKER_PERKS } from '../lib/pro';
+import { MAKER_PERKS, MAKER_PRO_PRICE } from '../lib/pro';
 
 const PERK_ICONS = { documents: FileText, calls: Phone };
 
@@ -144,8 +144,10 @@ const PLANS = [
   {
     id: 'pro',
     name: 'Aygo Pro',
-    price: '₱999',
-    period: 'per month',
+    price: `₱${MAKER_PRO_PRICE.firstMonth.toLocaleString('en-PH')}`,
+    regular: `₱${MAKER_PRO_PRICE.monthly.toLocaleString('en-PH')}`,
+    period: 'first month',
+    terms: `Then ₱${MAKER_PRO_PRICE.monthly.toLocaleString('en-PH')}/month after your first month. Cancel anytime.`,
     perks: [
       'Unlimited listings',
       'Priority placement in search and bids',
@@ -551,8 +553,15 @@ export default function SupplierOnboardingModal({
                       {isPro && <Badge tone="violet" icon={Crown}>Recommended</Badge>}
                     </span>
                     <span className="block mt-0.5 text-[13px] text-slate-500">
+                      {p.regular && <span className="mr-1.5 text-[15px] text-slate-400 line-through">{p.regular}</span>}
                       <span className="text-[19px] font-semibold text-slate-900">{p.price}</span> {p.period}
                     </span>
+                    {p.regular && (
+                      <span className="mt-1.5 inline-flex rounded-full bg-emerald-50 px-2.5 py-0.5 text-[12px] font-semibold text-emerald-700">
+                        Save ₱{(MAKER_PRO_PRICE.monthly - MAKER_PRO_PRICE.firstMonth).toLocaleString('en-PH')} on your first month
+                      </span>
+                    )}
+                    {p.terms && <span className="block mt-1 text-[12.5px] text-slate-500">{p.terms}</span>}
                   </span>
                   <span
                     className={cx(
@@ -574,7 +583,7 @@ export default function SupplierOnboardingModal({
               </button>
             );
           })}
-          <p className="text-[13px] text-slate-500 text-center">Pro is billed after you are verified. Cancel any time.</p>
+          <p className="text-[13px] text-slate-500 text-center">Pro is billed after you are verified. Cancel anytime.</p>
         </div>
       )}
 
@@ -589,7 +598,7 @@ export default function SupplierOnboardingModal({
             <ReviewRow label="Location" value={address || city || '—'} />
             <ReviewRow label="Capacity · MOQ" value={`${dailyCapacity || '—'} · ${minOrder || '—'} pcs`} />
             <ReviewRow label="Documents" value={`${docsUploaded} of ${BUSINESS_DOCS.length + 1} uploaded`} />
-            <ReviewRow label="Plan" value={plan === 'pro' ? 'Aygo Pro' : 'Free'} />
+            <ReviewRow label="Plan" value={plan === 'pro' ? `Aygo Pro · ₱${MAKER_PRO_PRICE.firstMonth.toLocaleString('en-PH')} first month` : 'Free'} />
           </Panel>
 
           <MakerPerksNote />

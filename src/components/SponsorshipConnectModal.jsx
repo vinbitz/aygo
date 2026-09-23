@@ -688,6 +688,12 @@ export default function SponsorshipConnectModal({ onClose, photos, onPhotosChang
     setCall({ target, video: Boolean(target.video) });
   };
 
+  const sendDocument = (threadId, doc) => {
+    const msg = { id: `d${Date.now()}`, from: 'me', type: 'document', text: `Here is the ${doc.name.split(' — ')[0].toLowerCase()}.`, doc, time: chatTime() };
+    updateThreads((list) => list.map((t) => (t.id === threadId ? { ...t, messages: [...t.messages, msg] } : t)));
+    replyLater(threadId, 'Thanks, got the document. We will review and sign it here.');
+  };
+
   const bookCall = (threadId, meeting) => {
     const msg = { id: `k${Date.now()}`, from: 'me', type: 'meeting', text: 'Booked a call so we can go over the setup.', meeting, time: chatTime() };
     updateThreads((list) => list.map((t) => (t.id === threadId ? { ...t, messages: [...t.messages, msg] } : t)));
@@ -998,6 +1004,7 @@ export default function SponsorshipConnectModal({ onClose, photos, onPhotosChang
               onSendFiles={role === 'brand' ? sendFiles : undefined}
               brandKit={brand}
               onBookCall={bookCall}
+              onSendDocument={sendDocument}
             />
           ) : role === 'brand' ? (
             brandDraft ? (

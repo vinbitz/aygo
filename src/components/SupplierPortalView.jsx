@@ -29,6 +29,7 @@ import {
   Boxes
 } from 'lucide-react';
 import { SUPPLIERS } from '../data/mockData';
+import { MAKER_PRO_PRICE } from '../lib/pro';
 import { toast } from '../lib/toast';
 import {
   Sheet,
@@ -668,8 +669,15 @@ export default function SupplierPortalView({
         <IconCircle icon={Sparkles} tone="blue" size="lg" />
         <div className="min-w-0">
           <h2 className="text-[19px] font-semibold text-slate-900 tracking-tight leading-tight">Aygo Pro</h2>
-          <p className="text-[13px] text-slate-500">Win more jobs · from ₱1,490/month</p>
+          <p className="text-[13px] text-slate-500">Win more jobs</p>
         </div>
+      </div>
+      <div className="mt-3 rounded-2xl bg-emerald-50 px-4 py-3">
+        <p className="text-[15px] text-emerald-900">
+          <span className="text-[19px] font-semibold">₱{MAKER_PRO_PRICE.firstMonth.toLocaleString('en-PH')}</span> first month
+          <span className="ml-2 text-slate-400 line-through">₱{MAKER_PRO_PRICE.monthly.toLocaleString('en-PH')}</span>
+        </p>
+        <p className="text-[12.5px] text-emerald-800/80">Then ₱{MAKER_PRO_PRICE.monthly.toLocaleString('en-PH')}/month. Cancel anytime.</p>
       </div>
       <div className="mt-2 divide-y divide-slate-100">
         {PRO_PERKS.map((p) => (

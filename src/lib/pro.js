@@ -35,3 +35,6 @@ export const MAKER_PERKS = [
     text: 'Want to sponsor events with your brand? Join as a brand and call organizers, even without Pro.',
   },
 ];
+
+// Aygo Pro for makers: intro price for the first month, then the regular monthly price
+export const MAKER_PRO_PRICE = { firstMonth: 999, monthly: 1500 };
