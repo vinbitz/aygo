@@ -1,6 +1,7 @@
 import React from 'react';
 import { MapPin, Clock, Users, Gavel, MessageSquare, Pencil, Check, Sparkles, X, Factory } from 'lucide-react';
 import { Button, Badge, cx } from './ui';
+import PanelWidthSlider from './PanelWidthSlider';
 
 const peso = (n) => `₱${Number(n || 0).toLocaleString('en-PH', { maximumFractionDigits: 0 })}`;
 const short = (n) => (n >= 1000 ? `₱${Math.round(n / 100) / 10}k` : peso(n));
@@ -101,7 +102,7 @@ export default function SupplierMap({
   return (
     <div className="relative h-[100dvh] w-full overflow-hidden bg-[#E5ECF6]">
       {/* Map with request pins (the top part on phones, beside the panel on desktop) */}
-      <div className="absolute inset-x-0 top-0 h-[46vh] lg:h-auto lg:inset-y-0 lg:left-[500px] 2xl:left-[560px] lg:right-0">
+      <div className="absolute inset-x-0 top-0 h-[46vh] lg:h-auto lg:inset-y-0 lg:left-[calc(var(--panel-w)+40px)] lg:right-0">
         <MapBackdrop />
         <div className="desk-zoom absolute inset-0">
           {/* Workshop */}
@@ -150,7 +151,7 @@ export default function SupplierMap({
       {topBar}
 
       {/* Sheet over the map on phones, floating panel on desktop */}
-      <div className="absolute inset-0 z-20 overflow-y-auto no-scrollbar overscroll-contain pointer-events-none lg:inset-auto lg:top-24 lg:bottom-5 lg:left-7 lg:w-[460px] 2xl:top-28 2xl:w-[520px] lg:rounded-[32px]">
+      <div className="absolute inset-0 z-20 overflow-y-auto no-scrollbar overscroll-contain pointer-events-none lg:inset-auto lg:top-24 lg:bottom-5 lg:left-7 lg:w-[var(--panel-w)] 2xl:top-28 lg:rounded-[32px]">
         <div className="h-[42vh] lg:hidden" />
         <div className={cx(
           'desk-zoom pointer-events-auto rounded-t-[28px] lg:rounded-[32px] min-h-[58vh] lg:min-h-0 pt-2.5 pb-28 lg:pb-5 shadow-[0_-8px_30px_rgba(15,23,42,0.08)] space-y-3',
@@ -159,6 +160,7 @@ export default function SupplierMap({
           <div className="flex justify-center lg:hidden">
             <div className="w-9 h-1 bg-slate-200 rounded-full" />
           </div>
+          <PanelWidthSlider />
 
           {incoming && incoming.id !== selectedId && (
             <button

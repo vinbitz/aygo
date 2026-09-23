@@ -25,6 +25,7 @@ import {
 import { PRESET_VENUES } from '../data/mockData';
 import AygoGoogleMap from './AygoGoogleMap';
 import RequestOffers from './RequestOffers';
+import PanelWidthSlider from './PanelWidthSlider';
 import { Sheet, Button, Input, ListRow, Section, Logo, TINTS } from './ui';
 import { CATALOG_CATEGORIES } from '../data/catalog';
 
@@ -114,11 +115,12 @@ export default function AygoSourcingView({
       </div>
 
       {/* 2. BOTTOM SHEET: scrolls up over the map on mobile, floating panel on desktop */}
-      <div className="absolute inset-0 z-30 overflow-y-auto no-scrollbar overscroll-contain pointer-events-none lg:inset-auto lg:top-24 lg:bottom-5 lg:left-7 lg:w-[460px] 2xl:top-28 2xl:w-[520px] lg:rounded-[32px]">
+      <div className="absolute inset-0 z-30 overflow-y-auto no-scrollbar overscroll-contain pointer-events-none lg:inset-auto lg:top-24 lg:bottom-5 lg:left-7 lg:w-[var(--panel-w)] 2xl:top-28 lg:rounded-[32px]">
         {/* Map peek area on mobile (touches pass through to the map) */}
         <div className="h-[42vh] lg:hidden" />
 
         <div className="desk-zoom pointer-events-auto min-h-[58vh] lg:min-h-0 bg-[#F2F1ED] rounded-t-[28px] lg:rounded-[28px] shadow-[0_-8px_30px_rgba(15,23,42,0.12)] lg:shadow-2xl space-y-2 pb-6 lg:pb-2">
+          <div className="hidden lg:block px-2 pt-2"><PanelWidthSlider /></div>
 
           {/* SECTION 1: Search */}
           <section className="bg-white rounded-[28px] px-4 pt-2.5 pb-4">

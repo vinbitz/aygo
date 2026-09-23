@@ -1042,7 +1042,7 @@ export default function SupplierPortalView({
           topBar={
             <div className="desk-zoom absolute top-3 left-3 right-3 sm:top-4 sm:left-4 sm:right-4 z-30 flex items-center gap-2 pointer-events-none">
               <span className="pointer-events-auto">{menuButton}</span>
-              <nav aria-label="Supplier sections" className="hidden lg:flex ml-[460px] 2xl:ml-[520px] gap-1 rounded-full bg-white/95 shadow-lg border border-slate-200/90 p-1 pointer-events-auto">
+              <nav aria-label="Supplier sections" className="hidden lg:flex ml-[calc(var(--panel-w)/var(--dz)-20px)] gap-1 rounded-full bg-white/95 shadow-lg border border-slate-200/90 p-1 pointer-events-auto">
                 {TABS.map(({ id, label }) => (
                   <button
                     key={id}

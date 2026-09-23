@@ -46,7 +46,8 @@
 
 /* Desktop: scale the whole interface up so it isn't tiny on laptops and monitors.
    Phones are untouched. --dz is used to keep viewport-based heights inside the screen. */
-:root { --dz: 1; }
+:root { --dz: 1; --panel-w: 460px; }
+@media (min-width: 1536px) { :root { --panel-w: 520px; } }
 @media (min-width: 1024px) { :root { --dz: 1.15; } }
 @media (min-width: 1280px) { :root { --dz: 1.25; } }
 @media (min-width: 1536px) { :root { --dz: 1.35; } }
