@@ -247,6 +247,10 @@ export default function App() {
           activeVenue={activeVenue}
           activeItem={activeItem}
           onAcceptBid={handleAcceptBid}
+          onViewSupplier={(supplier) => {
+            setIsMessagesOpen(false);
+            setSelectedSupplier(supplier);
+          }}
         />
       )}
 

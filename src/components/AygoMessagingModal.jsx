@@ -6,6 +6,7 @@ import {
   Image as ImageIcon,
   CheckCheck,
   ChevronLeft,
+  ChevronDown,
   Phone,
   Search,
   FileText,
@@ -17,6 +18,7 @@ import {
 } from 'lucide-react';
 import { SUPPLIERS } from '../data/mockData';
 import { toast } from '../lib/toast';
+import SupplierDetailsPanel from './SupplierDetailsPanel';
 import { Sheet, Button, Chip, VerifiedBadge, Badge, IconCircle, cx, inputClass } from './ui';
 
 const ME_NAME = 'Marvin (Organizer)';
@@ -356,7 +358,8 @@ export default function AygoMessagingModal({
   initialSupplier = null,
   activeVenue = null,
   activeItem = null,
-  onAcceptBid = null
+  onAcceptBid = null,
+  onViewSupplier = null
 }) {
   const [conversations, setConversations] = useState(INITIAL_CONVERSATIONS);
   const [activeSupplierId, setActiveSupplierId] = useState(initialSupplier?.id || 's3');
@@ -367,6 +370,8 @@ export default function AygoMessagingModal({
   const [counterPriceInput, setCounterPriceInput] = useState('');
   const [showCounterBox, setShowCounterBox] = useState(false);
   const [showAttachMenu, setShowAttachMenu] = useState(false);
+  // Maker details panel, opened by tapping the maker's name in the thread header
+  const [showDetails, setShowDetails] = useState(false);
 
   const scrollRef = useRef(null);
 
@@ -414,6 +419,7 @@ export default function AygoMessagingModal({
 
   const openThread = (id) => {
     setActiveSupplierId(id);
+    setShowDetails(false);
     setMobileView('thread');
     setShowAttachMenu(false);
     setShowCounterBox(false);
@@ -604,16 +610,25 @@ export default function AygoMessagingModal({
             >
               <ChevronLeft className="w-5 h-5" />
             </button>
-            <Avatar supplier={currentSupplier} size="sm" />
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-1.5 min-w-0">
-                <span className="text-[15px] font-semibold text-slate-900 truncate">{currentSupplier.name}</span>
-                <VerifiedBadge className="shrink-0" />
-              </div>
-              <p className="text-[13px] text-slate-500 truncate">
-                {currentSupplier.contactPerson} · <span className="text-emerald-600">Online</span>
-              </p>
-            </div>
+            <button
+              type="button"
+              onClick={() => setShowDetails((v) => !v)}
+              aria-expanded={showDetails}
+              aria-label={`${showDetails ? 'Hide' : 'Show'} details for ${currentSupplier.name}`}
+              className="flex-1 min-w-0 flex items-center gap-2 text-left rounded-2xl -my-1 py-1 pr-2 hover:bg-[#F4F3F0] transition-colors"
+            >
+              <Avatar supplier={currentSupplier} size="sm" />
+              <span className="flex-1 min-w-0">
+                <span className="flex items-center gap-1.5 min-w-0">
+                  <span className="text-[15px] font-semibold text-slate-900 truncate">{currentSupplier.name}</span>
+                  <VerifiedBadge className="shrink-0" />
+                </span>
+                <span className="block text-[13px] text-slate-500 truncate">
+                  {showDetails ? 'Tap to go back to chat' : <><span className="text-emerald-600">Online</span> · <span className="text-[#003CF5] font-medium">Details</span> · {currentSupplier.contactPerson}</>}
+                </span>
+              </span>
+              <ChevronDown className={cx('w-4 h-4 text-slate-400 shrink-0 transition-transform', showDetails && 'rotate-180')} />
+            </button>
             <button
               type="button"
               onClick={() => toast('Calls are coming soon')}
@@ -624,6 +639,14 @@ export default function AygoMessagingModal({
             </button>
           </div>
 
+          {showDetails ? (
+            <SupplierDetailsPanel
+              supplier={SUPPLIERS.find((x) => x.id === currentSupplier.id) || currentSupplier}
+              onBack={() => setShowDetails(false)}
+              onViewProfile={onViewSupplier}
+            />
+          ) : (
+          <>
           {/* Pinned request context */}
           <div className="px-3 sm:px-4 py-2.5 border-b border-slate-100 bg-white">
             <div className="rounded-2xl bg-[#F4F3F0] p-3 flex items-center gap-3">
@@ -763,6 +786,8 @@ export default function AygoMessagingModal({
               </button>
             </div>
           </div>
+          </>
+          )}
         </section>
       </div>
     </Sheet>
