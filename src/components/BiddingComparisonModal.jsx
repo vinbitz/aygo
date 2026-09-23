@@ -26,9 +26,14 @@ export default function BiddingComparisonModal({ request, onClose, onAccept, onC
   const bids = useMemo(() => [...rankBids(request.bids, request)].sort(sorters[sort]), [request, sort]);
   const targetUnit = request.targetBudget / (request.quantity || 1);
 
+  const counterValid = (bid) => {
+    const price = Number(counterPrice);
+    return price > 0 && price < bid.pricePerUnit;
+  };
+
   const submitCounter = (bid) => {
     const price = Number(counterPrice);
-    if (!price) return;
+    if (!counterValid(bid)) return;
     onCounter(bid, price);
     setCounterFor(null);
     setCounterPrice('');
@@ -53,19 +58,17 @@ export default function BiddingComparisonModal({ request, onClose, onAccept, onC
                 <img
                   src={bid.supplier.avatar}
                   alt=""
+                  onError={(e) => { e.currentTarget.style.visibility = 'hidden'; }}
                   className="w-11 h-11 rounded-full object-cover bg-[#F4F3F0] shrink-0"
                 />
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-1.5 flex-wrap">
-                    <span className="text-[15px] font-semibold text-slate-900">{bid.supplier.shortName}</span>
-                    {bid.supplier.verified && <BadgeCheck className="w-4 h-4 text-[#003CF5]" aria-label="Verified" />}
-                    {bid.tags.map((t) => (
-                      <Badge key={t} tone={t === 'Best match' ? 'solidGreen' : t === 'Lowest price' ? 'green' : 'blue'}>{t}</Badge>
-                    ))}
+                  <div className="flex items-center gap-1">
+                    <span className="text-[15px] font-semibold text-slate-900 truncate">{bid.supplier.shortName}</span>
+                    {bid.supplier.verified && <BadgeCheck className="w-4 h-4 text-[#003CF5] shrink-0" aria-label="Verified" />}
                   </div>
-                  <p className="text-[13px] text-slate-500 flex items-center gap-1">
-                    <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
-                    {bid.supplier.rating} ({bid.supplier.reviewsCount}) · {bid.supplier.city} · {bid.supplier.km} km
+                  <p className="text-[13px] text-slate-500 flex items-center gap-1 truncate">
+                    <Star className="w-3 h-3 fill-amber-400 text-amber-400 shrink-0" />
+                    {bid.supplier.rating} ({bid.supplier.reviewsCount}) · {bid.supplier.km} km
                   </p>
                 </div>
                 <div className="text-right shrink-0">
@@ -75,6 +78,14 @@ export default function BiddingComparisonModal({ request, onClose, onAccept, onC
                   </p>
                 </div>
               </div>
+
+              {bid.tags.length > 0 && (
+                <div className="mt-2 flex flex-wrap gap-1.5">
+                  {bid.tags.map((t) => (
+                    <Badge key={t} tone={t === 'Best match' ? 'solidGreen' : t === 'Lowest price' ? 'green' : 'blue'}>{t}</Badge>
+                  ))}
+                </div>
+              )}
 
               <dl className="mt-3 grid grid-cols-3 gap-2 text-[12px]">
                 <div className="rounded-xl bg-[#F4F3F0] px-2.5 py-2">
@@ -113,16 +124,21 @@ export default function BiddingComparisonModal({ request, onClose, onAccept, onC
                     placeholder={`Your price per pc (e.g. ${Math.round(bid.pricePerUnit * 0.92)})`}
                     className="py-2.5"
                   />
-                  <Button onClick={() => submitCounter(bid)} disabled={!Number(counterPrice)}>Send</Button>
+                  <Button onClick={() => submitCounter(bid)} disabled={!counterValid(bid)}>Send</Button>
                   <Button variant="ghost" onClick={() => setCounterFor(null)}>Cancel</Button>
                 </div>
-              ) : (
+              ) : null}
+              {counterFor === bid.id && Number(counterPrice) >= bid.pricePerUnit && (
+                <p className="mt-1.5 text-[12px] text-amber-700">Counter-offers must be below {peso(bid.pricePerUnit, 2)}/pc.</p>
+              )}
+              {bid.status !== 'countered' && counterFor !== bid.id && (
                 <div className="mt-3 flex gap-2">
                   <Button variant="secondary" size="sm" icon={MessageSquare} onClick={() => onChat(bid.supplier)}>Chat</Button>
                   <Button variant="secondary" size="sm" onClick={() => { setCounterFor(bid.id); setCounterPrice(''); }}>Counter-offer</Button>
                   <Button size="sm" icon={Check} className="ml-auto" onClick={() => onAccept(bid)}>Accept</Button>
                 </div>
               )}
+
               {bid.revised && bid.status === 'pending' && (
                 <p className="mt-2 text-[12px] text-emerald-700">{bid.supplier.shortName} revised their offer to {peso(bid.pricePerUnit, 2)}/pc.</p>
               )}

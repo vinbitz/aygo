@@ -1,14 +1,24 @@
 import { TypeSafeClient, choice, score } from '@typesafe-ai/sdk';
 
-const apiKey = import.meta.env.VITE_TYPESAFE_API_KEY || import.meta.env.TYPESAFE_API_KEY || 'typesafe-dev-key';
+// Without a real key, Aygo Assist answers instantly from local parsing instead of calling the API.
+// NOTE: VITE_* values ship to every browser; move these calls behind a server before launch.
+const apiKey = import.meta.env.VITE_TYPESAFE_API_KEY;
+const AI_TIMEOUT_MS = 3000;
 
 let clientInstance = null;
 
+const withTimeout = (promise, ms) =>
+  Promise.race([
+    promise,
+    new Promise((_, reject) => setTimeout(() => reject(new Error('Aygo Assist timed out')), ms)),
+  ]);
+
 function getClient() {
+  if (!apiKey) return null;
   if (!clientInstance) {
     try {
       clientInstance = new TypeSafeClient({
-        apiKey: apiKey,
+        apiKey,
         dangerouslyAllowBrowser: true,
       });
     } catch (err) {
@@ -16,7 +26,8 @@ function getClient() {
       return null;
     }
   }
-  return clientInstance;
+  // Never leave the UI waiting on a slow network
+  return { systemOne: (args) => withTimeout(clientInstance.systemOne(args), AI_TIMEOUT_MS) };
 }
 
 /**
@@ -33,8 +44,11 @@ export async function analyzeSourcingRequest(userPrompt) {
   }
 
   // Helper to extract numbers
-  const qtyMatch = userPrompt.match(/(\d{1,6})\s*(pcs|pieces|sets|pax|attendees|units|shirts|totes|tumblers|lanyards)?/i);
-  const parsedQty = qtyMatch ? parseInt(qtyMatch[1], 10) : 300;
+  // Prefer a number followed by a unit or item word ("300 lanyards"); skip peso amounts
+  const unitMatch = userPrompt.match(/(\d[\d,]{0,6})\s*(?:pcs|pieces|sets|pax|attendees|units|customi[sz]ed\s+)?\s*(?:shirts?|totes?|tote bags?|bags?|tumblers?|mugs?|lanyards?|ids?|badges?|polos?|hoodies?|caps?|notebooks?|umbrellas?|pcs|pieces|sets|pax|units|attendees)\b/i);
+  const anyMatch = userPrompt.match(/(?<![₱\d,.])\b(\d{1,6})\b(?![\d,]*\s*k\b)/i);
+  const qtyMatch = unitMatch || anyMatch;
+  const parsedQty = qtyMatch ? parseInt(qtyMatch[1].replace(/,/g, ''), 10) : 300;
 
   try {
     const client = getClient();

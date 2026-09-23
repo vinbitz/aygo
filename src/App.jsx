@@ -67,7 +67,7 @@ export default function App() {
   const acceptOffer = (bid) => {
     market.acceptBid(market.activeRequestId, bid.id);
     setIsCompareOpen(false);
-    toast(`Booked with ${bid.supplier.shortName}. Your order is now in proofing.`);
+    toast(`Order booked with ${bid.supplier.shortName} and now in proofing`);
   };
 
   const openChat = (supplier) => {
@@ -143,6 +143,7 @@ export default function App() {
         onOpenOnboarding={() => setIsOnboardingOpen(true)}
         onOpenSuppliers={() => setIsSuppliersOpen(true)}
         onOpenHistory={() => setIsHistoryOpen(true)}
+        onOpenWorkspace={() => setIsWorkspaceOpen(true)}
         onOpenAppSettings={() => setIsAppSettingsOpen(true)}
         isSupplierMode={isSupplierMode}
         onOpenSupplierSetup={() => setIsSupplierSetupOpen(true)}

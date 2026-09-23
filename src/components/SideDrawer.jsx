@@ -19,7 +19,8 @@ import {
   Store,
   Crown,
   ChevronRight,
-  Star
+  Star,
+  CalendarDays
 } from 'lucide-react';
 import { toast } from '../lib/toast';
 import { ListRow, Badge, Button } from './ui';
@@ -65,6 +66,7 @@ export default function SideDrawer({
   onOpenBalance,
   onOpenSuppliers,
   onOpenHistory,
+  onOpenWorkspace,
   onOpenReferral,
   onOpenOnboarding,
   isSupplierMode = false,
@@ -184,6 +186,9 @@ export default function SideDrawer({
           <MenuGroup title="Sourcing">
             <ListRow icon={MapIcon} tone="blue" title="Home map" subtitle="Find makers near your venue" onClick={onClose} />
             <ListRow icon={Clock} tone="slate" title="My requests" subtitle="Active bids and past orders" onClick={go(onOpenHistory)} />
+            {onOpenWorkspace && (
+              <ListRow icon={CalendarDays} tone="violet" title="Event workspace" subtitle="Budget, suppliers and checklist" onClick={go(onOpenWorkspace)} />
+            )}
             <ListRow
               icon={MessageSquare}
               tone="blue"

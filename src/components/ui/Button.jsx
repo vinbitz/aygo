@@ -31,7 +31,7 @@ export default function Button({
     <button
       type={type}
       className={cx(
-        'inline-flex items-center justify-center font-semibold transition-all active:scale-[0.98]',
+        'inline-flex items-center justify-center font-semibold whitespace-nowrap transition-all active:scale-[0.98]',
         'disabled:opacity-50 disabled:pointer-events-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#003CF5]/40',
         VARIANTS[variant],
         SIZES[size],

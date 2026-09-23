@@ -73,7 +73,11 @@ export default function CreateRequestModal({
         if (result.quantity) setQuantity(String(result.quantity));
         const budget = parseBudget(text) || result.estimatedBudget;
         if (budget) setTargetBudget(String(Math.round(budget)));
-        if (!title) setTitle(text.length > 70 ? `${text.slice(0, 67)}…` : text);
+        if (!title) {
+          // "I need 200 canvas tote bags for a conference…" -> "200 canvas tote bags"
+          const short = text.replace(/^(i|we)\s+(need|want|are looking for|am looking for)\s+/i, '').split(/\s+(for|in|at|by|with)\s+|[.,]/i)[0].trim();
+          setTitle(short.length > 3 && short.length <= 70 ? short : text.slice(0, 67));
+        }
         if (!specs && result.specsSummary) setSpecs(result.specsSummary);
         setAiResult({ category: result.category, method: result.printingMethod, budgetFromText: Boolean(parseBudget(text)) });
       }
