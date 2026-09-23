@@ -19,6 +19,7 @@ import {
 import { SUPPLIERS } from '../data/mockData';
 import { toast } from '../lib/toast';
 import SupplierDetailsPanel from './SupplierDetailsPanel';
+import { maskContactInfo } from '../lib/contactGuard';
 import { Sheet, Button, Chip, VerifiedBadge, Badge, IconCircle, cx, inputClass } from './ui';
 
 const ME_NAME = 'Marvin (Organizer)';
@@ -427,8 +428,10 @@ export default function AygoMessagingModal({
   };
 
   const handleSendMessage = (textToSend = null, customType = 'text', extraData = {}) => {
-    const text = textToSend || messageInput.trim();
-    if (!text && customType === 'text') return;
+    const raw = textToSend || messageInput.trim();
+    if (!raw && customType === 'text') return;
+    const { text, found } = customType === 'text' ? maskContactInfo(raw) : { text: raw, found: false };
+    if (found) toast('Phone numbers, emails and outside chat handles are hidden. Keep talks in Aygo so your order stays protected.');
 
     const newMsg = {
       id: 'msg-' + Date.now(),

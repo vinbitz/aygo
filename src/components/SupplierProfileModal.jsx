@@ -6,13 +6,10 @@ import {
   Package,
   Factory,
   Truck,
-  Phone,
-  Mail,
   MessageSquare,
   Video,
   CalendarCheck,
   CheckCircle2,
-  Globe,
   Image as ImageIcon,
   Wallet,
   PenLine,
@@ -22,6 +19,7 @@ import {
 } from 'lucide-react';
 import { INITIAL_REQUESTS } from '../data/mockData';
 import { toast } from '../lib/toast';
+import VerifiedContacts from './VerifiedContacts';
 import {
   Sheet,
   Button,
@@ -156,7 +154,6 @@ export default function SupplierProfileModal({
   const minOrder = supplier.minOrder || (services.length ? Math.min(...services.map((s) => s.moq)) : null);
   const serviceAreas =
     supplier.serviceAreas || [...new Set(['Metro Manila', supplier.city, 'Nearby provinces'].filter(Boolean))];
-  const socials = supplier.socials || {};
   // Prefer this maker's live offer on the organizer's active request, else sample data
   const bidMatch = liveOffer ? toLegacyOffer(liveOffer) : findBid(supplier.id);
   const bid = bidMatch?.bid;
@@ -366,23 +363,8 @@ export default function SupplierProfileModal({
             </Section>
           )}
 
-          <Section title="Contact">
-            <div className="divide-y divide-slate-100">
-              <ListRow icon={MessageSquare} tone="blue" title="Message on Aygo" subtitle="Fastest reply, keeps a record of your order" onClick={openChat} />
-              {supplier.phone && (
-                <a href={`tel:${supplier.phone.replace(/\s/g, '')}`} className="block">
-                  <ListRow icon={Phone} tone="green" title={supplier.phone} subtitle={supplier.contactPerson} />
-                </a>
-              )}
-              {supplier.email && (
-                <a href={`mailto:${supplier.email}`} className="block">
-                  <ListRow icon={Mail} tone="amber" title={supplier.email} subtitle="Email" />
-                </a>
-              )}
-              {Object.entries(socials).filter(([, v]) => v).map(([k, v]) => (
-                <ListRow key={k} icon={Globe} tone="violet" title={v} subtitle={k.charAt(0).toUpperCase() + k.slice(1)} />
-              ))}
-            </div>
+          <Section title="Verified accounts">
+            <VerifiedContacts supplier={supplier} onMessage={openChat} />
           </Section>
 
           <div className="mt-2 flex items-center justify-between gap-3 rounded-2xl bg-[#F4F3F0] px-4 py-3">

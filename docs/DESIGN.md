@@ -75,3 +75,8 @@ Rules: one primary button per view, sticky in the `footer` when it completes the
 - `src/data/catalog.js`: 13 categories, ~85 products, gift kits and event services, 18 occasions, with options, customization methods, minimum order and lead time. Prices always come from maker offers.
 - The home search bar and category chips open `CatalogSheet`. Picking an item opens its details, then "Get offers" pre-fills the request form. Anything not listed goes through "Describe anything".
 - Every catalog category must have at least 2 makers (`categories` on each supplier in `mockData.js`).
+
+## Keep deals in the app
+- Organizers never see a maker's phone, email or social handles. Profiles and the chat details panel show a "Verified accounts" list (`VerifiedContacts`) with checkmarks only, plus "Message on Aygo".
+- Aygo Chat hides phone numbers, emails and off-app handles (Viber, WhatsApp, Messenger, Telegram links) typed in messages (`src/lib/contactGuard.js`). Prices, quantities and order numbers are left alone.
+- Makers still enter their contact details in onboarding/setup; Aygo uses them for verification only.

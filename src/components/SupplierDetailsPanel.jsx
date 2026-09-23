@@ -1,8 +1,9 @@
 import React from 'react';
 import {
-  Star, MapPin, Clock, Boxes, Truck, Wallet, Phone, Mail, User, Store, CheckCircle2, CalendarClock, ArrowLeft,
+  Star, MapPin, Clock, Boxes, Truck, Wallet, Store, CheckCircle2, CalendarClock, ArrowLeft,
 } from 'lucide-react';
 import { Button, Badge, VerifiedBadge, Section } from './ui';
+import VerifiedContacts from './VerifiedContacts';
 
 /** Maker details shown inside Aygo Chat when the organizer taps the maker's name */
 export default function SupplierDetailsPanel({ supplier, onBack, onViewProfile }) {
@@ -80,16 +81,8 @@ export default function SupplierDetailsPanel({ supplier, onBack, onViewProfile }
         </Section>
       )}
 
-      <Section title="Contact">
-        <div className="space-y-2 text-[14px]">
-          {supplier.contactPerson && <p className="flex items-center gap-2 text-slate-700"><User className="w-4 h-4 text-slate-400" />{supplier.contactPerson}</p>}
-          {supplier.phone && (
-            <a href={`tel:${supplier.phone.replace(/\s/g, '')}`} className="flex items-center gap-2 text-[#003CF5] hover:underline"><Phone className="w-4 h-4" />{supplier.phone}</a>
-          )}
-          {supplier.email && (
-            <a href={`mailto:${supplier.email}`} className="flex items-center gap-2 text-[#003CF5] hover:underline break-all"><Mail className="w-4 h-4 shrink-0" />{supplier.email}</a>
-          )}
-        </div>
+      <Section title="Verified accounts">
+        <VerifiedContacts supplier={supplier} />
       </Section>
 
       <div className="mt-4 flex gap-2">
