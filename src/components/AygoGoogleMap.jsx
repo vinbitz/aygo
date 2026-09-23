@@ -358,7 +358,7 @@ export default function AygoGoogleMap({
       </div>
 
       {/* Floating Re-center Target Button (Matching inspo Navigation Arrow) */}
-      <div className="absolute bottom-[60vh] right-4 sm:right-6 lg:bottom-6 z-20 pointer-events-auto">
+      <div className="absolute bottom-[calc(58vh+16px)] right-4 sm:right-6 lg:bottom-6 z-20 pointer-events-auto">
         <button
           type="button"
           onClick={focusVenue}

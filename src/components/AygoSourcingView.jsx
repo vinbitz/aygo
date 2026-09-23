@@ -1,26 +1,40 @@
 import React, { useState } from 'react';
-import { 
-  MapPin, 
-  ChevronRight, 
-  ChevronDown,
-  Clock, 
-  Search, 
-  Edit2, 
-  Check, 
-  X, 
-  Package, 
-  Sparkles,
+import {
+  MapPin,
+  ChevronRight,
+  Clock,
+  Search,
+  Edit2,
+  Check,
+  X,
+  Package,
   Shirt,
   Printer,
   Coffee,
   ShoppingBag,
   Factory,
   MessageSquare,
-  Tag
+  Sparkles
 } from 'lucide-react';
 import { SUPPLIERS, PRESET_VENUES, PRESET_HOMES } from '../data/mockData';
-import { AYGO_LOGO_DATA_URI } from '../assets/logoBase64';
 import AygoGoogleMap from './AygoGoogleMap';
+
+const CATEGORY_TILES = [
+  { id: 'apparel', label: 'Apparel', Icon: Shirt, tint: { bg: 'bg-blue-100', fg: 'text-[#003CF5]' } },
+  { id: 'event-print', label: 'Event Print', Icon: Printer, tint: { bg: 'bg-amber-100', fg: 'text-amber-600' }, isNew: true },
+  { id: 'drinkware', label: 'Drinkware', Icon: Coffee, tint: { bg: 'bg-emerald-100', fg: 'text-emerald-600' }, isNew: true },
+  { id: 'bags', label: 'Bags & Swag', Icon: ShoppingBag, tint: { bg: 'bg-rose-100', fg: 'text-rose-500' } }
+];
+
+const MAKER_BIDS = [
+  { id: 's3', name: 'JJT Digital (Parañaque City)', shortName: 'JJT Digital', area: 'Parañaque · 11.8 km', loc: 'Parañaque · 11.8 km from venue', price: '₱46.00/pc', days: '4 Business Days', shortDays: '4 days', readyDate: 'Ready Oct 8', tag: 'Lowest bid' },
+  { id: 's1', name: 'Thread & Co. (Taytay)', shortName: 'Thread & Co.', area: 'Taytay · 14.2 km', loc: 'Taytay · 14.2 km from venue', price: '₱49.50/pc', days: '6 Business Days', shortDays: '6 days', readyDate: 'Ready Oct 12', tag: 'Verified' },
+  { id: 's2', name: 'Manila Bag Works (Marikina)', shortName: 'Manila Bag Works', area: 'Marikina City', loc: 'Marikina City', price: '₱55.00/pc', days: '7 Business Days', shortDays: '7 days', readyDate: 'Ready Oct 14', tag: 'Verified' },
+  { id: 's4', name: 'Everyday Drinkware (Valenzuela)', shortName: 'Everyday Drinkware', area: 'Valenzuela City', loc: 'Valenzuela City', price: '₱340.00/pc', days: '5 Business Days', shortDays: '5 days', readyDate: 'Ready Oct 10', tag: 'Verified' }
+];
+
+const ORDER_STEPS = ['Proofing', 'Printing', 'Pack', 'Dispatch'];
+const ACTIVE_STEP = 0;
 
 export default function AygoSourcingView({
   onOpenDrawer,
@@ -44,15 +58,7 @@ export default function AygoSourcingView({
   const [searchQuery, setSearchQuery] = useState('');
   const [customAddressInput, setCustomAddressInput] = useState('');
   const [focusedSupplierId, setFocusedSupplierId] = useState(null);
-  const [isMakersExpanded, setIsMakersExpanded] = useState(false);
-  const [selectedMaker, setSelectedMaker] = useState({
-    id: 's3',
-    name: 'JJT Digital (Parañaque City)',
-    loc: 'Parañaque · 11.8 km from venue',
-    price: '₱46.00/pc',
-    days: '4 Business Days',
-    readyDate: 'Ready Oct 8, 2026'
-  });
+  const [selectedMaker, setSelectedMaker] = useState(MAKER_BIDS[0]);
 
   const currentVenue = activeVenue || localVenue;
   const currentType = deliveryType || localType;
@@ -78,8 +84,6 @@ export default function AygoSourcingView({
     date: currentDate,
     isPackage: currentItem.isPackage || false
   });
-  const [itemUpdatedToast, setItemUpdatedToast] = useState(false);
-  const [showAllPackageItems, setShowAllPackageItems] = useState(false);
 
   const handleOpenEditModal = () => {
     setEditFormData({
@@ -113,8 +117,6 @@ export default function AygoSourcingView({
       else setLocalDate(editFormData.date);
     }
     setIsEditItemModalOpen(false);
-    setItemUpdatedToast(true);
-    setTimeout(() => setItemUpdatedToast(false), 3500);
   };
 
   const handleUpdateVenue = (venue) => {
@@ -164,449 +166,211 @@ export default function AygoSourcingView({
         />
       </div>
 
-      {/* 2. FLOATING inDrive-STYLE BOTTOM STACK (Matching User Inspo media_1789999889260.jpg) */}
-      <div className="absolute bottom-0 left-0 right-0 z-30 lg:bottom-4 lg:left-6 lg:right-auto lg:w-[460px] pointer-events-none flex flex-col justify-end max-h-[58vh] sm:max-h-[70vh] lg:max-h-[88vh] overflow-y-auto custom-scroll touch-pan-y overscroll-contain px-3 pb-3 sm:px-0 sm:pb-0">
-        <div className="pointer-events-auto space-y-2.5 sm:space-y-3">
-          
-          {/* CARD 1: Search & Recent Destinations */}
-          <div className="bg-white rounded-3xl p-4 shadow-xl border border-slate-100 space-y-3">
-            {/* Top Pull Handle */}
-            <div className="pt-0.5 pb-1 flex justify-center cursor-grab">
-              <div className="w-10 h-1 bg-slate-300 rounded-full" />
+      {/* 2. BOTTOM SHEET: scrolls up over the map on mobile, floating panel on desktop */}
+      <div className="absolute inset-0 z-30 overflow-y-auto no-scrollbar overscroll-contain pointer-events-none lg:inset-auto lg:top-20 lg:bottom-4 lg:left-6 lg:w-[400px] lg:rounded-[28px]">
+        {/* Map peek area on mobile (touches pass through to the map) */}
+        <div className="h-[42vh] lg:hidden" />
+
+        <div className="pointer-events-auto min-h-[58vh] lg:min-h-0 bg-[#F2F1ED] rounded-t-[28px] lg:rounded-[28px] shadow-[0_-8px_30px_rgba(15,23,42,0.12)] lg:shadow-2xl space-y-2 pb-6 lg:pb-2">
+
+          {/* SECTION 1: Search & recent requests */}
+          <section className="bg-white rounded-[28px] px-4 pt-2.5 pb-3">
+            <div className="flex justify-center pb-3">
+              <div className="w-9 h-1 bg-slate-200 rounded-full" />
             </div>
 
-            {/* SEARCH BAR (Matching inspo: "Where to & for how much?") */}
-            <div 
+            <button
+              type="button"
               onClick={() => onRequestNewJob && onRequestNewJob()}
-              className="bg-[#F4F3F0] hover:bg-[#eae8e4] p-3.5 rounded-2xl flex items-center gap-3.5 cursor-pointer transition-all active:scale-[0.99] group"
-              title="Post custom request or package"
+              className="w-full bg-[#F4F3F0] hover:bg-[#ECEAE5] px-4 py-4 rounded-2xl flex items-center gap-3 text-left transition-colors active:scale-[0.99]"
             >
-              <Search className="w-5 h-5 text-slate-800 shrink-0 group-hover:text-[#003CF5] transition-colors" />
-              <span className="text-base sm:text-lg font-bold text-slate-900 tracking-tight group-hover:text-[#003CF5] transition-colors">
-                Where to & for how much?
+              <Search className="w-5 h-5 text-slate-900 shrink-0" strokeWidth={2.5} />
+              <span className="text-[17px] font-semibold text-slate-900 tracking-tight">
+                What to make & for how much?
               </span>
-            </div>
+            </button>
 
-            {/* RECENT DESTINATIONS / SOURCING ITEMS (Matching inspo recent list with Clock icons) */}
-            <div className="space-y-1 pt-0.5">
-              
-              {/* Item 1: Active Sourcing Job */}
-              <div className="flex items-center justify-between p-2 rounded-2xl hover:bg-slate-50 transition-colors group cursor-pointer">
-                <div 
+            <ul className="mt-1.5">
+              <li className="flex items-center gap-3.5 px-1 py-3">
+                <Clock className="w-5 h-5 text-slate-400 shrink-0" />
+                <button
+                  type="button"
                   onClick={() => onRequestNewJob && onRequestNewJob()}
-                  className="flex items-center gap-3 min-w-0 flex-1"
+                  className="min-w-0 flex-1 text-left"
                 >
-                  <Clock className="w-5 h-5 text-slate-600 shrink-0" />
+                  <div className="text-[15px] font-medium text-slate-900 truncate">{currentItem.title}</div>
+                  <div className="text-[13px] text-slate-500 truncate">{currentVenue.name} · {currentItem.budget}</div>
+                </button>
+                <button
+                  type="button"
+                  onClick={handleOpenEditModal}
+                  className="p-2 -mr-1 rounded-full text-slate-400 hover:text-[#003CF5] hover:bg-slate-50 transition-colors"
+                  aria-label="Edit request"
+                >
+                  <Edit2 className="w-4 h-4" />
+                </button>
+                {currentItem.mockupImage && (
+                  <button
+                    type="button"
+                    onClick={() => onOpenMockupStudio && onOpenMockupStudio()}
+                    className="p-2 -mr-1 rounded-full text-slate-400 hover:text-[#003CF5] hover:bg-slate-50 transition-colors"
+                    aria-label="View mockup"
+                  >
+                    <Sparkles className="w-4 h-4" />
+                  </button>
+                )}
+              </li>
+              <li className="border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => {
+                    const pastItem = {
+                      title: '500 Dri-Fit Event Shirts',
+                      qty: '500 pcs',
+                      budget: '₱85,000 (₱170.00/pc)',
+                      specs: '220 GSM Navy Cotton Blend, 2-color silkscreen.',
+                      isPackage: false
+                    };
+                    if (onUpdateActiveItem) onUpdateActiveItem(pastItem);
+                    else setInternalItem(pastItem);
+                  }}
+                  className="w-full flex items-center gap-3.5 px-1 py-3 text-left"
+                >
+                  <Clock className="w-5 h-5 text-slate-400 shrink-0" />
                   <div className="min-w-0 flex-1">
-                    <div className="text-sm font-bold text-slate-900 leading-tight truncate group-hover:text-[#003CF5] transition-colors">
-                      {currentItem.title}
-                    </div>
-                    <div className="text-xs text-slate-500 font-normal mt-0.5 truncate">
-                      {currentVenue.name} · {currentItem.budget}
-                    </div>
+                    <div className="text-[15px] font-medium text-slate-900 truncate">500 Dri-Fit Event Shirts</div>
+                    <div className="text-[13px] text-slate-500 truncate">Common Ground Rockwell · Plaza Drive, Makati</div>
                   </div>
-                </div>
+                </button>
+              </li>
+            </ul>
+          </section>
 
-                <div className="flex items-center gap-1 shrink-0 ml-2">
-                  <button
-                    type="button"
-                    onClick={handleOpenEditModal}
-                    className="p-1.5 rounded-xl text-slate-400 hover:text-[#003CF5] hover:bg-white transition-colors"
-                    title="Edit Item"
-                  >
-                    <Edit2 className="w-3.5 h-3.5" />
-                  </button>
-                  {currentItem.mockupImage && (
-                    <button
-                      type="button"
-                      onClick={() => onOpenMockupStudio && onOpenMockupStudio()}
-                      className="p-1.5 rounded-xl text-slate-400 hover:text-[#003CF5] hover:bg-white transition-colors"
-                      title="View Mockup"
-                    >
-                      <Sparkles className="w-3.5 h-3.5" />
-                    </button>
+          {/* SECTION 2: Categories */}
+          <section className="bg-white rounded-[28px] p-3">
+            <div className="grid grid-cols-2 gap-2">
+              {CATEGORY_TILES.map(({ id, label, Icon, tint, isNew }) => (
+                <button
+                  key={id}
+                  type="button"
+                  onClick={() => onRequestNewJob && onRequestNewJob('single', id)}
+                  className="relative h-[92px] flex items-start rounded-2xl bg-[#F4F3F0] hover:bg-[#ECEAE5] p-3.5 text-left overflow-hidden transition-colors active:scale-[0.98]"
+                >
+                  <span className="relative z-10 text-[15px] font-medium text-slate-900">{label}</span>
+                  {isNew && (
+                    <span className="absolute top-3 right-3 z-10 text-[10px] font-bold text-white bg-[#FF3B30] px-1.5 py-0.5 rounded-full leading-none">
+                      NEW
+                    </span>
                   )}
-                </div>
-              </div>
-
-              {/* Item 2: Common Ground Rockwell (Matching inspo) */}
-              <div 
-                onClick={() => {
-                  const pastItem = {
-                    title: '500 Dri-Fit Event Shirts',
-                    qty: '500 pcs',
-                    budget: '₱85,000 (₱170.00/pc)',
-                    specs: '220 GSM Navy Cotton Blend, 2-color silkscreen.',
-                    isPackage: false
-                  };
-                  if (onUpdateActiveItem) onUpdateActiveItem(pastItem);
-                  else setInternalItem(pastItem);
-                }}
-                className="flex items-center gap-3 p-2 rounded-2xl hover:bg-slate-50 transition-colors group cursor-pointer"
-              >
-                <Clock className="w-5 h-5 text-slate-600 shrink-0" />
-                <div className="min-w-0 flex-1">
-                  <div className="text-sm font-bold text-slate-900 leading-tight truncate group-hover:text-[#003CF5] transition-colors">
-                    Common Ground Rockwell
-                  </div>
-                  <div className="text-xs text-slate-500 font-normal mt-0.5 truncate">
-                    Plaza Drive, Makati City, Metro Manila
-                  </div>
-                </div>
-              </div>
-
-            </div>
-          </div>
-
-          {/* CARD 2: Requirement Types (Single Category vs Event Package) + Recommended Categories */}
-          <div className="bg-white rounded-3xl p-3 sm:p-3.5 shadow-xl border border-slate-100 space-y-2.5">
-            <div className="grid grid-cols-2 gap-2.5">
-              
-              {/* Tile 1: Single Category */}
-              <div 
-                onClick={() => onRequestNewJob && onRequestNewJob('single', 'apparel')}
-                className="p-3.5 rounded-2xl bg-[#F5F4F0] hover:bg-blue-50/70 border border-transparent hover:border-blue-200 transition-all cursor-pointer flex flex-col justify-between h-28 group relative overflow-hidden active:scale-[0.98]"
-              >
-                <div>
-                  <div className="flex items-center gap-1.5 mb-1">
-                    <div className="w-6 h-6 rounded-lg bg-white group-hover:bg-[#003CF5] text-slate-700 group-hover:text-white flex items-center justify-center transition-colors shadow-2xs">
-                      <Tag className="w-3.5 h-3.5" />
-                    </div>
-                    <span className="font-extrabold text-xs sm:text-sm text-slate-900 group-hover:text-[#003CF5] transition-colors leading-tight">
-                      Single Category
-                    </span>
-                  </div>
-                  <p className="text-[11px] text-slate-500 font-medium leading-tight pl-0.5">
-                    One item or service type
-                  </p>
-                </div>
-                <div className="flex justify-end items-end pt-1">
-                  <div className="w-7 h-7 rounded-full bg-white group-hover:bg-[#003CF5] text-slate-400 group-hover:text-white flex items-center justify-center transition-colors shadow-2xs">
-                    <ChevronRight className="w-4 h-4" />
-                  </div>
-                </div>
-              </div>
-
-              {/* Tile 2: Event Package */}
-              <div 
-                onClick={() => onRequestNewJob && onRequestNewJob('package')}
-                className="p-3.5 rounded-2xl bg-[#F5F4F0] hover:bg-blue-50/70 border border-transparent hover:border-blue-200 transition-all cursor-pointer flex flex-col justify-between h-28 group relative overflow-hidden active:scale-[0.98]"
-              >
-                <div>
-                  <div className="flex items-center gap-1.5 mb-1">
-                    <div className="w-6 h-6 rounded-lg bg-white group-hover:bg-[#003CF5] text-slate-700 group-hover:text-white flex items-center justify-center transition-colors shadow-2xs">
-                      <Package className="w-3.5 h-3.5" />
-                    </div>
-                    <span className="font-extrabold text-xs sm:text-sm text-slate-900 group-hover:text-[#003CF5] transition-colors leading-tight">
-                      Event Package
-                    </span>
-                  </div>
-                  <p className="text-[11px] text-slate-500 font-medium leading-tight pl-0.5">
-                    Multi-category bundle
-                  </p>
-                </div>
-                <div className="flex justify-end items-end pt-1">
-                  <div className="w-7 h-7 rounded-full bg-white group-hover:bg-[#003CF5] text-slate-400 group-hover:text-white flex items-center justify-center transition-colors shadow-2xs">
-                    <ChevronRight className="w-4 h-4" />
-                  </div>
-                </div>
-              </div>
-
+                  <span className={`absolute -bottom-4 -right-3 w-20 h-20 rounded-full flex items-center justify-center ${tint.bg}`}>
+                    <Icon className={`w-9 h-9 -translate-x-1 -translate-y-1.5 ${tint.fg}`} strokeWidth={1.75} />
+                  </span>
+                </button>
+              ))}
             </div>
 
-            {/* Recommended Row (The 4 Categories moved here) */}
-            <div className="pt-2 border-t border-slate-100 flex items-center justify-between gap-2">
-              <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 shrink-0">
-                Recommended:
+            <button
+              type="button"
+              onClick={() => onRequestNewJob && onRequestNewJob('package')}
+              className="mt-2 w-full rounded-2xl bg-[#F4F3F0] hover:bg-[#ECEAE5] px-3.5 py-3 flex items-center gap-3 text-left transition-colors active:scale-[0.99]"
+            >
+              <span className="w-9 h-9 rounded-xl bg-white flex items-center justify-center text-[#003CF5] shrink-0">
+                <Package className="w-5 h-5" />
               </span>
-              <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5">
-                {[
-                  { id: 'apparel', label: 'Apparel & Shirts' },
-                  { id: 'event-print', label: 'Event Print', isNew: true },
-                  { id: 'drinkware', label: 'Drinkware', isNew: true },
-                  { id: 'bags', label: 'Couriers & Swag' }
-                ].map((item) => (
-                  <button
-                    key={item.id}
-                    type="button"
-                    onClick={() => onRequestNewJob && onRequestNewJob('single', item.id)}
-                    className="shrink-0 px-2.5 py-1 rounded-xl bg-[#F5F4F0] hover:bg-blue-50 text-slate-700 hover:text-[#003CF5] border border-transparent hover:border-blue-200 text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer active:scale-95"
-                  >
-                    <span>{item.label}</span>
-                    {item.isNew && (
-                      <span className="text-[8px] font-black text-white bg-[#FF3B30] px-1 py-0.2 rounded-full leading-none">
-                        NEW
-                      </span>
-                    )}
-                  </button>
-                ))}
+              <span className="flex-1 min-w-0">
+                <span className="block text-[15px] font-medium text-slate-900">Full event package</span>
+                <span className="block text-[13px] text-slate-500 truncate">Bundle several items in one request</span>
+              </span>
+              <ChevronRight className="w-4 h-4 text-slate-400 shrink-0" />
+            </button>
+          </section>
+
+          {/* SECTION 3: Maker bids */}
+          <section className="bg-white rounded-[28px] py-4">
+            <div className="px-4 flex items-center gap-3">
+              <span className="w-10 h-10 rounded-full bg-[#F4F3F0] flex items-center justify-center text-[#003CF5] shrink-0">
+                <Factory className="w-5 h-5" />
+              </span>
+              <div className="flex-1 min-w-0">
+                <h4 className="text-[19px] font-semibold text-slate-900 tracking-tight leading-tight">Choose a maker</h4>
+                <p className="text-[13px] text-slate-500">{MAKER_BIDS.length} verified bids for your request</p>
               </div>
             </div>
-          </div>
 
-          {/* CARD 3: Craft Maker Selection Bar / Milestone Tracker (Matching inDrive inspo "Choose a City ride >") */}
-          <div className="bg-white rounded-3xl p-3.5 shadow-xl border border-slate-100">
-            {selectedMaker ? (
-              /* SELECTED MAKER STATE: Shows Turnaround & 4 Steps ONLY when already selected */
-              <div className="space-y-3">
-                <div className="flex items-start justify-between">
-                  <div className="flex items-center gap-2.5">
-                    <div className="w-10 h-10 rounded-2xl bg-[#003CF5] text-white flex items-center justify-center font-black shadow-md shadow-blue-500/20">
-                      <Factory className="w-5 h-5" />
-                    </div>
-                    <div>
-                      <div className="flex items-center gap-1.5">
-                        <h4 className="font-extrabold text-sm text-slate-950">{selectedMaker.name}</h4>
-                        <span className="text-[8px] font-black text-white bg-emerald-600 px-1.5 py-0.2 rounded uppercase">
-                          SELECTED
-                        </span>
-                      </div>
-                      <p className="text-[11px] text-slate-500 font-semibold mt-0.5">
-                        {selectedMaker.loc} · {selectedMaker.price}
-                      </p>
-                    </div>
-                  </div>
+            <div className="mt-2 px-4 py-1 scroll-px-4 flex gap-2 overflow-x-auto no-scrollbar snap-x">
+              {MAKER_BIDS.map((bid) => {
+                const isSelected = selectedMaker?.id === bid.id;
+                return (
                   <button
+                    key={bid.id}
                     type="button"
-                    onClick={() => setSelectedMaker(null)}
-                    className="text-xs font-bold text-[#003CF5] hover:underline cursor-pointer"
+                    onClick={() => setSelectedMaker(bid)}
+                    className={`snap-start shrink-0 w-[168px] rounded-2xl p-3 text-left transition-all ${
+                      isSelected ? 'bg-blue-50 ring-2 ring-inset ring-[#003CF5]' : 'bg-[#F4F3F0] hover:bg-[#ECEAE5]'
+                    }`}
                   >
-                    Change
+                    <span className={`inline-block text-[10px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded-md ${
+                      bid.tag === 'Lowest bid' ? 'bg-emerald-600 text-white' : 'bg-white text-slate-600'
+                    }`}>
+                      {bid.tag}
+                    </span>
+                    <div className="mt-2 text-[15px] font-medium text-slate-900 truncate">{bid.shortName}</div>
+                    <div className="text-[12px] text-slate-500 truncate">{bid.area}</div>
+                    <div className="mt-2 flex items-baseline justify-between gap-1">
+                      <span className="text-[17px] font-semibold text-slate-900">{bid.price}</span>
+                      <span className="text-[12px] text-slate-500">{bid.shortDays}</span>
+                    </div>
                   </button>
-                </div>
+                );
+              })}
+            </div>
 
-                {/* Crafting Time: 4 Business Days · Ready Oct 8, 2026 */}
-                <div className="p-2.5 rounded-2xl bg-blue-50/70 border border-blue-100 flex items-center justify-between">
-                  <div className="flex items-center gap-2 text-xs font-bold text-slate-800">
-                    <Clock className="w-4 h-4 text-[#003CF5]" />
-                    <span>Crafting Time: <span className="font-black text-slate-950">{selectedMaker.days || '4 Business Days'}</span></span>
+            {/* Active order tracker for the selected maker */}
+            {selectedMaker && (
+              <div className="mx-4 mt-4 pt-4 border-t border-slate-100">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="text-[13px] text-slate-500">In production with</p>
+                    <p className="text-[15px] font-semibold text-slate-900 truncate">{selectedMaker.name}</p>
                   </div>
-                  <span className="text-xs font-black text-[#003CF5] bg-white px-2 py-0.5 rounded-xl border border-blue-200">
-                    {selectedMaker.readyDate || 'Ready Oct 8, 2026'}
+                  <span className="shrink-0 text-[12px] font-semibold text-[#003CF5] bg-blue-50 px-2.5 py-1 rounded-full">
+                    {selectedMaker.readyDate}
                   </span>
                 </div>
 
-                {/* 4 Steps */}
-                <div className="grid grid-cols-4 gap-1.5">
-                  <div className="p-2 rounded-xl bg-[#003CF5] text-white text-center shadow-xs">
-                    <span className="text-[8px] font-black tracking-wider block text-blue-200 uppercase">1. Step</span>
-                    <span className="text-xs font-black block mt-0.5">Proofing</span>
-                    <span className="text-[8px] font-bold block mt-1 bg-white/20 text-white rounded px-1 py-0.2">In Progress</span>
-                  </div>
-                  <div className="p-2 rounded-xl bg-slate-50 text-slate-700 text-center border border-slate-200">
-                    <span className="text-[8px] font-bold text-slate-400 block uppercase">2. Step</span>
-                    <span className="text-xs font-bold text-slate-800 block mt-0.5">Printing</span>
-                    <span className="text-[8px] font-semibold text-slate-400 block mt-1">Pending</span>
-                  </div>
-                  <div className="p-2 rounded-xl bg-slate-50 text-slate-700 text-center border border-slate-200">
-                    <span className="text-[8px] font-bold text-slate-400 block uppercase">3. Step</span>
-                    <span className="text-xs font-bold text-slate-800 block mt-0.5">Pack</span>
-                    <span className="text-[8px] font-semibold text-slate-400 block mt-1">Pending</span>
-                  </div>
-                  <div className="p-2 rounded-xl bg-slate-50 text-slate-700 text-center border border-slate-200">
-                    <span className="text-[8px] font-bold text-slate-400 block uppercase">4. Step</span>
-                    <span className="text-xs font-bold text-slate-800 block mt-0.5">Dispatch</span>
-                    <span className="text-[8px] font-semibold text-slate-400 block mt-1">Oct 8</span>
-                  </div>
-                </div>
+                <ol className="mt-4 grid grid-cols-4">
+                  {ORDER_STEPS.map((step, i) => {
+                    const done = i <= ACTIVE_STEP;
+                    return (
+                      <li key={step} className="relative flex flex-col items-center text-center">
+                        {i > 0 && (
+                          <span className={`absolute top-[5px] right-1/2 w-full h-0.5 ${done ? 'bg-[#003CF5]' : 'bg-slate-200'}`} />
+                        )}
+                        <span className={`relative z-10 w-3 h-3 rounded-full ${
+                          i === ACTIVE_STEP ? 'bg-[#003CF5] ring-4 ring-blue-100' : done ? 'bg-[#003CF5]' : 'bg-slate-200'
+                        }`} />
+                        <span className={`mt-2 text-[12px] ${i === ACTIVE_STEP ? 'font-semibold text-slate-900' : 'text-slate-500'}`}>
+                          {step}
+                        </span>
+                      </li>
+                    );
+                  })}
+                </ol>
 
-                {/* Chat CTA */}
-                <div className="flex items-center gap-2 pt-0.5">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const s = SUPPLIERS.find(x => x.id === selectedMaker.id) || SUPPLIERS[0];
-                      if (onOpenChatWithSupplier) onOpenChatWithSupplier(s);
-                    }}
-                    className="flex-1 py-2.5 px-3 rounded-xl bg-[#003CF5] hover:bg-blue-700 text-white text-xs font-bold shadow-md shadow-blue-500/20 transition-all flex items-center justify-center gap-1.5 cursor-pointer active:scale-95"
-                  >
-                    <MessageSquare className="w-3.5 h-3.5" />
-                    <span>Chat with Maker</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setSelectedMaker(null)}
-                    className="py-2.5 px-3 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-bold transition-all cursor-pointer"
-                  >
-                    Change Maker
-                  </button>
-                </div>
-              </div>
-            ) : (
-              /* UNSELECTED STATE: Clean "Choose a Craft Maker >" Bar matching inDrive */
-              <div>
-                <div 
-                  onClick={() => setIsMakersExpanded(!isMakersExpanded)}
-                  className="flex items-center justify-between cursor-pointer group py-1"
+                <button
+                  type="button"
+                  onClick={() => {
+                    const s = SUPPLIERS.find(x => x.id === selectedMaker.id) || SUPPLIERS[0];
+                    if (onOpenChatWithSupplier) onOpenChatWithSupplier(s);
+                  }}
+                  className="mt-4 w-full py-3.5 rounded-2xl bg-[#003CF5] hover:bg-blue-700 text-white text-[15px] font-semibold transition-colors flex items-center justify-center gap-2 active:scale-[0.99]"
                 >
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center text-[#003CF5] group-hover:bg-blue-50 transition-colors">
-                      <Factory className="w-5 h-5" />
-                    </div>
-                    <div>
-                      <h4 className="font-bold text-sm sm:text-base text-slate-900 group-hover:text-[#003CF5] transition-colors flex items-center gap-1.5">
-                        <span>Choose a Craft Maker</span>
-                      </h4>
-                      <p className="text-[11px] text-slate-500 font-medium">4 Verified Maker Bids Available</p>
-                    </div>
-                  </div>
-                  <div className="w-7 h-7 rounded-full bg-slate-100 flex items-center justify-center text-slate-400 group-hover:text-[#003CF5] group-hover:bg-blue-50 transition-colors">
-                    <ChevronRight className={`w-4 h-4 transition-transform ${isMakersExpanded ? 'rotate-90' : ''}`} />
-                  </div>
-                </div>
-
-                {/* Expandable Bids & Suppliers List with Direct Select / Accept buttons */}
-                {isMakersExpanded && (
-                  <div className="mt-3 space-y-2 pt-2 border-t border-slate-100">
-                    {/* Supplier 1: JJT Digital (Parañaque) */}
-                    <div className="p-3 rounded-2xl border border-emerald-300 bg-emerald-50/40 flex items-center justify-between gap-2">
-                      <div>
-                        <div className="flex items-center gap-1.5">
-                          <span className="font-extrabold text-xs text-slate-900">JJT Digital (Parañaque City)</span>
-                          <span className="text-[8px] font-black text-white bg-emerald-600 px-1 py-0.2 rounded">LOW</span>
-                        </div>
-                        <p className="text-[10px] text-slate-500">₱46.00/pc · Total: ₱13,800 · 4 Days Turnaround</p>
-                      </div>
-                      <div className="flex items-center gap-1.5">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            const s = SUPPLIERS.find(x => x.id === 's3');
-                            if (onOpenChatWithSupplier && s) onOpenChatWithSupplier(s);
-                          }}
-                          className="px-2.5 py-1.5 rounded-xl bg-[#003CF5] hover:bg-blue-700 text-white text-[11px] font-bold shadow-xs transition-all flex items-center gap-1 cursor-pointer"
-                        >
-                          <MessageSquare className="w-3 h-3" />
-                          <span>Chat</span>
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setSelectedMaker({
-                            id: 's3',
-                            name: 'JJT Digital (Parañaque City)',
-                            loc: 'Parañaque · 11.8 km from venue',
-                            price: '₱46.00/pc',
-                            days: '4 Business Days',
-                            readyDate: 'Ready Oct 8, 2026'
-                          })}
-                          className="px-2.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-bold transition-all cursor-pointer"
-                        >
-                          Accept
-                        </button>
-                      </div>
-                    </div>
-
-                    {/* Supplier 2: Thread & Co. (Taytay) */}
-                    <div className="p-3 rounded-2xl border border-slate-200 bg-white flex items-center justify-between gap-2">
-                      <div>
-                        <div className="flex items-center gap-1.5">
-                          <span className="font-extrabold text-xs text-slate-900">Thread (Taytay)</span>
-                          <span className="text-[8px] font-bold text-emerald-700 bg-emerald-100 px-1 py-0.2 rounded">VERIFIED</span>
-                        </div>
-                        <p className="text-[10px] text-slate-500">₱49.50/pc · Total: ₱14,850 · 6 Days Turnaround</p>
-                      </div>
-                      <div className="flex items-center gap-1.5">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            const s = SUPPLIERS.find(x => x.id === 's1');
-                            if (onOpenChatWithSupplier && s) onOpenChatWithSupplier(s);
-                          }}
-                          className="px-2.5 py-1.5 rounded-xl bg-[#003CF5] hover:bg-blue-700 text-white text-[11px] font-bold shadow-xs transition-all flex items-center gap-1 cursor-pointer"
-                        >
-                          <MessageSquare className="w-3 h-3" />
-                          <span>Chat</span>
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setSelectedMaker({
-                            id: 's1',
-                            name: 'Thread & Co. (Taytay)',
-                            loc: 'Taytay · 14.2 km from venue',
-                            price: '₱49.50/pc',
-                            days: '6 Business Days',
-                            readyDate: 'Ready Oct 12, 2026'
-                          })}
-                          className="px-2.5 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 text-[11px] font-bold transition-all cursor-pointer"
-                        >
-                          Accept
-                        </button>
-                      </div>
-                    </div>
-
-                    {/* Supplier 3: Manila Bag Works */}
-                    <div className="p-3 rounded-2xl border border-slate-200 bg-white flex items-center justify-between gap-2 opacity-90">
-                      <div>
-                        <span className="font-extrabold text-xs text-slate-900">Manila (Marikina City)</span>
-                        <p className="text-[10px] text-slate-500">Canvas Bags & Totes · ₱55.00/pc</p>
-                      </div>
-                      <div className="flex items-center gap-1.5">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            const s = SUPPLIERS.find(x => x.id === 's2');
-                            if (onOpenChatWithSupplier && s) onOpenChatWithSupplier(s);
-                          }}
-                          className="px-2.5 py-1.5 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-700 text-[11px] font-bold transition-all cursor-pointer"
-                        >
-                          Chat
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setSelectedMaker({
-                            id: 's2',
-                            name: 'Manila Bag Works (Marikina)',
-                            loc: 'Marikina City',
-                            price: '₱55.00/pc',
-                            days: '7 Business Days',
-                            readyDate: 'Ready Oct 14, 2026'
-                          })}
-                          className="px-2.5 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 text-[11px] font-bold transition-all cursor-pointer"
-                        >
-                          Select
-                        </button>
-                      </div>
-                    </div>
-
-                    {/* Supplier 4: Everyday Drinkware */}
-                    <div className="p-3 rounded-2xl border border-slate-200 bg-white flex items-center justify-between gap-2 opacity-90">
-                      <div>
-                        <span className="font-extrabold text-xs text-slate-900">Everyday (Valenzuela City)</span>
-                        <p className="text-[10px] text-slate-500">Laser Tumblers & Flasks · ₱340.00/pc</p>
-                      </div>
-                      <div className="flex items-center gap-1.5">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            const s = SUPPLIERS.find(x => x.id === 's4');
-                            if (onOpenChatWithSupplier && s) onOpenChatWithSupplier(s);
-                          }}
-                          className="px-2.5 py-1.5 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-700 text-[11px] font-bold transition-all cursor-pointer"
-                        >
-                          Chat
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setSelectedMaker({
-                            id: 's4',
-                            name: 'Everyday Drinkware (Valenzuela)',
-                            loc: 'Valenzuela City',
-                            price: '₱340.00/pc',
-                            days: '5 Business Days',
-                            readyDate: 'Ready Oct 10, 2026'
-                          })}
-                          className="px-2.5 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 text-[11px] font-bold transition-all cursor-pointer"
-                        >
-                          Select
-                        </button>
-                      </div>
-                    </div>
-
-                  </div>
-                )}
+                  <MessageSquare className="w-4 h-4" />
+                  Chat with maker
+                </button>
               </div>
             )}
-          </div>
+          </section>
 
         </div>
       </div>
