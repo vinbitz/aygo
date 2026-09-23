@@ -134,7 +134,7 @@ export default function SupplierProfileModal({
   onClose,
   onAcceptBid,
   onOpenChat,
-  onOpenSupplierSetup,
+  onClaimBusiness,
   liveOffer,
   onCounter,
   onInvite,
@@ -373,18 +373,19 @@ export default function SupplierProfileModal({
           </Section>
 
           <div className="mt-2 flex items-center justify-between gap-3 rounded-2xl bg-[#F4F3F0] px-4 py-3">
-            <span className="text-[13px] text-slate-500">Own this business?</span>
+            {/* Only the maker can change their profile, from their own supplier portal */}
+            <span className="text-[13px] text-slate-500">Own this business? Claim it to manage this profile.</span>
             <Button
               variant="ghost"
               size="sm"
               icon={PenLine}
-              className="h-11 text-[#003CF5]"
+              className="h-11 text-[#003CF5] shrink-0"
               onClick={() => {
-                if (onOpenSupplierSetup) onOpenSupplierSetup(supplier);
                 onClose();
+                onClaimBusiness?.(supplier);
               }}
             >
-              Edit profile
+              Claim business
             </Button>
           </div>
         </div>

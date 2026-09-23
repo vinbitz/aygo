@@ -69,7 +69,6 @@ export default function App() {
   const [isCompareOpen, setIsCompareOpen] = useState(false);
   const [isWaitlistOpen, setIsWaitlistOpen] = useState(false);
   const [isWorkspaceOpen, setIsWorkspaceOpen] = useState(false);
-  const [setupSupplier, setSetupSupplier] = useState(null);
   const [isToolsOpen, setIsToolsOpen] = useState(false);
   // Event cover + gallery, shared by the event workspace and Sponsorship Connect
   const [eventPhotos, setEventPhotos] = useState(EMPTY_EVENT_PHOTOS);
@@ -307,9 +306,9 @@ export default function App() {
             setSelectedSupplier(null);
             openChat(supplier, { id: `call-${Date.now()}`, type: 'text', text: `Booked a call with you: ${when}. See you then!` });
           }}
-          onOpenSupplierSetup={(supplier) => {
-            setSetupSupplier(supplier || selectedSupplier);
-            setIsSupplierSetupOpen(true);
+          onClaimBusiness={() => {
+            setSelectedSupplier(null);
+            setIsOnboardingOpen(true);
           }}
         />
       )}
@@ -336,14 +335,13 @@ export default function App() {
       )}
 
       {/* Meetup-Style Supplier Profile Setup Modal (User Requested) */}
-      {isSupplierSetupOpen && (
+      {/* Makers edit only their own profile, and only from supplier mode */}
+      {isSupplierSetupOpen && isSupplierMode && (
         <SupplierProfileSetupModal
           isOpen={isSupplierSetupOpen}
-          onClose={() => { setIsSupplierSetupOpen(false); setSetupSupplier(null); }}
-          initialSupplier={setupSupplier || selectedSupplier || chatSupplier}
-          onSaveProfile={(updatedProfile) => {
-            setSelectedSupplier(updatedProfile);
-          }}
+          onClose={() => setIsSupplierSetupOpen(false)}
+          initialSupplier={SUPPLIERS.find((x) => x.id === 's3')}
+          onSaveProfile={() => toast('Your maker profile is updated.')}
         />
       )}
 
