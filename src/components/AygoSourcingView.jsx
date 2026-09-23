@@ -25,7 +25,7 @@ import {
 import { PRESET_VENUES } from '../data/mockData';
 import AygoGoogleMap from './AygoGoogleMap';
 import RequestOffers from './RequestOffers';
-import PanelWidthSlider from './PanelWidthSlider';
+import PanelResizeHandle from './PanelResizeHandle';
 import { Sheet, Button, Input, ListRow, Section, Logo, TINTS } from './ui';
 import { CATALOG_CATEGORIES } from '../data/catalog';
 
@@ -120,13 +120,10 @@ export default function AygoSourcingView({
         <div className="h-[42vh] lg:hidden" />
 
         <div className="desk-zoom pointer-events-auto min-h-[58vh] lg:min-h-0 bg-[#F2F1ED] rounded-t-[28px] lg:rounded-[28px] shadow-[0_-8px_30px_rgba(15,23,42,0.12)] lg:shadow-2xl space-y-2 pb-6 lg:pb-2">
-          <div className="hidden lg:block px-2 pt-2"><PanelWidthSlider /></div>
 
           {/* SECTION 1: Search */}
           <section className="bg-white rounded-[28px] px-4 pt-2.5 pb-4">
-            <div className="flex justify-center pb-3">
-              <div className="w-9 h-1 bg-slate-200 rounded-full" />
-            </div>
+            <PanelResizeHandle className="pb-3" />
 
             <button
               type="button"

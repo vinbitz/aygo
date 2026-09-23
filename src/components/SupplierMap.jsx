@@ -1,7 +1,7 @@
 import React from 'react';
 import { MapPin, Clock, Users, Gavel, MessageSquare, Pencil, Check, Sparkles, X, Factory } from 'lucide-react';
 import { Button, Badge, cx } from './ui';
-import PanelWidthSlider from './PanelWidthSlider';
+import PanelResizeHandle from './PanelResizeHandle';
 
 const peso = (n) => `₱${Number(n || 0).toLocaleString('en-PH', { maximumFractionDigits: 0 })}`;
 const short = (n) => (n >= 1000 ? `₱${Math.round(n / 100) / 10}k` : peso(n));
@@ -157,10 +157,7 @@ export default function SupplierMap({
           'desk-zoom pointer-events-auto rounded-t-[28px] lg:rounded-[32px] min-h-[58vh] lg:min-h-0 pt-2.5 pb-28 lg:pb-5 shadow-[0_-8px_30px_rgba(15,23,42,0.08)] space-y-3',
           otherSection ? 'bg-[#F2F1ED] px-2' : 'bg-white px-4'
         )}>
-          <div className="flex justify-center lg:hidden">
-            <div className="w-9 h-1 bg-slate-200 rounded-full" />
-          </div>
-          <PanelWidthSlider />
+          <PanelResizeHandle />
 
           {incoming && incoming.id !== selectedId && (
             <button
