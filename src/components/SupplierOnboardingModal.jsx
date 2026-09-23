@@ -1,5 +1,12 @@
 import React, { useState } from 'react';
-import { X, HelpCircle, ArrowLeft, ArrowRight, Plus, Check, Shield } from 'lucide-react';
+import {
+  X,
+  ArrowLeft,
+  ArrowRight,
+  Plus,
+  Shield
+} from 'lucide-react';
+import { toast } from '../lib/toast';
 
 export default function SupplierOnboardingModal({ isOpen, onClose, onComplete }) {
   const [step, setStep] = useState(1);
@@ -34,7 +41,7 @@ export default function SupplierOnboardingModal({ isOpen, onClose, onComplete })
       setStep(step + 1);
     } else {
       if (onComplete) onComplete({ firstName, surname, workshopName });
-      alert('Onboarding submitted! Your maker credentials are now under 24h verification review.');
+      toast('Onboarding submitted! Your maker credentials are now under 24h verification review.');
       onClose();
     }
   };
@@ -59,7 +66,7 @@ export default function SupplierOnboardingModal({ isOpen, onClose, onComplete })
           
           <button 
             type="button" 
-            onClick={() => alert('Aygo Maker Support: support@aygo.store / Viber: +63 917 555 0101')}
+            onClick={() => toast('Aygo Maker Support: support@aygo.store / Viber: +63 917 555 0101')}
             className="text-sm font-bold text-[#003CF5] hover:underline"
           >
             Help

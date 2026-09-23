@@ -1,28 +1,23 @@
 import React, { useState, useRef } from 'react';
-import { 
-  Sparkles, 
-  Upload, 
-  Download, 
-  Check, 
-  RotateCw, 
-  Sliders, 
-  Layers, 
-  FileText, 
-  Clock, 
-  Share2, 
-  CheckCircle2, 
-  Palette, 
-  Move,
+import {
+  Sparkles,
+  Upload,
+  Download,
+  Check,
+  Sliders,
+  Layers,
+  FileText,
+  Clock,
+  CheckCircle2,
+  Palette,
   Tag,
   Maximize2,
   Image as ImageIcon,
-  PlusCircle,
-  Eye,
   FileCheck,
-  AlertCircle,
   X
 } from 'lucide-react';
 import { AYGO_LOGO_DATA_URI } from '../assets/logoBase64';
+import { toast } from '../lib/toast';
 
 // Preset Colors
 const COLOR_SWATCHES = [
@@ -597,7 +592,7 @@ export default function ProductMockupStudio({
                   <button
                     type="button"
                     onClick={() => {
-                      alert(`High-resolution production proof exported for ${selectedProduct.name} (${selectedColor.name}, ${printTechnique}).`);
+                      toast(`High-resolution production proof exported for ${selectedProduct.name} (${selectedColor.name}, ${printTechnique}).`);
                       addLog(`Exported high-res production proof spec PDF.`);
                     }}
                     className="px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold transition-colors flex items-center gap-1.5"

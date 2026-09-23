@@ -1,5 +1,17 @@
 import React, { useState } from 'react';
-import { X, Sparkles, Send, MapPin, Calendar, DollarSign, Package, Layers, Check, Tag, Upload, Clock, Image as ImageIcon } from 'lucide-react';
+import {
+  X,
+  Sparkles,
+  Send,
+  MapPin,
+  Package,
+  Layers,
+  Check,
+  Tag,
+  Upload,
+  Clock,
+  Image as ImageIcon
+} from 'lucide-react';
 import { CATEGORIES } from '../data/mockData';
 
 const PACKAGE_TEMPLATES = [

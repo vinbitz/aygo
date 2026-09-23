@@ -13,7 +13,7 @@ import {
   Tag,
   MessageSquare
 } from 'lucide-react';
-import { SUPPLIERS, PRESET_VENUES, PRESET_HOMES } from '../data/mockData';
+import { SUPPLIERS, PRESET_VENUES } from '../data/mockData';
 import AygoGoogleMap from './AygoGoogleMap';
 
 const CATEGORY_TILES = [
@@ -43,39 +43,18 @@ export default function AygoSourcingView({
   activeVenue,
   onSelectVenue,
   deliveryType = 'venue',
-  onToggleDeliveryType,
-  deliveryDate = 'Oct 15, 2026',
-  onChangeDeliveryDate,
   onSelectSupplier,
   onOpenChatWithSupplier,
-  onOpenMockupStudio,
-  onRequestNewJob,
-  activeItem: propActiveItem,
-  onUpdateActiveItem
+  onRequestNewJob
 }) {
   const [localVenue, setLocalVenue] = useState(PRESET_VENUES[0]);
-  const [localType, setLocalType] = useState('venue');
-  const [localDate, setLocalDate] = useState('Oct 15, 2026');
   const [isLocationModalOpen, setIsLocationModalOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [customAddressInput, setCustomAddressInput] = useState('');
-  const [focusedSupplierId, setFocusedSupplierId] = useState(null);
   const [selectedMaker, setSelectedMaker] = useState(MAKER_BIDS[0]);
 
   const currentVenue = activeVenue || localVenue;
-  const currentType = deliveryType || localType;
-  const currentDate = deliveryDate || localDate;
-
-  // Active Item & Editing State
-  const [internalItem, setInternalItem] = useState({
-    title: '300 Customized Satin Lanyards',
-    qty: '300 pcs',
-    budget: '₱15,000 (₱50.00/pc)',
-    specs: '2cm smooth satin, full color 2-sided sublimation, trigger hook.',
-    isPackage: false
-  });
-
-  const currentItem = propActiveItem || internalItem;
+  const currentType = deliveryType;
 
   const handleUpdateVenue = (venue) => {
     if (onSelectVenue) {
@@ -104,10 +83,6 @@ export default function AygoSourcingView({
     v.address.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const filteredHomes = PRESET_HOMES.filter(h => 
-    h.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-    h.address.toLowerCase().includes(searchQuery.toLowerCase())
-  );
 
   return (
     <div className="relative w-full h-screen overflow-hidden bg-[#e5ecf6] font-sans selection:bg-[#003CF5] selection:text-white">
@@ -118,7 +93,6 @@ export default function AygoSourcingView({
           activeLocation={currentVenue}
           deliveryType={currentType}
           onSelectSupplier={onSelectSupplier}
-          focusedSupplierId={focusedSupplierId}
           onOpenDrawer={onOpenDrawer}
           onOpenLocationPicker={() => setIsLocationModalOpen(true)}
         />

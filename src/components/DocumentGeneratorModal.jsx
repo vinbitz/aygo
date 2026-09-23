@@ -1,5 +1,11 @@
 import React, { useState } from 'react';
-import { X, FileText, Download, Printer, CheckCircle, Copy } from 'lucide-react';
+import {
+  X,
+  FileText,
+  Download,
+  Copy
+} from 'lucide-react';
+import { toast } from '../lib/toast';
 
 const DOC_TYPES = [
   { id: 'rfq', name: 'Request for Quotation (RFQ)', desc: 'Standardized spec sheet sent to competing suppliers' },
@@ -130,7 +136,7 @@ export default function DocumentGeneratorModal({ onClose }) {
             <button
               type="button"
               onClick={() => {
-                alert('Downloading PDF for this document.');
+                toast('Downloading PDF for this document.');
                 onClose();
               }}
               className="px-4 py-2 rounded-xl bg-brand-600 hover:bg-brand-700 text-white text-xs font-bold shadow-sm transition-colors flex items-center gap-1.5"

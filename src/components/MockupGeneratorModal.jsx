@@ -1,5 +1,9 @@
 import React, { useState } from 'react';
-import { X, Sparkles, Upload, Download, Check, RefreshCw } from 'lucide-react';
+import {
+  X,
+  Sparkles
+} from 'lucide-react';
+import { toast } from '../lib/toast';
 
 const MOCKUP_ITEMS = [
   { id: 'tee', name: 'Cotton T-Shirt', category: 'Apparel', image: 'https://images.unsplash.com/photo-1521572267360-ee0c2909d518?auto=format&fit=crop&w=600&q=80' },
@@ -144,7 +148,7 @@ export default function MockupGeneratorModal({ onClose }) {
               <button
                 type="button"
                 onClick={() => {
-                  alert('Mockup attached to active supplier RFQ.');
+                  toast('Mockup attached to active supplier RFQ.');
                   onClose();
                 }}
                 className="flex-1 py-2 px-3 rounded-lg bg-white border border-slate-300 text-xs font-bold text-slate-700 hover:bg-slate-50 transition-colors text-center"

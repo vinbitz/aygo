@@ -1,5 +1,7 @@
 import React from 'react';
-import { X, CheckCircle2, ShieldCheck, Clock, MapPin, DollarSign, Award } from 'lucide-react';
+import {
+  X
+} from 'lucide-react';
 import { SUPPLIERS } from '../data/mockData';
 
 export default function BiddingComparisonModal({ onClose, onSelectSupplier }) {

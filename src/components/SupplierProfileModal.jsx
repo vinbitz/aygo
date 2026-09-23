@@ -1,22 +1,14 @@
 import React, { useState } from 'react';
-import { 
-  X, 
-  ShieldCheck, 
-  MapPin, 
-  Clock, 
-  CheckCircle2, 
-  Phone, 
-  Mail, 
-  Layers, 
-  Truck, 
-  Calendar, 
-  MessageSquare, 
-  Award, 
-  DollarSign, 
-  Send, 
-  Video, 
-  ExternalLink 
+import {
+  X,
+  ShieldCheck,
+  MapPin,
+  CheckCircle2,
+  Truck,
+  MessageSquare,
+  Video
 } from 'lucide-react';
+import { toast } from '../lib/toast';
 
 export default function SupplierProfileModal({ 
   supplier, 
@@ -292,7 +284,7 @@ export default function SupplierProfileModal({
                     />
                     <button
                       onClick={() => {
-                        alert(`Counter-offer of PHP ${counterPrice}/pc sent directly to ${supplier.name}.`);
+                        toast(`Counter-offer of PHP ${counterPrice}/pc sent directly to ${supplier.name}.`);
                         setShowCounterInput(false);
                       }}
                       className="px-4 py-2 bg-brand-600 hover:bg-brand-700 text-white text-xs font-bold rounded-xl transition-colors"

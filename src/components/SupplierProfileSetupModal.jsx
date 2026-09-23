@@ -1,24 +1,12 @@
 import React, { useState } from 'react';
-import { 
-  X, 
-  Building2, 
-  MapPin, 
-  Clock, 
-  Truck, 
-  Layers, 
-  ShieldCheck, 
-  Save, 
-  Upload, 
-  Check, 
-  Phone, 
-  Mail, 
-  User, 
-  Camera, 
-  Calendar,
-  Sparkles,
-  HelpCircle
+import {
+  X,
+  Building2,
+  Save,
+  Check
 } from 'lucide-react';
 import { SUPPLIERS } from '../data/mockData';
+import { toast } from '../lib/toast';
 
 export default function SupplierProfileSetupModal({ 
   isOpen, 
@@ -103,7 +91,7 @@ export default function SupplierProfileSetupModal({
     };
 
     if (onSaveProfile) onSaveProfile(updated);
-    alert(`Supplier profile for "${name}" successfully updated and synchronized across the Sourcing Radar!`);
+    toast(`Supplier profile for "${name}" successfully updated and synchronized across the Sourcing Radar!`);
     onClose();
   };
 

@@ -1,5 +1,9 @@
 import React from 'react';
-import { X, Clock, CheckCircle2, AlertCircle, FileText, ChevronRight } from 'lucide-react';
+import {
+  X,
+  Clock,
+  ChevronRight
+} from 'lucide-react';
 
 export default function RequestHistoryModal({ isOpen, onClose, activeItem, onOpenItem }) {
   if (!isOpen) return null;

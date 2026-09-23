@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { X, Send, Award, Users, Check, Copy } from 'lucide-react';
+import { toast } from '../lib/toast';
 
 export default function ReferralRewardsModal({ isOpen, onClose }) {
   const [copied, setCopied] = useState(false);
@@ -120,7 +121,7 @@ export default function ReferralRewardsModal({ isOpen, onClose }) {
           <div className="text-center pt-2">
             <button 
               type="button" 
-              onClick={() => alert('Referral terms: Bonuses are non-transferable and can be redeemed towards escrow payments or bank withdrawals for verified makers.')}
+              onClick={() => toast('Referral terms: Bonuses are non-transferable and can be redeemed towards escrow payments or bank withdrawals for verified makers.')}
               className="text-xs font-semibold text-slate-500 hover:text-slate-800 underline"
             >
               Terms and Conditions

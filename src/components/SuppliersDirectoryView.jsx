@@ -1,5 +1,12 @@
 import React, { useState } from 'react';
-import { ShieldCheck, MapPin, Clock, Star, ChevronRight, Search, Filter } from 'lucide-react';
+import {
+  ShieldCheck,
+  MapPin,
+  Clock,
+  Star,
+  ChevronRight,
+  Search
+} from 'lucide-react';
 import { SUPPLIERS } from '../data/mockData';
 
 export default function SuppliersDirectoryView({ onSelectSupplier }) {

@@ -1,25 +1,22 @@
 import React from 'react';
-import { 
-  X, 
-  MapPin, 
-  Clock, 
-  Users, 
-  Sparkles, 
-  FileText, 
-  Handshake, 
-  Bell, 
-  Settings, 
-  HelpCircle, 
-  ChevronRight,
-  ShieldCheck,
+import {
+  X,
+  MapPin,
+  Clock,
+  Users,
+  Sparkles,
+  FileText,
+  Bell,
+  Settings,
+  HelpCircle,
   Repeat,
   MessageSquare,
   Building2,
   Coins,
   Award,
-  CreditCard,
   UserCheck
 } from 'lucide-react';
+import { toast } from '../lib/toast';
 
 export default function SideDrawer({ 
   isOpen, 
@@ -150,7 +147,7 @@ export default function SideDrawer({
 
           {/* 7. Notification */}
           <button 
-            onClick={() => { alert('You have 4 new notifications.'); onClose(); }} 
+            onClick={() => { toast('You have 4 new notifications.'); onClose(); }} 
             className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl hover:bg-slate-50 text-left transition-colors"
           >
             <div className="flex items-center gap-3">
@@ -164,7 +161,7 @@ export default function SideDrawer({
 
           {/* 8. Setting */}
           <button 
-            onClick={() => { alert('Settings.'); onClose(); }} 
+            onClick={() => { toast('Settings.'); onClose(); }} 
             className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-slate-50 text-left transition-colors"
           >
             <Settings className="w-4 h-4 text-slate-500" />
@@ -173,7 +170,7 @@ export default function SideDrawer({
 
           {/* 9. Help & Support */}
           <button 
-            onClick={() => { alert('Support: support@aygo.store'); onClose(); }} 
+            onClick={() => { toast('Support: support@aygo.store'); onClose(); }} 
             className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-slate-50 text-left transition-colors"
           >
             <HelpCircle className="w-4 h-4 text-slate-500" />

@@ -1,8 +1,12 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { SUPPLIERS } from '../data/mockData';
-import { Eye, MapPin, ZoomIn, ZoomOut, Compass, Factory, Navigation, ChevronRight, Search } from 'lucide-react';
+import {
+  Navigation,
+  ChevronRight,
+  Search
+} from 'lucide-react';
 
-const GOOGLE_MAPS_API_KEY = 'AIzaSyDPlzdRUvUscJXBlwHy-Rx7NRBO8tMosLU';
+const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
 
 const DEFAULT_VENUE = {
   name: 'Arthaland Century Pacific Tower',
@@ -45,6 +49,12 @@ export default function AygoGoogleMap({
   useEffect(() => {
     if (window.google && window.google.maps) {
       setMapLoaded(true);
+      return;
+    }
+
+    // No key configured: fall back to the built-in illustrated map
+    if (!GOOGLE_MAPS_API_KEY) {
+      setMapError(true);
       return;
     }
 

@@ -1,6 +1,11 @@
 import React, { useState } from 'react';
-import { X, Handshake, Building2, Users, FileText, Send, CheckCircle2 } from 'lucide-react';
+import {
+  X,
+  Handshake,
+  CheckCircle2
+} from 'lucide-react';
 import { SPONSORSHIP_LISTINGS } from '../data/mockData';
+import { toast } from '../lib/toast';
 
 export default function SponsorshipConnectModal({ onClose }) {
   const [activeTab, setActiveTab] = useState('browse');
@@ -101,7 +106,7 @@ export default function SponsorshipConnectModal({ onClose }) {
 
                   <div className="pt-2 flex justify-end">
                     <button
-                      onClick={() => alert(`Inquiry sent to organizers of ${item.eventTitle}.`)}
+                      onClick={() => toast(`Inquiry sent to organizers of ${item.eventTitle}.`)}
                       className="px-4 py-2 rounded-xl bg-brand-600 hover:bg-brand-700 text-white font-bold transition-colors flex items-center gap-1.5"
                     >
                       <Handshake className="w-3.5 h-3.5" />

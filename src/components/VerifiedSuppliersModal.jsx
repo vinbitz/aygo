@@ -1,5 +1,13 @@
 import React, { useState } from 'react';
-import { X, Search, MapPin, Star, ShieldCheck, MessageSquare, ExternalLink, ChevronRight } from 'lucide-react';
+import {
+  X,
+  Search,
+  MapPin,
+  Star,
+  ShieldCheck,
+  MessageSquare,
+  ChevronRight
+} from 'lucide-react';
 import { SUPPLIERS } from '../data/mockData';
 
 export default function VerifiedSuppliersModal({ isOpen, onClose, onSelectSupplier, onOpenChat }) {

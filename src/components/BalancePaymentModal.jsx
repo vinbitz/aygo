@@ -1,5 +1,13 @@
 import React, { useState } from 'react';
-import { X, ArrowLeft, HelpCircle, ChevronRight, CreditCard, Coins, Check, ArrowUpRight, DollarSign } from 'lucide-react';
+import {
+  X,
+  ArrowLeft,
+  HelpCircle,
+  ChevronRight,
+  CreditCard,
+  Coins
+} from 'lucide-react';
+import { toast } from '../lib/toast';
 
 export default function BalancePaymentModal({ isOpen, onClose }) {
   const [currentView, setCurrentView] = useState('main'); // 'main' | 'methods' | 'topup'
@@ -15,7 +23,7 @@ export default function BalancePaymentModal({ isOpen, onClose }) {
     const amt = parseFloat(topUpAmount) || 0;
     if (amt > 0) {
       setBalance(prev => prev + amt);
-      alert(`Successfully topped up ₱${amt.toLocaleString()} via ${selectedMethod === 'gcash' ? 'GCash' : 'Bank Transfer'}. Funds available for supplier escrow deposit.`);
+      toast(`Successfully topped up ₱${amt.toLocaleString()} via ${selectedMethod === 'gcash' ? 'GCash' : 'Bank Transfer'}. Funds available for supplier escrow deposit.`);
       setCurrentView('main');
     }
   };
@@ -67,7 +75,7 @@ export default function BalancePaymentModal({ isOpen, onClose }) {
                   </div>
                   <button 
                     type="button" 
-                    onClick={() => alert('Aygo Escrow Balance is used to secure orders, pay suppliers, and claim referral bonuses.')}
+                    onClick={() => toast('Aygo Escrow Balance is used to secure orders, pay suppliers, and claim referral bonuses.')}
                     className="w-6 h-6 rounded-full flex items-center justify-center text-slate-400 hover:text-slate-600"
                   >
                     <HelpCircle className="w-4 h-4" />

@@ -1,5 +1,9 @@
 import React, { useState } from 'react';
-import { X, Globe, Mail, CheckCircle2, TrendingUp } from 'lucide-react';
+import {
+  X,
+  Globe,
+  CheckCircle2
+} from 'lucide-react';
 
 export default function InternationalWaitlistModal({ onClose }) {
   const [email, setEmail] = useState('');

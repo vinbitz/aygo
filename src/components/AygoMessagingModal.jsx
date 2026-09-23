@@ -1,23 +1,16 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { 
-  X, 
-  Send, 
-  Paperclip, 
-  MapPin, 
-  Clock, 
-  ShieldCheck, 
-  Image as ImageIcon, 
-  DollarSign, 
-  Check, 
-  CheckCheck, 
-  Sparkles, 
-  FileText, 
-  Calendar,
-  ExternalLink,
-  ChevronRight,
+import {
+  X,
+  Send,
+  Paperclip,
+  MapPin,
+  ShieldCheck,
+  Image as ImageIcon,
+  DollarSign,
+  Check,
+  CheckCheck,
   User,
-  Building2,
-  ArrowRightLeft
+  Building2
 } from 'lucide-react';
 import { SUPPLIERS } from '../data/mockData';
 

@@ -1,19 +1,22 @@
-import React, { useState } from 'react';
-import Navbar from './components/Navbar';
+import React, { Suspense, lazy, useState } from 'react';
 import SideDrawer from './components/SideDrawer';
 import AygoSourcingView from './components/AygoSourcingView';
-import SupplierProfileModal from './components/SupplierProfileModal';
-import CreateRequestModal from './components/CreateRequestModal';
-import ProductMockupStudio from './components/ProductMockupStudio';
-import DocumentGeneratorModal from './components/DocumentGeneratorModal';
-import SponsorshipConnectModal from './components/SponsorshipConnectModal';
-import AygoMessagingModal from './components/AygoMessagingModal';
-import SupplierProfileSetupModal from './components/SupplierProfileSetupModal';
-import BalancePaymentModal from './components/BalancePaymentModal';
-import ReferralRewardsModal from './components/ReferralRewardsModal';
-import SupplierOnboardingModal from './components/SupplierOnboardingModal';
-import VerifiedSuppliersModal from './components/VerifiedSuppliersModal';
-import RequestHistoryModal from './components/RequestHistoryModal';
+import Toaster from './components/Toaster';
+import { toast } from './lib/toast';
+
+// Popups are loaded on first open so the home screen ships a smaller bundle
+const SupplierProfileModal = lazy(() => import('./components/SupplierProfileModal'));
+const CreateRequestModal = lazy(() => import('./components/CreateRequestModal'));
+const ProductMockupStudio = lazy(() => import('./components/ProductMockupStudio'));
+const DocumentGeneratorModal = lazy(() => import('./components/DocumentGeneratorModal'));
+const SponsorshipConnectModal = lazy(() => import('./components/SponsorshipConnectModal'));
+const AygoMessagingModal = lazy(() => import('./components/AygoMessagingModal'));
+const SupplierProfileSetupModal = lazy(() => import('./components/SupplierProfileSetupModal'));
+const BalancePaymentModal = lazy(() => import('./components/BalancePaymentModal'));
+const ReferralRewardsModal = lazy(() => import('./components/ReferralRewardsModal'));
+const SupplierOnboardingModal = lazy(() => import('./components/SupplierOnboardingModal'));
+const VerifiedSuppliersModal = lazy(() => import('./components/VerifiedSuppliersModal'));
+const RequestHistoryModal = lazy(() => import('./components/RequestHistoryModal'));
 
 export default function App() {
   const [selectedSupplier, setSelectedSupplier] = useState(null);
@@ -54,8 +57,8 @@ export default function App() {
     lng: 121.0475,
     type: 'venue'
   });
-  const [deliveryType, setDeliveryType] = useState('venue');
-  const [deliveryDate, setDeliveryDate] = useState('Oct 15, 2026');
+  const [deliveryType] = useState('venue');
+  const [deliveryDate] = useState('Oct 15, 2026');
   const [activeItem, setActiveItem] = useState({
     title: '300 Customized Satin Lanyards',
     qty: '300 pcs',
@@ -65,7 +68,7 @@ export default function App() {
   });
 
   const handleAcceptBid = (supplier) => {
-    alert(`Bid successfully accepted with ${supplier.name}. Purchase order generated and Aygo Chat workspace initiated.`);
+    toast(`Bid successfully accepted with ${supplier.name}. Purchase order generated and Aygo Chat workspace initiated.`);
   };
 
   return (
@@ -100,26 +103,23 @@ export default function App() {
           activeVenue={activeVenue}
           onSelectVenue={(v) => setActiveVenue(v)}
           deliveryType={deliveryType}
-          onToggleDeliveryType={(t) => setDeliveryType(t)}
-          deliveryDate={deliveryDate}
-          onChangeDeliveryDate={(d) => setDeliveryDate(d)}
           onSelectSupplier={(supplier) => setSelectedSupplier(supplier)}
           onOpenChatWithSupplier={(supplier) => {
             setChatSupplier(supplier);
             setIsMessagesOpen(true);
           }}
-          onOpenMockupStudio={() => setIsMockupOpen(true)}
           onRequestNewJob={(mode = 'single', cat = 'apparel') => {
             setCreateMode(mode);
             setCreateCategory(cat);
             setIsCreateOpen(true);
           }}
-          activeItem={activeItem}
-          onUpdateActiveItem={(updated) => setActiveItem(updated)}
         />
       </main>
 
+      <Toaster />
+
       {/* Modals & Tools (Triggered contextually when needed) */}
+      <Suspense fallback={null}>
       {selectedSupplier && (
         <SupplierProfileModal
           supplier={selectedSupplier}
@@ -129,7 +129,7 @@ export default function App() {
             setChatSupplier(supplier);
             setIsMessagesOpen(true);
           }}
-          onOpenSupplierSetup={(supplier) => {
+          onOpenSupplierSetup={() => {
             setIsSupplierSetupOpen(true);
           }}
         />
@@ -176,7 +176,7 @@ export default function App() {
               isPackage: newReq.isPackage,
               categories: newReq.categories
             });
-            alert(`Request "${newReq.title}" placed and dispatched to verified craft suppliers!`);
+            toast(`Request "${newReq.title}" placed and dispatched to verified craft suppliers!`);
           }}
         />
       )}
@@ -230,10 +230,10 @@ export default function App() {
         <SupplierOnboardingModal
           isOpen={isOnboardingOpen}
           onClose={() => setIsOnboardingOpen(false)}
-          onCompleteOnboarding={(data) => {
+          onCompleteOnboarding={() => {
             setIsOnboardingOpen(false);
             setIsSupplierMode(true);
-            alert("Verification documents submitted! Your workshop is now in expedited review.");
+            toast("Verification documents submitted! Your workshop is now in expedited review.");
           }}
         />
       )}
@@ -272,6 +272,7 @@ export default function App() {
           }}
         />
       )}
+      </Suspense>
     </div>
   );
 }
