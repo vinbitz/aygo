@@ -1,104 +1,239 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
-  CheckCircle2,
-  Clock,
-  MapPin,
-  Package,
-  ShieldCheck,
-  Edit3,
-  MessageSquare,
-  Sliders,
-  Check,
+  Inbox,
+  Gavel,
   Truck,
-  Plus,
+  Store,
+  MapPin,
+  Clock,
+  CalendarDays,
+  Package,
   Star,
-  Camera,
+  Trophy,
+  Zap,
+  Sparkles,
+  BarChart3,
+  Rocket,
+  PhoneCall,
+  MessageSquare,
+  Plus,
   Trash2,
-  Users,
-  MessageCircle,
-  CornerDownRight,
+  Camera,
+  Pencil,
+  Check,
+  Wand2,
+  ArrowLeftRight,
   Search,
-  Phone,
-  Mail,
-  User
+  CornerDownRight,
+  Users
 } from 'lucide-react';
 import { SUPPLIERS } from '../data/mockData';
+import { toast } from '../lib/toast';
+import {
+  Sheet,
+  Button,
+  Field,
+  Input,
+  Textarea,
+  Select,
+  Badge,
+  VerifiedBadge,
+  Chip,
+  Tabs,
+  ListRow,
+  IconCircle,
+  Section,
+  Panel,
+  EmptyState,
+  cx
+} from './ui';
+
+/* ------------------------------------------------------------------ */
+/* Mock data                                                           */
+/* ------------------------------------------------------------------ */
+
+const REQUEST_FILTERS = ['All', 'Apparel', 'Event print', 'Drinkware', 'Bags'];
+
+const INITIAL_REQUESTS = [
+  {
+    id: 'req-101',
+    item: 'Custom satin lanyards',
+    category: 'Event print',
+    organizer: 'BGC Tech Summit',
+    qty: 300,
+    budget: 15000,
+    deadline: 'Oct 15',
+    deadlineISO: '2026-10-15',
+    venue: 'Arthaland Century Pacific Tower, BGC',
+    distance: '8.2 km',
+    posted: '12 min ago',
+    bidsCount: 4,
+    specs: '20mm satin ribbon, 2-sided full-colour sublimation, trigger snap hook.'
+  },
+  {
+    id: 'req-102',
+    item: 'Navy dri-fit shirts',
+    category: 'Apparel',
+    organizer: 'Pinoy Runners Manila',
+    qty: 500,
+    budget: 85000,
+    deadline: 'Oct 20',
+    deadlineISO: '2026-10-20',
+    venue: 'SMX Convention Center, Pasay',
+    distance: '6.5 km',
+    posted: '1 hr ago',
+    bidsCount: 2,
+    specs: 'Honeycomb dri-fit, 1-colour chest silkscreen, individual size polybags.'
+  },
+  {
+    id: 'req-103',
+    item: 'Laser-engraved tumblers',
+    category: 'Drinkware',
+    organizer: 'Fintech Leadership Forum',
+    qty: 100,
+    budget: 35000,
+    deadline: 'Nov 2',
+    deadlineISO: '2026-11-02',
+    venue: 'Rockwell Center, Makati',
+    distance: '9.8 km',
+    posted: '3 hr ago',
+    bidsCount: 3,
+    specs: 'SUS304 double-wall 500ml, rotary laser mark, individual kraft boxes.'
+  },
+  {
+    id: 'req-104',
+    item: 'Canvas tote bags',
+    category: 'Bags',
+    organizer: 'PH Startup Assembly',
+    qty: 250,
+    budget: 22500,
+    deadline: 'Oct 28',
+    deadlineISO: '2026-10-28',
+    venue: 'World Trade Center, Pasay',
+    distance: '7.1 km',
+    posted: 'Yesterday',
+    bidsCount: 5,
+    specs: '12oz natural canvas, 2-colour silkscreen on one side.'
+  }
+];
+
+const INITIAL_BIDS = [
+  { id: 'bid-1', requestId: 'req-101', item: 'Custom satin lanyards', organizer: 'BGC Tech Summit', qty: 300, price: 46, days: 4, status: 'Pending', sent: '2 hr ago' },
+  { id: 'bid-2', item: 'Event polo shirts', organizer: 'DevCon Manila', qty: 150, price: 280, counter: 260, days: 6, status: 'Countered', sent: 'Yesterday' },
+  { id: 'bid-3', item: 'Dri-fit event shirts', organizer: 'Manila Hackathon Expo', qty: 500, price: 165, days: 5, status: 'Won', sent: 'Sep 12' },
+  { id: 'bid-4', item: 'Enamel coffee mugs', organizer: 'Kape Summit PH', qty: 200, price: 190, days: 7, status: 'Lost', sent: 'Sep 8' }
+];
+
+const BID_STATUS = {
+  Pending: { tone: 'amber', text: 'Waiting for organizer' },
+  Countered: { tone: 'violet', text: 'Organizer sent a counter offer' },
+  Won: { tone: 'green', text: 'You won this job' },
+  Lost: { tone: 'slate', text: 'Organizer chose another maker' }
+};
+
+const ORDER_STEPS = ['Proofing', 'Printing', 'Pack', 'Dispatch'];
+
+const INITIAL_ORDERS = [
+  { id: 'ord-8812', item: '300 satin lanyards + PVC IDs', organizer: 'BGC Tech Summit', payout: 13800, deadline: 'Oct 15', venue: 'Arthaland Century Pacific Tower, BGC', step: 0 },
+  { id: 'ord-8790', item: '500 dri-fit event shirts', organizer: 'Manila Hackathon Expo', payout: 82500, deadline: 'Oct 9', venue: 'SMX Convention Center, Pasay', step: 2 }
+];
+
+const INCLUSIONS = ['Digital mockup proof', 'Physical sample', 'Individual polybag', 'Free Metro Manila delivery', 'Rush option', 'Gift box packaging'];
+
+const CATALOG = [
+  { name: 'Satin lanyards', from: 38, moq: 50 },
+  { name: 'Cotton & dri-fit shirts', from: 150, moq: 30 },
+  { name: 'Canvas tote bags', from: 70, moq: 50 },
+  { name: 'Laser-etched tumblers', from: 320, moq: 24 }
+];
 
 const INITIAL_SAMPLES = [
-  {
-    id: 'samp-1',
-    name: 'BGC Tech Summit Premium Satin Lanyards',
-    category: 'Event Print & Lanyards',
-    technique: 'Double-sided Sublimation (20mm)',
-    event: 'BGC Tech Summit 2026',
-    price: '₱46.00/pc',
-    turnaround: '4 Days',
-    image: 'https://images.unsplash.com/photo-1511556532299-8f662fc26c06?auto=format&fit=crop&w=800&q=80'
-  },
-  {
-    id: 'samp-2',
-    name: '240 GSM Heavyweight Oversized Cotton Shirts',
-    category: 'Apparel & Uniforms',
-    technique: 'High-Density Screen + DTF',
-    event: 'Manila Hackathon Expo',
-    price: '₱165.00/pc',
-    turnaround: '5 Days',
-    image: 'https://images.unsplash.com/photo-1521572267360-ee0c2909d518?auto=format&fit=crop&w=800&q=80'
-  },
-  {
-    id: 'samp-3',
-    name: '14oz Natural Canvas Conference Tote Bag',
-    category: 'Bags & Totes',
-    technique: '2-Color Silkscreen Print',
-    event: 'PH Startup Assembly',
-    price: '₱72.00/pc',
-    turnaround: '5 Days',
-    image: 'https://images.unsplash.com/photo-1544816155-12df9643f363?auto=format&fit=crop&w=800&q=80'
-  },
-  {
-    id: 'samp-4',
-    name: 'SUS304 Matte Black Thermal Tumbler 500ml',
-    category: 'Drinkware & Vessels',
-    technique: 'Rotary 360° Laser Etch',
-    event: 'Fintech Leadership Gala',
-    price: '₱340.00/pc',
-    turnaround: '3 Days',
-    image: 'https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?auto=format&fit=crop&w=800&q=80'
-  }
+  { id: 'samp-1', name: 'Satin sublimation lanyards', event: 'BGC Tech Summit 2026', price: '₱46/pc', image: 'https://images.unsplash.com/photo-1511556532299-8f662fc26c06?auto=format&fit=crop&w=600&q=70' },
+  { id: 'samp-2', name: '240 GSM oversized cotton shirts', event: 'Manila Hackathon Expo', price: '₱165/pc', image: 'https://images.unsplash.com/photo-1521572267360-ee0c2909d518?auto=format&fit=crop&w=600&q=70' },
+  { id: 'samp-3', name: '14oz canvas conference tote', event: 'PH Startup Assembly', price: '₱72/pc', image: 'https://images.unsplash.com/photo-1544816155-12df9643f363?auto=format&fit=crop&w=600&q=70' },
+  { id: 'samp-4', name: 'Matte black thermal tumbler', event: 'Fintech Leadership Gala', price: '₱340/pc', image: 'https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?auto=format&fit=crop&w=600&q=70' }
 ];
 
 const INITIAL_REVIEWS = [
-  {
-    id: 'rev-1',
-    author: 'Marvin Barrios',
-    role: 'Lead Organizer · BGC Tech Summit',
-    rating: 5,
-    date: 'Sep 18, 2026',
-    order: '300 Satin Lanyards + Badges',
-    comment: 'Exceptional craft quality and delivered 1 full day ahead of our BGC Arts Center event setup. Sublimation colors matched our Pantone code perfectly!',
-    reply: 'Thank you Marvin! It was a pleasure crafting the lanyards for BGC Tech Summit. Looking forward to your next event!'
-  },
-  {
-    id: 'rev-2',
-    author: 'Kaye Domingo',
-    role: 'DevCon Manila Producer',
-    rating: 5,
-    date: 'Aug 24, 2026',
-    order: '500 Dri-Fit Event Shirts',
-    comment: 'Prints stayed vibrant even after multiple test washes. Escrow settlement with Aygo was super smooth and on-time.',
-    reply: null
-  },
-  {
-    id: 'rev-3',
-    author: 'Carlo Mendoza',
-    role: 'Startup PH Founders Forum',
-    rating: 4.8,
-    date: 'Jul 12, 2026',
-    order: '100 Laser Engraved Tumblers',
-    comment: 'Crisp rotary laser engraving on the matte black steel bottles. All 100 VIP attendees loved them!',
-    reply: null
-  }
+  { id: 'rev-1', author: 'Marvin Barrios', event: 'BGC Tech Summit', rating: 5, date: 'Sep 18', comment: 'Delivered a full day early and the sublimation colours matched our Pantone perfectly.', reply: 'Thank you Marvin! Looking forward to your next event.' },
+  { id: 'rev-2', author: 'Kaye Domingo', event: 'DevCon Manila', rating: 5, date: 'Aug 24', comment: 'Prints stayed vibrant after multiple washes. Payment through Aygo was smooth.', reply: null },
+  { id: 'rev-3', author: 'Carlo Mendoza', event: 'Startup PH Founders Forum', rating: 4.8, date: 'Jul 12', comment: 'Crisp laser engraving on the matte black bottles. Our VIPs loved them.', reply: null }
 ];
+
+const PRO_PERKS = [
+  { icon: Rocket, tone: 'blue', title: 'Priority placement', text: 'Your bids show first to organizers nearby' },
+  { icon: BarChart3, tone: 'violet', title: 'Bid analytics', text: 'See winning prices and response benchmarks' },
+  { icon: Wand2, tone: 'amber', title: 'AI mockup credits', text: '50 mockups a month to win more bids' }
+];
+
+const TABS = [
+  { id: 'requests', label: 'Requests', icon: Inbox },
+  { id: 'bids', label: 'My bids', icon: Gavel },
+  { id: 'orders', label: 'Orders', icon: Truck },
+  { id: 'store', label: 'Storefront', icon: Store }
+];
+
+const EMPTY_SAMPLE = { name: '', event: '', price: '', image: '' };
+
+const peso = (n) => `₱${Number(n || 0).toLocaleString('en-PH', { maximumFractionDigits: 2 })}`;
+
+function addDaysISO(days) {
+  const d = new Date();
+  d.setDate(d.getDate() + Number(days || 0));
+  return d.toISOString().slice(0, 10);
+}
+
+const card = 'bg-white rounded-[28px] p-4 sm:p-5';
+
+/* ------------------------------------------------------------------ */
+/* Small pieces                                                        */
+/* ------------------------------------------------------------------ */
+
+function OrderStepper({ step }) {
+  return (
+    <ol className="grid grid-cols-4">
+      {ORDER_STEPS.map((label, i) => {
+        const done = i <= step;
+        const current = i === step;
+        return (
+          <li key={label} className="relative flex flex-col items-center text-center">
+            {i > 0 && <span className={cx('absolute top-[5px] right-1/2 w-full h-0.5', done ? 'bg-[#003CF5]' : 'bg-slate-200')} />}
+            <span
+              className={cx(
+                'relative z-10 w-3 h-3 rounded-full',
+                current ? 'bg-[#003CF5] ring-4 ring-blue-100' : done ? 'bg-[#003CF5]' : 'bg-slate-200'
+              )}
+            />
+            <span className={cx('mt-2 text-[12px]', current ? 'font-semibold text-slate-900' : 'text-slate-500')}>{label}</span>
+          </li>
+        );
+      })}
+    </ol>
+  );
+}
+
+function Stat({ icon, tone, value, label }) {
+  return (
+    <div className="rounded-2xl bg-[#F4F3F0] p-3">
+      <IconCircle icon={icon} tone={tone} size="sm" />
+      <p className="mt-2 text-[17px] font-semibold text-slate-900 leading-tight">{value}</p>
+      <p className="text-[12px] text-slate-500">{label}</p>
+    </div>
+  );
+}
+
+function Meta({ icon: Icon, children }) {
+  return (
+    <span className="inline-flex items-center gap-1 text-[13px] text-slate-500 min-w-0">
+      <Icon className="w-3.5 h-3.5 shrink-0 text-slate-400" />
+      <span className="truncate">{children}</span>
+    </span>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/* Main view                                                           */
+/* ------------------------------------------------------------------ */
 
 export default function SupplierPortalView({
   onOpenDrawer,
@@ -106,1136 +241,899 @@ export default function SupplierPortalView({
   onOpenChatWithCustomer,
   onOpenMockupStudio
 }) {
-  const [activeTab, setActiveTab] = useState('rfqs'); // 'rfqs' | 'orders' | 'profile' | 'samples' | 'reviews' | 'network'
-  
-  // Current logged in supplier state
-  const [supplierProfile, setSupplierProfile] = useState({
+  const [activeTab, setActiveTab] = useState('requests');
+  const [requestFilter, setRequestFilter] = useState('All');
+  const [bidFilter, setBidFilter] = useState('all');
+
+  const [profile, setProfile] = useState({
     name: 'JJT Digital & Craft Garments',
-    tagline: "Taytay & Parañaque's premier automated sublimation & DTF press",
-    contactFirstName: 'Joshua',
-    contactLastName: 'Tan',
-    contactPerson: 'Joshua Tan (Lead Merch Engineer)',
-    phone: '9171435890',
+    tagline: 'Sublimation, DTF and silkscreen press in Parañaque',
+    contactPerson: 'Joshua Tan',
+    phone: '+63 917 143 5890',
     email: 'sales.jtdigital@gmail.com',
-    city: 'Parañaque City, Metro Manila',
-    address: 'Dr. A. Santos Ave, Sucat, Parañaque City',
-    rating: '4.9',
-    reviewsCount: 215,
-    completedJobs: 215,
-    turnaround: '3 - 5 Business Days',
+    city: 'Parañaque City',
+    turnaround: '3–5 business days',
     moq: '30 pcs',
-    bio: 'Industrial heat transfer, sublimation, and screen printing facility specializing in high-definition satin lanyards, RFID conference badges, custom apparel, and weatherproof vinyl stickers with 24-48h rush capability.',
-    equipment: ['Full-Color Sublimation', 'Computerized Silkscreen', 'DTF Heat Transfer', 'Rotary Laser Etcher', 'Automatic Heat Press', 'Embroidery Barudan 4-Head'],
-    verified: true,
-    payoutAccount: 'BDO Unibank •••• 8821 (Verified Escrow)'
+    bio: 'Heat transfer, sublimation and screen printing for lanyards, RFID badges, apparel and weatherproof stickers, with 24–48h rush capability.'
   });
+  const [profileForm, setProfileForm] = useState(null);
 
-  // Samples Portfolio State
-  const [samplesList, setSamplesList] = useState(INITIAL_SAMPLES);
-  const [isSampleModalOpen, setIsSampleModalOpen] = useState(false);
-  const [newSampleForm, setNewSampleForm] = useState({
-    name: '',
-    category: 'Apparel & Uniforms',
-    technique: 'DTF Full Color',
-    event: 'Event Merch Order',
-    price: '₱150.00/pc',
-    turnaround: '4 Days',
-    image: ''
-  });
-
-  // Customer Reviews State
-  const [reviewsList, setReviewsList] = useState(INITIAL_REVIEWS);
-  const [replyInput, setReplyInput] = useState({});
-  const [activeReplyId, setActiveReplyId] = useState(null);
-
-  // Customer Requests / RFQ Feed
-  const [customerRequests, setCustomerRequests] = useState([
-    {
-      id: 'req-101',
-      title: '300 Customized Satin Lanyards',
-      organizer: 'Marvin Barrios (BGC Tech Summit)',
-      category: 'Event Print & Lanyards',
-      quantity: 300,
-      targetBudget: 15000,
-      targetUnitPrice: 50.00,
-      venue: 'Arthaland Century Pacific Tower, BGC',
-      deliveryDate: 'Oct 15, 2026',
-      specs: '2cm smooth satin ribbon, 2-sided full color sublimation, heavy-duty trigger snap hook.',
-      myBid: { price: 46.00, days: '4 Business Days', status: 'Submitted (Lowest Bid)' },
-      bidsCount: 4
-    },
-    {
-      id: 'req-102',
-      title: '500 Navy Dri-Fit Marathon Shirts',
-      organizer: 'Pinoy Runners Manila',
-      category: 'Apparel & Uniforms',
-      quantity: 500,
-      targetBudget: 85000,
-      targetUnitPrice: 170.00,
-      venue: 'SMX Convention Center, Pasay City',
-      deliveryDate: 'Oct 20, 2026',
-      specs: 'Honeycomb athletic dri-fit, 1-color chest silkscreen logo, individual sizing polybags.',
-      myBid: null,
-      bidsCount: 2
-    },
-    {
-      id: 'req-103',
-      title: '100 Laser Engraved Matte Thermal Tumblers',
-      organizer: 'Fintech Leadership Forum',
-      category: 'Drinkware & Vessels',
-      quantity: 100,
-      targetBudget: 35000,
-      targetUnitPrice: 350.00,
-      venue: 'Rockwell Center, Makati City',
-      deliveryDate: 'Nov 02, 2026',
-      specs: 'SUS304 double wall steel 500ml, rotary laser mark with individual kraft boxes.',
-      myBid: null,
-      bidsCount: 3
-    }
-  ]);
-
-  // Active Customer Orders & Milestone Tracking
-  const [activeOrders, setActiveOrders] = useState([
-    {
-      id: 'ord-8812',
-      title: '300 Customized Satin Lanyards + PVC IDs',
-      customer: 'Marvin (BGC Tech Summit)',
-      totalPayout: '₱13,800.00',
-      deadline: 'Oct 15, 2026',
-      venue: 'Arthaland Century Pacific Tower, BGC',
-      currentStep: 3, // 1 to 5
-      steps: [
-        { label: 'Art Approval', done: true },
-        { label: 'Materials Ready', done: true },
-        { label: 'Sublimation Print', done: true },
-        { label: 'QC & Packaging', done: false },
-        { label: 'Dispatched to Venue', done: false }
-      ]
-    }
-  ]);
-
-  // Modal / Bid input state
-  const [biddingOnReq, setBiddingOnReq] = useState(null);
-  const [bidPriceInput, setBidPriceInput] = useState('');
-  const [bidDaysInput, setBidDaysInput] = useState('4');
-  const [bidNoteInput, setBidNoteInput] = useState('Includes digital mockup proof, individual polybagging, and free Metro Manila delivery.');
-  const [bidSuccessToast, setBidSuccessToast] = useState(false);
-
-  // Edit Profile Form State
-  const [isEditingProfile, setIsEditingProfile] = useState(false);
-  const [profileForm, setProfileForm] = useState(supplierProfile);
-  const [profileSaveToast, setProfileSaveToast] = useState(false);
-
-  // Search filter for Makers Network
+  const [requests, setRequests] = useState(INITIAL_REQUESTS);
+  const [bids, setBids] = useState(INITIAL_BIDS);
+  const [orders, setOrders] = useState(INITIAL_ORDERS);
+  const [samples, setSamples] = useState(INITIAL_SAMPLES);
+  const [sampleForm, setSampleForm] = useState(null);
+  const [reviews, setReviews] = useState(INITIAL_REVIEWS);
+  const [replyDrafts, setReplyDrafts] = useState({});
+  const [replyingTo, setReplyingTo] = useState(null);
   const [networkSearch, setNetworkSearch] = useState('');
 
-  const handleOpenBidModal = (req) => {
-    setBiddingOnReq(req);
-    setBidPriceInput(req.myBid ? req.myBid.price.toString() : (req.targetUnitPrice * 0.92).toFixed(2));
+  // Bid sheet
+  const [bidReq, setBidReq] = useState(null);
+  const [bidForm, setBidForm] = useState(null);
+
+  const bidByRequest = useMemo(() => Object.fromEntries(bids.filter((b) => b.requestId).map((b) => [b.requestId, b])), [bids]);
+  const visibleRequests = requests.filter((r) => requestFilter === 'All' || r.category === requestFilter);
+  const visibleBids = bids.filter((b) => bidFilter === 'all' || b.status === bidFilter);
+  const closedBids = bids.filter((b) => b.status === 'Won' || b.status === 'Lost');
+  const winRate = closedBids.length ? Math.round((closedBids.filter((b) => b.status === 'Won').length / closedBids.length) * 100) : 0;
+  const pendingCount = bids.filter((b) => b.status === 'Pending' || b.status === 'Countered').length;
+  const activeOrders = orders.filter((o) => o.step < ORDER_STEPS.length).length;
+
+  const organizerChat = () => {
+    const contact = SUPPLIERS.find((s) => s.id === 's3') || SUPPLIERS[0];
+    onOpenChatWithCustomer?.(contact);
   };
 
-  const handleSubmitBid = (e) => {
-    e.preventDefault();
-    if (!biddingOnReq || !bidPriceInput) return;
-
-    const updated = customerRequests.map(r => {
-      if (r.id === biddingOnReq.id) {
-        return {
-          ...r,
-          myBid: {
-            price: parseFloat(bidPriceInput),
-            days: `${bidDaysInput} Business Days`,
-            status: 'Active Bid Submitted'
-          },
-          bidsCount: r.myBid ? r.bidsCount : r.bidsCount + 1
-        };
-      }
-      return r;
-    });
-
-    setCustomerRequests(updated);
-    setBiddingOnReq(null);
-    setBidSuccessToast(true);
-    setTimeout(() => setBidSuccessToast(false), 3000);
-  };
-
-  const handleAdvanceOrderStep = (orderId) => {
-    setActiveOrders(prev => prev.map(ord => {
-      if (ord.id === orderId && ord.currentStep < 5) {
-        const nextStep = ord.currentStep + 1;
-        const newSteps = ord.steps.map((s, idx) => ({
-          ...s,
-          done: idx < nextStep
-        }));
-        return { ...ord, currentStep: nextStep, steps: newSteps };
-      }
-      return ord;
-    }));
-  };
-
-  const handleSaveProfile = (e) => {
-    e.preventDefault();
-    const updated = {
-      ...profileForm,
-      contactPerson: `${profileForm.contactFirstName || ''} ${profileForm.contactLastName || ''}`.trim() || profileForm.contactPerson
-    };
-    setSupplierProfile(updated);
-    setIsEditingProfile(false);
-    setProfileSaveToast(true);
-    setTimeout(() => setProfileSaveToast(false), 3000);
-  };
-
-  const handleAddSample = (e) => {
-    e.preventDefault();
-    if (!newSampleForm.name.trim()) return;
-
-    const newSample = {
-      id: `sample-${Date.now()}`,
-      name: newSampleForm.name.trim(),
-      category: newSampleForm.category,
-      technique: newSampleForm.technique,
-      event: newSampleForm.event.trim() || 'Verified Order',
-      price: newSampleForm.price.trim() || '₱120.00/pc',
-      turnaround: newSampleForm.turnaround || '4 Days',
-      image: newSampleForm.image || 'https://images.unsplash.com/photo-1521572267360-ee0c2909d518?auto=format&fit=crop&w=800&q=80'
-    };
-
-    setSamplesList([newSample, ...samplesList]);
-    setIsSampleModalOpen(false);
-    setNewSampleForm({
-      name: '',
-      category: 'Apparel & Uniforms',
-      technique: 'DTF Full Color',
-      event: 'Event Merch Order',
-      price: '₱150.00/pc',
-      turnaround: '4 Days',
-      image: ''
+  /* ---------- bids ---------- */
+  const openBid = (req) => {
+    const existing = bidByRequest[req.id];
+    const days = existing?.days || 4;
+    setBidReq(req);
+    setBidForm({
+      price: existing ? String(existing.price) : ((req.budget / req.qty) * 0.92).toFixed(2),
+      days: String(days),
+      delivery: existing?.delivery || (addDaysISO(days) < req.deadlineISO ? addDaysISO(days) : req.deadlineISO),
+      inclusions: existing?.inclusions || ['Digital mockup proof', 'Free Metro Manila delivery'],
+      notes: existing?.notes || ''
     });
   };
 
-  const handleDeleteSample = (id) => {
-    setSamplesList(samplesList.filter(s => s.id !== id));
-  };
+  const bidTotal = bidReq && bidForm ? (parseFloat(bidForm.price) || 0) * bidReq.qty : 0;
 
-  const handleSampleImageUpload = (e) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = (uploadEvt) => {
-        setNewSampleForm(prev => ({
-          ...prev,
-          image: uploadEvt.target?.result
-        }));
-      };
-      reader.readAsDataURL(file);
+  const submitBid = (e) => {
+    e?.preventDefault();
+    const price = parseFloat(bidForm.price);
+    if (!price || price <= 0) {
+      toast('Enter your price per piece');
+      return;
     }
+    const entry = {
+      requestId: bidReq.id,
+      item: bidReq.item,
+      organizer: bidReq.organizer,
+      qty: bidReq.qty,
+      price,
+      days: Number(bidForm.days) || 1,
+      delivery: bidForm.delivery,
+      inclusions: bidForm.inclusions,
+      notes: bidForm.notes,
+      status: 'Pending',
+      sent: 'Just now'
+    };
+    const existing = bidByRequest[bidReq.id];
+    if (existing) {
+      setBids((prev) => prev.map((b) => (b.id === existing.id ? { ...b, ...entry } : b)));
+    } else {
+      setBids((prev) => [{ id: `bid-${Date.now()}`, ...entry }, ...prev]);
+      setRequests((prev) => prev.map((r) => (r.id === bidReq.id ? { ...r, bidsCount: r.bidsCount + 1 } : r)));
+    }
+    setBidReq(null);
+    setBidForm(null);
+    toast('Bid sent');
   };
 
-  const handlePostReply = (reviewId) => {
-    const text = replyInput[reviewId];
-    if (!text || !text.trim()) return;
-
-    setReviewsList(reviewsList.map(r => {
-      if (r.id === reviewId) {
-        return { ...r, reply: text.trim() };
-      }
-      return r;
+  const toggleInclusion = (label) =>
+    setBidForm((f) => ({
+      ...f,
+      inclusions: f.inclusions.includes(label) ? f.inclusions.filter((x) => x !== label) : [...f.inclusions, label]
     }));
 
-    setReplyInput(prev => ({ ...prev, [reviewId]: '' }));
-    setActiveReplyId(null);
+  const acceptCounter = (bid) => {
+    setBids((prev) => prev.map((b) => (b.id === bid.id ? { ...b, price: b.counter, counter: undefined, status: 'Pending', sent: 'Just now' } : b)));
+    toast(`Counter accepted at ${peso(bid.counter)}/pc`);
   };
 
-  const formatPhoneDisplay = (p) => {
-    const clean = (p || '').replace(/\D/g, '').slice(0, 10);
-    if (clean.length <= 3) return clean;
-    if (clean.length <= 6) return `${clean.slice(0, 3)} ${clean.slice(3)}`;
-    return `${clean.slice(0, 3)} ${clean.slice(3, 6)} ${clean.slice(6)}`;
+  /* ---------- orders ---------- */
+  const advanceOrder = (order) => {
+    const next = order.step + 1;
+    setOrders((prev) => prev.map((o) => (o.id === order.id ? { ...o, step: next } : o)));
+    toast(next >= ORDER_STEPS.length ? 'Marked as dispatched. Organizer notified' : `${ORDER_STEPS[order.step]} done. Organizer notified`);
   };
+
+  /* ---------- storefront ---------- */
+  const saveProfile = (e) => {
+    e?.preventDefault();
+    setProfile(profileForm);
+    setProfileForm(null);
+    toast('Storefront updated');
+  };
+
+  const saveSample = (e) => {
+    e?.preventDefault();
+    if (!sampleForm.name.trim()) {
+      toast('Add a product name');
+      return;
+    }
+    setSamples((prev) => [
+      {
+        id: `samp-${Date.now()}`,
+        name: sampleForm.name.trim(),
+        event: sampleForm.event.trim() || 'Verified order',
+        price: sampleForm.price.trim(),
+        image: sampleForm.image || INITIAL_SAMPLES[1].image
+      },
+      ...prev
+    ]);
+    setSampleForm(null);
+    toast('Added to portfolio');
+  };
+
+  const onSampleImage = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (evt) => setSampleForm((f) => ({ ...f, image: evt.target?.result }));
+    reader.readAsDataURL(file);
+  };
+
+  const postReply = (id) => {
+    const text = replyDrafts[id]?.trim();
+    if (!text) return;
+    setReviews((prev) => prev.map((r) => (r.id === id ? { ...r, reply: text } : r)));
+    setReplyDrafts((d) => ({ ...d, [id]: '' }));
+    setReplyingTo(null);
+    toast('Reply posted');
+  };
+
+  const network = SUPPLIERS.filter(
+    (s) => s.id !== 's3' && `${s.name} ${s.city}`.toLowerCase().includes(networkSearch.toLowerCase())
+  );
+
+  /* ------------------------------------------------------------------ */
+  /* Tab content                                                         */
+  /* ------------------------------------------------------------------ */
+
+  const statsCard = (
+    <section className={card}>
+      <div className="grid grid-cols-3 gap-2">
+        <Stat icon={Trophy} tone="green" value={`${winRate}%`} label="Win rate" />
+        <Stat icon={Zap} tone="amber" value="18 min" label="Avg. response" />
+        <Stat icon={Star} tone="violet" value="4.9" label="Rating" />
+      </div>
+    </section>
+  );
+
+  const requestsTab = (
+    <div className="space-y-2">
+      <div className="lg:hidden">{statsCard}</div>
+      <section className={card}>
+        <div className="flex items-center gap-3">
+          <IconCircle icon={MapPin} tone="blue" size="lg" />
+          <div className="flex-1 min-w-0">
+            <h2 className="text-[19px] font-semibold text-slate-900 tracking-tight leading-tight">Requests near you</h2>
+            <p className="text-[13px] text-slate-500">Matched to your categories within 15 km of {profile.city}</p>
+          </div>
+        </div>
+        <div className="mt-3 -mx-4 sm:-mx-5 px-4 sm:px-5 flex gap-2 overflow-x-auto no-scrollbar">
+          {REQUEST_FILTERS.map((f) => (
+            <Chip key={f} selected={requestFilter === f} onClick={() => setRequestFilter(f)} className="h-10">
+              {f}
+            </Chip>
+          ))}
+        </div>
+      </section>
+
+      {visibleRequests.length === 0 && (
+        <section className={card}>
+          <EmptyState icon={Inbox} title="No requests in this category" text="New organizer requests near you will show up here." />
+        </section>
+      )}
+
+      {visibleRequests.map((req) => {
+        const myBid = bidByRequest[req.id];
+        return (
+          <article key={req.id} className={card}>
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <p className="text-[13px] text-slate-500">
+                  {req.organizer} · {req.posted}
+                </p>
+                <h3 className="mt-0.5 text-[17px] font-semibold text-slate-900 leading-snug">
+                  {req.qty.toLocaleString()} {req.item.toLowerCase()}
+                </h3>
+              </div>
+              <Badge tone="slate" className="shrink-0">{req.category}</Badge>
+            </div>
+
+            <p className="mt-2 text-[14px] text-slate-600 leading-relaxed">{req.specs}</p>
+
+            <div className="mt-3 grid grid-cols-3 gap-2">
+              <div className="rounded-2xl bg-[#F4F3F0] px-3 py-2.5">
+                <p className="text-[12px] text-slate-500">Budget</p>
+                <p className="text-[15px] font-semibold text-slate-900">{peso(req.budget)}</p>
+              </div>
+              <div className="rounded-2xl bg-[#F4F3F0] px-3 py-2.5">
+                <p className="text-[12px] text-slate-500">Per piece</p>
+                <p className="text-[15px] font-semibold text-slate-900">{peso(req.budget / req.qty)}</p>
+              </div>
+              <div className="rounded-2xl bg-[#F4F3F0] px-3 py-2.5">
+                <p className="text-[12px] text-slate-500">Needed by</p>
+                <p className="text-[15px] font-semibold text-slate-900">{req.deadline}</p>
+              </div>
+            </div>
+
+            <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1">
+              <Meta icon={MapPin}>{req.venue}</Meta>
+              <Meta icon={ArrowLeftRight}>{req.distance} away</Meta>
+              <Meta icon={Users}>{req.bidsCount} bids so far</Meta>
+            </div>
+
+            <div className="mt-4 flex items-center gap-2">
+              {myBid ? (
+                <>
+                  <div className="flex-1 min-w-0">
+                    <Badge tone={BID_STATUS[myBid.status].tone} icon={Check}>
+                      Bid sent · {peso(myBid.price)}/pc
+                    </Badge>
+                  </div>
+                  <Button variant="secondary" icon={Pencil} onClick={() => openBid(req)}>
+                    Edit bid
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Button variant="secondary" icon={MessageSquare} onClick={organizerChat} aria-label="Message organizer">
+                    <span className="hidden sm:inline">Ask</span>
+                  </Button>
+                  <Button className="flex-1" icon={Gavel} onClick={() => openBid(req)}>
+                    Submit a bid
+                  </Button>
+                </>
+              )}
+            </div>
+          </article>
+        );
+      })}
+    </div>
+  );
+
+  const bidsTab = (
+    <div className="space-y-2">
+      <section className={card}>
+        <h2 className="text-[19px] font-semibold text-slate-900 tracking-tight">My bids</h2>
+        <p className="text-[13px] text-slate-500">
+          {pendingCount} waiting on organizers · {winRate}% win rate
+        </p>
+        <Tabs
+          className="mt-3"
+          value={bidFilter}
+          onChange={setBidFilter}
+          tabs={[
+            { id: 'all', label: 'All' },
+            { id: 'Pending', label: 'Pending' },
+            { id: 'Countered', label: 'Countered' },
+            { id: 'Won', label: 'Won' },
+            { id: 'Lost', label: 'Lost' }
+          ]}
+        />
+      </section>
+
+      {visibleBids.length === 0 && (
+        <section className={card}>
+          <EmptyState icon={Gavel} title="Nothing here yet" text="Bids you send to organizers will appear here." />
+        </section>
+      )}
+
+      {visibleBids.map((bid) => {
+        const meta = BID_STATUS[bid.status];
+        return (
+          <article key={bid.id} className={card}>
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <h3 className="text-[15px] font-semibold text-slate-900 truncate">
+                  {bid.qty.toLocaleString()} {bid.item.toLowerCase()}
+                </h3>
+                <p className="text-[13px] text-slate-500 truncate">
+                  {bid.organizer} · sent {bid.sent}
+                </p>
+              </div>
+              <Badge tone={meta.tone} className="shrink-0">{bid.status}</Badge>
+            </div>
+
+            <div className="mt-3 flex items-baseline justify-between gap-2">
+              <span className="text-[17px] font-semibold text-slate-900">
+                {peso(bid.price)}
+                <span className="text-[13px] font-medium text-slate-500">/pc</span>
+              </span>
+              <span className="text-[13px] text-slate-500">
+                {peso(bid.price * bid.qty)} total · {bid.days} days
+              </span>
+            </div>
+            <p className="mt-1 text-[13px] text-slate-500">{meta.text}</p>
+
+            {bid.status === 'Countered' && (
+              <Panel className="mt-3 flex items-center gap-3">
+                <div className="flex-1 min-w-0">
+                  <p className="text-[13px] text-slate-500">Counter offer</p>
+                  <p className="text-[15px] font-semibold text-slate-900">
+                    {peso(bid.counter)}/pc · {peso(bid.counter * bid.qty)}
+                  </p>
+                </div>
+                <Button variant="outline" onClick={organizerChat}>Reply</Button>
+                <Button onClick={() => acceptCounter(bid)}>Accept</Button>
+              </Panel>
+            )}
+            {bid.status === 'Won' && (
+              <Button variant="secondary" full className="mt-3" icon={Truck} onClick={() => setActiveTab('orders')}>
+                View order
+              </Button>
+            )}
+          </article>
+        );
+      })}
+    </div>
+  );
+
+  const ordersTab = (
+    <div className="space-y-2">
+      <section className={card}>
+        <h2 className="text-[19px] font-semibold text-slate-900 tracking-tight">Orders in production</h2>
+        <p className="text-[13px] text-slate-500">Each step you complete notifies the organizer.</p>
+      </section>
+
+      {orders.length === 0 && (
+        <section className={card}>
+          <EmptyState icon={Package} title="No active orders" text="Won bids move here once the organizer pays the deposit." />
+        </section>
+      )}
+
+      {orders.map((order) => {
+        const finished = order.step >= ORDER_STEPS.length;
+        return (
+          <article key={order.id} className={card}>
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <p className="text-[13px] text-slate-500">Order #{order.id.replace('ord-', '')} · {order.organizer}</p>
+                <h3 className="text-[15px] font-semibold text-slate-900">{order.item}</h3>
+              </div>
+              <Badge tone={finished ? 'green' : 'blue'} className="shrink-0">
+                {finished ? 'Dispatched' : `Due ${order.deadline}`}
+              </Badge>
+            </div>
+
+            <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1">
+              <Meta icon={MapPin}>{order.venue}</Meta>
+              <Meta icon={Package}>{peso(order.payout)} payout, held by Aygo</Meta>
+            </div>
+
+            <div className="mt-4">
+              <OrderStepper step={order.step} />
+            </div>
+
+            <div className="mt-4 flex gap-2">
+              {order.step === 0 && (
+                <Button variant="secondary" icon={Wand2} onClick={() => onOpenMockupStudio?.()}>
+                  Proof
+                </Button>
+              )}
+              <Button variant="secondary" icon={MessageSquare} onClick={organizerChat} aria-label="Message organizer" />
+              <Button className="flex-1" disabled={finished} icon={finished ? Check : undefined} onClick={() => advanceOrder(order)}>
+                {finished ? 'Completed' : order.step === ORDER_STEPS.length - 1 ? 'Mark dispatched' : `${ORDER_STEPS[order.step]} done`}
+              </Button>
+            </div>
+          </article>
+        );
+      })}
+    </div>
+  );
+
+  const proCard = (
+    <section className={card}>
+      <div className="flex items-center gap-3">
+        <IconCircle icon={Sparkles} tone="blue" size="lg" />
+        <div className="min-w-0">
+          <h2 className="text-[19px] font-semibold text-slate-900 tracking-tight leading-tight">Aygo Pro</h2>
+          <p className="text-[13px] text-slate-500">Win more jobs · from ₱1,490/month</p>
+        </div>
+      </div>
+      <div className="mt-2 divide-y divide-slate-100">
+        {PRO_PERKS.map((p) => (
+          <ListRow key={p.title} icon={p.icon} tone={p.tone} title={p.title} subtitle={p.text} trailing={null} />
+        ))}
+      </div>
+      <div className="mt-3 flex gap-2">
+        <Button variant="secondary" icon={Wand2} onClick={() => onOpenMockupStudio?.()}>
+          Try mockups
+        </Button>
+        <Button className="flex-1" icon={PhoneCall} onClick={() => toast('Thanks! Our team will call you within 1 business day')}>
+          Book a call
+        </Button>
+      </div>
+    </section>
+  );
+
+  const storeTab = (
+    <div className="space-y-2">
+      {/* Storefront header */}
+      <section className={card}>
+        <div className="flex items-start gap-3">
+          <div className="w-14 h-14 rounded-2xl bg-slate-900 text-white flex items-center justify-center text-[19px] font-semibold shrink-0">
+            JJT
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 flex-wrap">
+              <h2 className="text-[19px] font-semibold text-slate-900 tracking-tight leading-tight">{profile.name}</h2>
+              <VerifiedBadge />
+            </div>
+            <p className="mt-0.5 text-[13px] text-slate-500">{profile.tagline}</p>
+            <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1">
+              <Meta icon={Star}>4.9 · {reviews.length + 212} reviews</Meta>
+              <Meta icon={MapPin}>{profile.city}</Meta>
+              <Meta icon={Clock}>{profile.turnaround}</Meta>
+            </div>
+          </div>
+        </div>
+        <p className="mt-3 text-[14px] text-slate-600 leading-relaxed">{profile.bio}</p>
+        <Button variant="secondary" full className="mt-3" icon={Pencil} onClick={() => setProfileForm(profile)}>
+          Edit storefront
+        </Button>
+      </section>
+
+      {/* Catalog */}
+      <section className={card}>
+        <Section title="Catalog" className="py-0" action={<span className="text-[13px] text-slate-500">MOQ from {profile.moq}</span>}>
+          <div className="divide-y divide-slate-100">
+            {CATALOG.map((c) => (
+              <div key={c.name} className="flex items-center justify-between py-3">
+                <span className="text-[15px] font-medium text-slate-900">{c.name}</span>
+                <span className="text-[13px] text-slate-500">
+                  from <span className="font-semibold text-slate-900">{peso(c.from)}</span> · {c.moq} pcs min
+                </span>
+              </div>
+            ))}
+          </div>
+        </Section>
+      </section>
+
+      {/* Portfolio */}
+      <section className={card}>
+        <Section
+          title="Portfolio"
+          className="py-0"
+          action={
+            <Button size="sm" variant="secondary" icon={Plus} onClick={() => setSampleForm(EMPTY_SAMPLE)}>
+              Add
+            </Button>
+          }
+        >
+          <div className="-mx-4 sm:-mx-5 px-4 sm:px-5 flex gap-2 overflow-x-auto no-scrollbar snap-x">
+            {samples.map((s) => (
+              <figure key={s.id} className="snap-start shrink-0 w-[168px]">
+                <div className="relative h-[124px] rounded-2xl overflow-hidden bg-[#F4F3F0]">
+                  <img src={s.image} alt={s.name} className="w-full h-full object-cover" loading="lazy" />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSamples((prev) => prev.filter((x) => x.id !== s.id));
+                      toast('Removed from portfolio');
+                    }}
+                    aria-label={`Remove ${s.name}`}
+                    className="absolute top-1.5 right-1.5 w-9 h-9 rounded-full bg-white/90 text-slate-700 hover:text-red-600 flex items-center justify-center"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
+                <figcaption className="mt-2">
+                  <p className="text-[14px] font-medium text-slate-900 line-clamp-1">{s.name}</p>
+                  <p className="text-[12px] text-slate-500 truncate">
+                    {s.event}
+                    {s.price ? ` · ${s.price}` : ''}
+                  </p>
+                </figcaption>
+              </figure>
+            ))}
+          </div>
+        </Section>
+      </section>
+
+      {/* Reviews */}
+      <section className={card}>
+        <Section title="Reviews" className="py-0" action={<span className="text-[13px] text-slate-500">4.9 average</span>}>
+          <div className="divide-y divide-slate-100">
+            {reviews.map((r) => (
+              <div key={r.id} className="py-3">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <p className="text-[15px] font-medium text-slate-900">{r.author}</p>
+                    <p className="text-[13px] text-slate-500">{r.event} · {r.date}</p>
+                  </div>
+                  <span className="shrink-0 inline-flex items-center gap-1 text-[13px] font-semibold text-slate-900">
+                    <Star className="w-4 h-4 fill-amber-400 text-amber-400" />
+                    {r.rating}
+                  </span>
+                </div>
+                <p className="mt-1.5 text-[14px] text-slate-700 leading-relaxed">{r.comment}</p>
+                {r.reply ? (
+                  <div className="mt-2 flex gap-2 rounded-2xl bg-[#F4F3F0] p-3">
+                    <CornerDownRight className="w-4 h-4 text-slate-400 shrink-0 mt-0.5" />
+                    <p className="text-[13px] text-slate-600">{r.reply}</p>
+                  </div>
+                ) : replyingTo === r.id ? (
+                  <div className="mt-2 space-y-2">
+                    <Textarea
+                      rows={2}
+                      autoFocus
+                      aria-label="Your reply"
+                      placeholder="Thank the organizer or respond to their feedback"
+                      value={replyDrafts[r.id] || ''}
+                      onChange={(e) => setReplyDrafts((d) => ({ ...d, [r.id]: e.target.value }))}
+                    />
+                    <div className="flex justify-end gap-2">
+                      <Button variant="ghost" onClick={() => setReplyingTo(null)}>Cancel</Button>
+                      <Button variant="secondary" onClick={() => postReply(r.id)}>Post reply</Button>
+                    </div>
+                  </div>
+                ) : (
+                  <Button variant="ghost" size="sm" className="mt-1 -ml-3 h-11" onClick={() => setReplyingTo(r.id)}>
+                    Reply
+                  </Button>
+                )}
+              </div>
+            ))}
+          </div>
+        </Section>
+      </section>
+
+      {proCard}
+
+      {/* Maker network */}
+      <section className={card}>
+        <Section title="Maker network" className="py-0">
+          <div className="relative">
+            <Search className="w-4 h-4 text-slate-400 absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none" />
+            <Input
+              className="pl-10"
+              placeholder="Search makers or cities"
+              aria-label="Search makers"
+              value={networkSearch}
+              onChange={(e) => setNetworkSearch(e.target.value)}
+            />
+          </div>
+          <div className="mt-1">
+            {network.map((s) => (
+              <ListRow
+                key={s.id}
+                icon={Users}
+                tone="slate"
+                title={s.name}
+                subtitle={`${s.city} · ${s.rating} rating`}
+                onClick={() => onOpenChatWithCustomer?.(s)}
+                trailing={<MessageSquare className="w-4 h-4 text-slate-400 shrink-0" />}
+              />
+            ))}
+            {network.length === 0 && <p className="py-4 text-[13px] text-slate-500">No makers match “{networkSearch}”.</p>}
+          </div>
+        </Section>
+      </section>
+    </div>
+  );
+
+  const content = { requests: requestsTab, bids: bidsTab, orders: ordersTab, store: storeTab }[activeTab];
+  const badgeFor = { requests: requests.length, bids: pendingCount, orders: activeOrders };
+
+  /* ------------------------------------------------------------------ */
+  /* Layout                                                              */
+  /* ------------------------------------------------------------------ */
 
   return (
-    <div className="min-h-screen bg-[#F0F2F5] font-sans flex flex-col selection:bg-[#003CF5] selection:text-white">
-      
-      {/* 1. TOP SUPPLIER WORKSPACE HEADER (Minimalist matching customer view with hamburger menu) */}
-      <header className="sticky top-0 z-30 bg-slate-950 text-white px-4 sm:px-6 py-3 border-b border-slate-800 shadow-lg flex items-center justify-between">
-        <div className="flex items-center gap-3">
+    <div className="min-h-screen bg-[#F2F1ED] font-sans text-slate-900 selection:bg-[#003CF5] selection:text-white">
+      {/* Header */}
+      <header className="sticky top-0 z-30 bg-white/95 backdrop-blur border-b border-slate-100">
+        <div className="max-w-6xl mx-auto h-16 px-4 sm:px-6 flex items-center gap-3">
           <button
             type="button"
             onClick={onOpenDrawer}
-            className="w-10 h-10 rounded-xl bg-slate-900 border border-slate-700 hover:border-slate-500 flex flex-col items-center justify-center gap-1 cursor-pointer transition-all active:scale-95 shrink-0"
-            title="Open Menu"
+            aria-label="Open menu"
+            className="w-11 h-11 rounded-full bg-[#F4F3F0] hover:bg-[#ECEAE5] flex flex-col items-center justify-center gap-1 shrink-0 transition-colors active:scale-95"
           >
-            <span className="w-4 h-0.5 bg-white rounded-full" />
-            <span className="w-4 h-0.5 bg-white rounded-full" />
-            <span className="w-4 h-0.5 bg-white rounded-full" />
+            <span className="w-4 h-0.5 bg-slate-900 rounded-full" />
+            <span className="w-4 h-0.5 bg-slate-900 rounded-full" />
+            <span className="w-4 h-0.5 bg-slate-900 rounded-full" />
           </button>
+          <div className="flex-1 min-w-0">
+            <p className="text-[13px] text-slate-500 leading-tight">Supplier mode</p>
+            <p className="text-[15px] font-semibold text-slate-900 truncate leading-tight">{profile.name}</p>
+          </div>
+          <Button variant="outline" icon={ArrowLeftRight} onClick={() => onSwitchToCustomer?.()} aria-label="Switch to organizer">
+            <span className="hidden sm:inline">Switch to organizer</span>
+            <span className="sm:hidden">Organizer</span>
+          </Button>
         </div>
       </header>
 
-      {/* 2. TAB NAVIGATION BAR */}
-      <div className="bg-white border-b border-slate-200 px-4 sm:px-6 shadow-xs sticky top-[57px] z-20">
-        <div className="max-w-6xl mx-auto flex items-center gap-2 sm:gap-6 overflow-x-auto no-scrollbar">
-          {[
-            { id: 'rfqs', label: 'Live Customer RFQs', count: customerRequests.length, icon: Package },
-            { id: 'orders', label: 'Active Orders', count: activeOrders.length, icon: Truck },
-            { id: 'profile', label: 'Maker Profile', icon: Sliders },
-            { id: 'samples', label: 'Production Samples', count: samplesList.length, icon: Camera },
-            { id: 'reviews', label: 'Customer Reviews', count: reviewsList.length, icon: Star },
-            { id: 'network', label: 'Suppliers Network', count: SUPPLIERS.length, icon: Users }
-          ].map((tab) => {
-            const Icon = tab.icon;
-            const isActive = activeTab === tab.id;
+      <div className="max-w-6xl mx-auto lg:px-6 lg:py-6 lg:grid lg:grid-cols-[280px_minmax(0,1fr)] lg:gap-6">
+        {/* Desktop sidebar */}
+        <aside className="hidden lg:block">
+          <div className="sticky top-[88px] space-y-2">
+            <nav className={cx(card, 'p-2 sm:p-2')} aria-label="Supplier sections">
+              {TABS.map(({ id, label, icon: Icon }) => {
+                const active = activeTab === id;
+                return (
+                  <button
+                    key={id}
+                    type="button"
+                    onClick={() => setActiveTab(id)}
+                    aria-current={active ? 'page' : undefined}
+                    className={cx(
+                      'w-full h-12 px-3 rounded-2xl flex items-center gap-3 text-[15px] font-medium transition-colors',
+                      active ? 'bg-[#F4F3F0] text-slate-900' : 'text-slate-600 hover:bg-[#F4F3F0]/60'
+                    )}
+                  >
+                    <Icon className={cx('w-5 h-5', active ? 'text-[#003CF5]' : 'text-slate-400')} />
+                    <span className="flex-1 text-left">{label}</span>
+                    {badgeFor[id] > 0 && <span className="text-[13px] text-slate-500">{badgeFor[id]}</span>}
+                  </button>
+                );
+              })}
+            </nav>
+            {statsCard}
+            <button
+              type="button"
+              onClick={() => setActiveTab('store')}
+              className={cx(card, 'w-full text-left flex items-center gap-3 hover:bg-white/80')}
+            >
+              <IconCircle icon={Sparkles} tone="blue" />
+              <span className="min-w-0">
+                <span className="block text-[15px] font-medium text-slate-900">Upgrade to Aygo Pro</span>
+                <span className="block text-[13px] text-slate-500">Priority placement and analytics</span>
+              </span>
+            </button>
+          </div>
+        </aside>
+
+        {/* Main content */}
+        <main className="pt-2 pb-28 lg:py-0 max-w-2xl w-full mx-auto lg:mx-0">{content}</main>
+      </div>
+
+      {/* Mobile bottom tab bar */}
+      <nav
+        aria-label="Supplier sections"
+        className="lg:hidden fixed bottom-0 inset-x-0 z-30 bg-white border-t border-slate-100 pb-[env(safe-area-inset-bottom)]"
+      >
+        <div className="grid grid-cols-4">
+          {TABS.map(({ id, label, icon: Icon }) => {
+            const active = activeTab === id;
             return (
               <button
-                key={tab.id}
+                key={id}
                 type="button"
-                onClick={() => setActiveTab(tab.id)}
-                className={`py-3 px-1 sm:px-2 border-b-2 font-bold text-xs sm:text-sm flex items-center gap-2 transition-all whitespace-nowrap cursor-pointer ${
-                  isActive
-                    ? 'border-[#003CF5] text-[#003CF5]'
-                    : 'border-transparent text-slate-600 hover:text-slate-900'
-                }`}
+                onClick={() => {
+                  setActiveTab(id);
+                  window.scrollTo({ top: 0 });
+                }}
+                aria-current={active ? 'page' : undefined}
+                className={cx('relative h-16 flex flex-col items-center justify-center gap-1 transition-colors', active ? 'text-[#003CF5]' : 'text-slate-500')}
               >
-                <Icon className="w-4 h-4" />
-                <span>{tab.label}</span>
-                {tab.count !== undefined && (
-                  <span className={`px-2 py-0.5 rounded-full text-[10px] font-black ${
-                    isActive ? 'bg-blue-100 text-[#003CF5]' : 'bg-slate-100 text-slate-600'
-                  }`}>
-                    {tab.count}
+                <Icon className="w-5 h-5" />
+                <span className={cx('text-[12px]', active ? 'font-semibold' : 'font-medium')}>{label}</span>
+                {badgeFor[id] > 0 && (
+                  <span className="absolute top-2 left-1/2 ml-2 min-w-[18px] h-[18px] px-1 rounded-full bg-slate-900 text-white text-[11px] font-semibold flex items-center justify-center">
+                    {badgeFor[id]}
                   </span>
                 )}
               </button>
             );
           })}
         </div>
-      </div>
+      </nav>
 
-      {/* 3. MAIN WORKSPACE BODY */}
-      <main className="flex-1 max-w-6xl w-full mx-auto p-4 sm:p-6 space-y-6">
-        
-        {/* Toast Alerts */}
-        {bidSuccessToast && (
-          <div className="p-4 bg-emerald-50 border border-emerald-300 rounded-2xl flex items-center gap-3 text-emerald-900 shadow-sm animate-fade-in">
-            <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
-            <div className="text-xs font-bold">
-              <span>Your maker bid has been submitted and dispatched to the event organizer!</span>
-            </div>
-          </div>
-        )}
-
-        {profileSaveToast && (
-          <div className="p-4 bg-blue-50 border border-blue-300 rounded-2xl flex items-center gap-3 text-blue-900 shadow-sm animate-fade-in">
-            <Check className="w-5 h-5 text-[#003CF5] shrink-0" />
-            <div className="text-xs font-bold">
-              <span>Supplier profile and crafting credentials updated successfully across the Sourcing Radar!</span>
-            </div>
-          </div>
-        )}
-
-        {/* TAB 1: LIVE CUSTOMER RFQS & BIDDING FEED */}
-        {activeTab === 'rfqs' && (
-          <div className="space-y-4">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-200 pb-3">
+      {/* Bid sheet */}
+      {bidReq && bidForm && (
+        <Sheet
+          onClose={() => setBidReq(null)}
+          title={bidByRequest[bidReq.id] ? 'Update your bid' : 'Submit a bid'}
+          subtitle={`${bidReq.qty.toLocaleString()} ${bidReq.item.toLowerCase()} · ${bidReq.organizer}`}
+          icon={Gavel}
+          footer={
+            <Button type="submit" form="bid-form" full size="lg">
+              Send bid · {peso(bidTotal)}
+            </Button>
+          }
+        >
+          <form id="bid-form" onSubmit={submitBid} className="space-y-4">
+            <Panel className="grid grid-cols-3 gap-2 p-3">
               <div>
-                <h2 className="text-lg font-black text-slate-950">Live Event Requests for Bidding</h2>
-                <p className="text-xs text-slate-500 font-medium">Verified customer requirements ready for direct factory quotes in Metro Manila.</p>
+                <p className="text-[12px] text-slate-500">Budget</p>
+                <p className="text-[15px] font-semibold">{peso(bidReq.budget)}</p>
               </div>
-              <span className="text-xs font-bold text-emerald-700 bg-emerald-50 px-3 py-1 rounded-xl border border-emerald-200 w-fit">
-                ● {customerRequests.length} Active RFQs
-              </span>
+              <div>
+                <p className="text-[12px] text-slate-500">Needed by</p>
+                <p className="text-[15px] font-semibold">{bidReq.deadline}</p>
+              </div>
+              <div className="min-w-0">
+                <p className="text-[12px] text-slate-500">Distance</p>
+                <p className="text-[15px] font-semibold">{bidReq.distance}</p>
+              </div>
+            </Panel>
+
+            <div className="grid grid-cols-2 gap-3">
+              <Field label="Price per piece" hint={`Target ${peso(bidReq.budget / bidReq.qty)}/pc`}>
+                <div className="relative">
+                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-[15px] text-slate-500 pointer-events-none">₱</span>
+                  <Input
+                    type="number"
+                    inputMode="decimal"
+                    min="0"
+                    step="any"
+                    required
+                    className="pl-8"
+                    value={bidForm.price}
+                    onChange={(e) => setBidForm((f) => ({ ...f, price: e.target.value }))}
+                  />
+                </div>
+              </Field>
+              <Field label="Total" hint={`${bidReq.qty.toLocaleString()} pcs`}>
+                <div className="w-full rounded-2xl bg-blue-50 px-4 py-3 text-[15px] font-semibold text-[#003CF5]">{peso(bidTotal)}</div>
+              </Field>
             </div>
 
-            <div className="space-y-3">
-              {customerRequests.map((req) => (
-                <div 
-                  key={req.id}
-                  className="bg-white rounded-3xl p-5 border border-slate-200 shadow-sm hover:border-blue-300 transition-all flex flex-col md:flex-row md:items-center justify-between gap-4"
+            <div className="grid grid-cols-2 gap-3">
+              <Field label="Production time">
+                <Select
+                  value={bidForm.days}
+                  onChange={(e) => {
+                    const days = e.target.value;
+                    setBidForm((f) => ({ ...f, days, delivery: addDaysISO(days) }));
+                  }}
                 >
-                  <div className="space-y-2 flex-1">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="text-[10px] font-black uppercase tracking-wider bg-blue-50 text-[#003CF5] px-2 py-0.5 rounded-lg border border-blue-200">
-                        {req.category}
-                      </span>
-                      <h3 className="font-extrabold text-sm sm:text-base text-slate-950">{req.title}</h3>
-                    </div>
-
-                    <p className="text-xs text-slate-600 font-medium leading-relaxed">{req.specs}</p>
-
-                    <div className="flex flex-wrap items-center gap-3 text-xs text-slate-500 pt-1">
-                      <span className="font-bold text-slate-800">Organizer: {req.organizer}</span>
-                      <span>·</span>
-                      <span className="flex items-center gap-1">
-                        <MapPin className="w-3.5 h-3.5 text-[#003CF5]" />
-                        {req.venue}
-                      </span>
-                      <span>·</span>
-                      <span className="flex items-center gap-1 font-bold text-emerald-700">
-                        <Clock className="w-3.5 h-3.5" />
-                        Due {req.deliveryDate}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Pricing & Bidding Box */}
-                  <div className="flex md:flex-col items-center md:items-end justify-between border-t md:border-t-0 md:border-l border-slate-100 pt-3 md:pt-0 md:pl-5 shrink-0 gap-2">
-                    <div className="text-left md:text-right">
-                      <span className="text-[10px] font-bold text-slate-400 uppercase block">Organizer Target</span>
-                      <span className="font-black text-sm text-slate-900">₱{req.targetBudget.toLocaleString()}</span>
-                      <span className="text-[10px] text-slate-500 block">₱{req.targetUnitPrice.toFixed(2)}/pc ({req.quantity} pcs)</span>
-                    </div>
-
-                    {req.myBid ? (
-                      <div className="text-right">
-                        <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200 block mb-1">
-                          {req.myBid.status} (₱{req.myBid.price.toFixed(2)}/pc)
-                        </span>
-                        <button
-                          type="button"
-                          onClick={() => handleOpenBidModal(req)}
-                          className="text-xs font-bold text-[#003CF5] hover:underline cursor-pointer"
-                        >
-                          Modify Bid
-                        </button>
-                      </div>
-                    ) : (
-                      <button
-                        type="button"
-                        onClick={() => handleOpenBidModal(req)}
-                        className="px-4 py-2 rounded-xl bg-[#003CF5] hover:bg-blue-700 text-white font-bold text-xs shadow-md shadow-blue-500/20 transition-all cursor-pointer active:scale-95"
-                      >
-                        Submit Maker Bid
-                      </button>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* TAB 2: ACTIVE PRODUCTION ORDERS */}
-        {activeTab === 'orders' && (
-          <div className="space-y-4">
-            <div className="border-b border-slate-200 pb-3">
-              <h2 className="text-lg font-black text-slate-950">Active Orders & Production Stepper</h2>
-              <p className="text-xs text-slate-500">Track and advance confirmed orders. Advancing milestones notifies the event organizer in real-time.</p>
+                  {[2, 3, 4, 5, 6, 7, 10, 14].map((d) => (
+                    <option key={d} value={d}>
+                      {d} days
+                    </option>
+                  ))}
+                </Select>
+              </Field>
+              <Field label="Delivery date" error={bidForm.delivery > bidReq.deadlineISO ? `After the ${bidReq.deadline} deadline` : undefined}>
+                <Input
+                  type="date"
+                  value={bidForm.delivery}
+                  onChange={(e) => setBidForm((f) => ({ ...f, delivery: e.target.value }))}
+                />
+              </Field>
             </div>
 
-            {activeOrders.map((ord) => (
-              <div key={ord.id} className="bg-white rounded-3xl p-5 border border-slate-200 shadow-sm space-y-4">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-3">
-                  <div>
-                    <span className="text-[10px] font-black uppercase text-[#003CF5] tracking-wider">Order #{ord.id}</span>
-                    <h3 className="text-base font-extrabold text-slate-950">{ord.title}</h3>
-                    <p className="text-xs text-slate-500">Customer: {ord.customer} · Delivery to {ord.venue}</p>
-                  </div>
-                  <div className="text-right">
-                    <span className="text-xs font-black text-emerald-700 bg-emerald-50 px-3 py-1 rounded-xl border border-emerald-200 block">
-                      Payout: {ord.totalPayout} (Escrow Secured)
-                    </span>
-                    <span className="text-[10px] text-slate-500 font-bold mt-1 block">Deadline: {ord.deadline}</span>
-                  </div>
-                </div>
-
-                {/* 5-Step Milestone Progress Bar */}
-                <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 pt-1">
-                  {ord.steps.map((step, idx) => {
-                    const stepNum = idx + 1;
-                    const isCompleted = step.done;
-                    const isCurrent = ord.currentStep === stepNum;
-                    return (
-                      <div
-                        key={idx}
-                        className={`p-3 rounded-2xl border text-center transition-all ${
-                          isCompleted
-                            ? 'bg-emerald-50 border-emerald-300 text-emerald-950 shadow-2xs'
-                            : isCurrent
-                            ? 'bg-blue-50 border-[#003CF5] text-[#003CF5] ring-2 ring-blue-300 shadow-xs'
-                            : 'bg-slate-50 border-slate-200 text-slate-400'
-                        }`}
-                      >
-                        <span className="text-[9px] font-black uppercase block tracking-wider">
-                          Step {stepNum}
-                        </span>
-                        <p className="text-xs font-extrabold mt-0.5 leading-tight">{step.label}</p>
-                        <span className="text-[9px] font-bold mt-1 inline-block">
-                          {isCompleted ? '✓ Done' : isCurrent ? '● Active' : 'Pending'}
-                        </span>
-                      </div>
-                    );
-                  })}
-                </div>
-
-                <div className="flex justify-end gap-2 pt-2">
-                  <button
-                    type="button"
-                    onClick={() => handleAdvanceOrderStep(ord.id)}
-                    disabled={ord.currentStep >= 5}
-                    className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
-                      ord.currentStep >= 5
-                        ? 'bg-emerald-100 text-emerald-800 cursor-default'
-                        : 'bg-[#003CF5] hover:bg-blue-700 text-white shadow-md shadow-blue-500/20 active:scale-95 cursor-pointer'
-                    }`}
-                  >
-                    {ord.currentStep >= 5 ? '✓ Order Completed' : `Advance to Step ${ord.currentStep + 1} →`}
-                  </button>
-                </div>
+            <div>
+              <p className="mb-1.5 text-[13px] font-medium text-slate-700">Inclusions</p>
+              <div className="flex flex-wrap gap-2">
+                {INCLUSIONS.map((label) => {
+                  const on = bidForm.inclusions.includes(label);
+                  return (
+                    <Chip key={label} selected={on} icon={on ? Check : undefined} onClick={() => toggleInclusion(label)} className="h-10">
+                      {label}
+                    </Chip>
+                  );
+                })}
               </div>
+            </div>
+
+            <Field label="Proposal" hint="Materials, print method and anything that sets your bid apart">
+              <Textarea
+                rows={3}
+                placeholder="e.g. 20mm satin, dye-sublimated both sides, sample ready in 2 days"
+                value={bidForm.notes}
+                onChange={(e) => setBidForm((f) => ({ ...f, notes: e.target.value }))}
+              />
+            </Field>
+
+            <ListRow
+              icon={Wand2}
+              tone="violet"
+              title="Attach a mockup"
+              subtitle="Bids with a mockup win more often"
+              onClick={() => onOpenMockupStudio?.()}
+            />
+            <Meta icon={CalendarDays}>Organizer usually picks a maker within 24 hours</Meta>
+          </form>
+        </Sheet>
+      )}
+
+      {/* Edit storefront sheet */}
+      {profileForm && (
+        <Sheet
+          onClose={() => setProfileForm(null)}
+          title="Edit storefront"
+          subtitle="What organizers see on your profile"
+          icon={Store}
+          size="lg"
+          footer={
+            <Button type="submit" form="profile-form" full size="lg">
+              Save changes
+            </Button>
+          }
+        >
+          <form id="profile-form" onSubmit={saveProfile} className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {[
+              ['name', 'Shop name', 'text', true],
+              ['tagline', 'Tagline', 'text'],
+              ['contactPerson', 'Contact person', 'text'],
+              ['phone', 'Phone', 'tel'],
+              ['email', 'Email', 'email', true],
+              ['city', 'City', 'text'],
+              ['turnaround', 'Usual turnaround', 'text'],
+              ['moq', 'Minimum order', 'text']
+            ].map(([key, label, type, required]) => (
+              <Field key={key} label={label}>
+                <Input
+                  type={type}
+                  required={required}
+                  value={profileForm[key]}
+                  onChange={(e) => setProfileForm((f) => ({ ...f, [key]: e.target.value }))}
+                />
+              </Field>
             ))}
-          </div>
-        )}
-
-        {/* TAB 3: VERIFIED MAKER PROFILE & EDIT FORM */}
-        {activeTab === 'profile' && (
-          <div className="space-y-4">
-            <div className="flex items-center justify-between border-b border-slate-200 pb-3">
-              <div>
-                <h2 className="text-lg font-black text-slate-950">Verified Supplier Profile & Machine Capabilities</h2>
-                <p className="text-xs text-slate-500">Manage your workshop contact details, equipment capabilities, and turnaround commitments.</p>
-              </div>
-
-              <button
-                type="button"
-                onClick={() => {
-                  setProfileForm(supplierProfile);
-                  setIsEditingProfile(!isEditingProfile);
-                }}
-                className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold transition-colors flex items-center gap-1.5 cursor-pointer"
-              >
-                <Edit3 className="w-3.5 h-3.5" />
-                <span>{isEditingProfile ? 'Cancel Editing' : 'Edit Profile'}</span>
-              </button>
-            </div>
-
-            {isEditingProfile ? (
-              <form onSubmit={handleSaveProfile} className="bg-white rounded-3xl p-6 border border-slate-200 shadow-sm space-y-4">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-xs font-black uppercase text-slate-700 mb-1">Company / Workshop Name</label>
-                    <input
-                      type="text"
-                      required
-                      value={profileForm.name}
-                      onChange={(e) => setProfileForm({ ...profileForm, name: e.target.value })}
-                      className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2.5 text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#003CF5]"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-black uppercase text-slate-700 mb-1">Tagline & Specialty</label>
-                    <input
-                      type="text"
-                      value={profileForm.tagline}
-                      onChange={(e) => setProfileForm({ ...profileForm, tagline: e.target.value })}
-                      className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2.5 text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#003CF5]"
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-xs font-black uppercase text-slate-700 mb-1">Contact First Name</label>
-                    <input
-                      type="text"
-                      value={profileForm.contactFirstName || 'Joshua'}
-                      onChange={(e) => setProfileForm({ ...profileForm, contactFirstName: e.target.value })}
-                      className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2.5 text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#003CF5]"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-black uppercase text-slate-700 mb-1">Contact Last Name</label>
-                    <input
-                      type="text"
-                      value={profileForm.contactLastName || 'Tan'}
-                      onChange={(e) => setProfileForm({ ...profileForm, contactLastName: e.target.value })}
-                      className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2.5 text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#003CF5]"
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-xs font-black uppercase text-slate-700 mb-1">Direct Phone (+63 Philippines)</label>
-                    <div className="flex rounded-xl overflow-hidden border border-slate-300 bg-slate-50">
-                      <div className="flex items-center gap-1 px-3 py-2 bg-slate-200 text-slate-900 font-black text-xs select-none">
-                        <span>🇵🇭</span>
-                        <span>+63</span>
-                      </div>
-                      <input
-                        type="tel"
-                        value={formatPhoneDisplay(profileForm.phone)}
-                        onChange={(e) => setProfileForm({ ...profileForm, phone: e.target.value.replace(/\D/g, '').slice(0, 10) })}
-                        placeholder="917 143 5890"
-                        className="w-full bg-transparent px-3 py-2 text-xs font-black text-slate-900 focus:outline-none font-mono"
-                      />
-                    </div>
-                  </div>
-                  <div>
-                    <label className="block text-xs font-black uppercase text-slate-700 mb-1">Email Address</label>
-                    <input
-                      type="email"
-                      required
-                      value={profileForm.email}
-                      onChange={(e) => setProfileForm({ ...profileForm, email: e.target.value })}
-                      className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2.5 text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#003CF5]"
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                  <div>
-                    <label className="block text-xs font-black uppercase text-slate-700 mb-1">City / Municipality</label>
-                    <input
-                      type="text"
-                      value={profileForm.city}
-                      onChange={(e) => setProfileForm({ ...profileForm, city: e.target.value })}
-                      className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs font-bold text-slate-900"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-black uppercase text-slate-700 mb-1">Standard Turnaround</label>
-                    <input
-                      type="text"
-                      value={profileForm.turnaround}
-                      onChange={(e) => setProfileForm({ ...profileForm, turnaround: e.target.value })}
-                      className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs font-bold text-slate-900"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-black uppercase text-slate-700 mb-1">Minimum Order Qty (MOQ)</label>
-                    <input
-                      type="text"
-                      value={profileForm.moq}
-                      onChange={(e) => setProfileForm({ ...profileForm, moq: e.target.value })}
-                      className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs font-bold text-slate-900"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-black uppercase text-slate-700 mb-1">Workshop Facility Bio</label>
-                  <textarea
-                    rows={3}
-                    value={profileForm.bio}
-                    onChange={(e) => setProfileForm({ ...profileForm, bio: e.target.value })}
-                    className="w-full bg-slate-50 border border-slate-300 rounded-xl p-3 text-xs font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#003CF5]"
-                  />
-                </div>
-
-                <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
-                  <button
-                    type="button"
-                    onClick={() => setIsEditingProfile(false)}
-                    className="px-4 py-2 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-100"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    className="px-6 py-2.5 rounded-xl bg-[#003CF5] text-white text-xs font-bold shadow-md hover:bg-blue-700 cursor-pointer"
-                  >
-                    Save & Synchronize Profile
-                  </button>
-                </div>
-              </form>
-            ) : (
-              <div className="bg-white rounded-3xl p-6 border border-slate-200 shadow-sm space-y-5">
-                <div className="flex items-start justify-between">
-                  <div>
-                    <h3 className="text-base font-extrabold text-slate-950">{supplierProfile.name}</h3>
-                    <p className="text-xs text-slate-500 mt-0.5">{supplierProfile.tagline}</p>
-                    <div className="flex flex-wrap items-center gap-3 text-xs text-slate-600 pt-2">
-                      <span className="flex items-center gap-1 font-bold text-slate-900">
-                        <User className="w-3.5 h-3.5 text-[#003CF5]" />
-                        {supplierProfile.contactPerson}
-                      </span>
-                      <span>·</span>
-                      <span className="flex items-center gap-1 font-mono font-bold text-slate-700">
-                        <Phone className="w-3.5 h-3.5 text-emerald-600" />
-                        +63 {formatPhoneDisplay(supplierProfile.phone)}
-                      </span>
-                      <span>·</span>
-                      <span className="flex items-center gap-1 text-slate-500">
-                        <Mail className="w-3.5 h-3.5 text-blue-500" />
-                        {supplierProfile.email}
-                      </span>
-                    </div>
-                  </div>
-
-                  <span className="px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs font-bold flex items-center gap-1">
-                    <ShieldCheck className="w-3.5 h-3.5" />
-                    Verified Maker
-                  </span>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                  <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-100">
-                    <span className="text-[10px] font-bold text-slate-400 uppercase block">Facility Turnaround</span>
-                    <span className="text-xs sm:text-sm font-black text-slate-900">{supplierProfile.turnaround}</span>
-                  </div>
-                  <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-100">
-                    <span className="text-[10px] font-bold text-slate-400 uppercase block">Minimum Order (MOQ)</span>
-                    <span className="text-xs sm:text-sm font-black text-slate-900">{supplierProfile.moq}</span>
-                  </div>
-                  <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-100">
-                    <span className="text-[10px] font-bold text-slate-400 uppercase block">Escrow Payout Account</span>
-                    <span className="text-xs sm:text-sm font-black text-emerald-700">{supplierProfile.payoutAccount}</span>
-                  </div>
-                </div>
-
-                <div>
-                  <span className="text-xs font-bold text-slate-700 uppercase block mb-2">Registered Machinery & Production Gear:</span>
-                  <div className="flex flex-wrap gap-2">
-                    {supplierProfile.equipment.map((eq, i) => (
-                      <span key={i} className="px-3 py-1.5 rounded-xl bg-blue-50 text-[#003CF5] text-xs font-bold border border-blue-200">
-                        ✓ {eq}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-
-                <p className="text-xs text-slate-600 font-medium leading-relaxed bg-slate-50/70 p-3 rounded-2xl border border-slate-100">
-                  {supplierProfile.bio}
-                </p>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* TAB 4: PRODUCTION SAMPLES & PORTFOLIO UPLOAD */}
-        {activeTab === 'samples' && (
-          <div className="space-y-4">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-200 pb-3">
-              <div>
-                <h2 className="text-lg font-black text-slate-950">Finished Production Samples & Portfolio</h2>
-                <p className="text-xs text-slate-500">Upload high-resolution proofs and photos of actual event orders crafted in your workshop.</p>
-              </div>
-
-              <button
-                type="button"
-                onClick={() => setIsSampleModalOpen(true)}
-                className="px-4 py-2 rounded-xl bg-[#003CF5] hover:bg-blue-700 text-white text-xs font-bold shadow-md shadow-blue-500/20 transition-all flex items-center gap-1.5 cursor-pointer active:scale-95"
-              >
-                <Plus className="w-4 h-4 stroke-[3]" />
-                <span>Upload New Sample</span>
-              </button>
-            </div>
-
-            {/* Samples Gallery Grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              {samplesList.map((sample) => (
-                <div 
-                  key={sample.id}
-                  className="bg-white rounded-3xl overflow-hidden border border-slate-200 shadow-sm hover:shadow-md transition-all flex flex-col justify-between group"
-                >
-                  <div className="relative h-44 w-full bg-slate-900 overflow-hidden">
-                    <img 
-                      src={sample.image} 
-                      alt={sample.name} 
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                    />
-                    <div className="absolute top-2.5 left-2.5 bg-black/60 backdrop-blur-md px-2 py-0.5 rounded-lg text-[9px] font-black uppercase tracking-wider text-white">
-                      {sample.category}
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => handleDeleteSample(sample.id)}
-                      className="absolute top-2.5 right-2.5 w-7 h-7 bg-red-600/90 hover:bg-red-700 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-                      title="Delete sample"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-
-                  <div className="p-4 space-y-2 flex-1 flex flex-col justify-between">
-                    <div>
-                      <h4 className="font-extrabold text-xs sm:text-sm text-slate-950 line-clamp-2 leading-tight">
-                        {sample.name}
-                      </h4>
-                      <p className="text-[11px] text-[#003CF5] font-bold mt-1">{sample.technique}</p>
-                      <p className="text-[10px] text-slate-500 mt-0.5">Event: {sample.event}</p>
-                    </div>
-
-                    <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-xs font-bold">
-                      <span className="text-emerald-700">{sample.price}</span>
-                      <span className="text-slate-400 text-[10px]">Turnaround: {sample.turnaround}</span>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* TAB 5: CUSTOMER REVIEWS & RATINGS (WITH MAKER REPLY) */}
-        {activeTab === 'reviews' && (
-          <div className="space-y-4">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-200 pb-3">
-              <div>
-                <h2 className="text-lg font-black text-slate-950">Organizer Reviews & Verified Ratings</h2>
-                <p className="text-xs text-slate-500">Real feedback from event producers and corporate organizers across the Philippines.</p>
-              </div>
-
-              {/* Rating Summary Pill */}
-              <div className="flex items-center gap-2 bg-amber-50 border border-amber-200 px-3.5 py-1.5 rounded-2xl w-fit">
-                <Star className="w-4 h-4 fill-amber-500 text-amber-500" />
-                <span className="font-black text-sm text-slate-900">4.9 / 5.0</span>
-                <span className="text-xs text-slate-500 font-semibold">({reviewsList.length} reviews)</span>
-              </div>
-            </div>
-
-            <div className="space-y-3.5">
-              {reviewsList.map((rev) => (
-                <div key={rev.id} className="bg-white rounded-3xl p-5 border border-slate-200 shadow-sm space-y-3">
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <h4 className="font-extrabold text-sm text-slate-950">{rev.author}</h4>
-                        <span className="text-[10px] font-bold bg-blue-50 text-[#003CF5] px-2 py-0.5 rounded-full border border-blue-200">
-                          {rev.order}
-                        </span>
-                      </div>
-                      <p className="text-[11px] text-slate-500 mt-0.5">{rev.role} · {rev.date}</p>
-                    </div>
-
-                    <div className="flex items-center gap-0.5 text-amber-500">
-                      {[...Array(5)].map((_, i) => (
-                        <Star key={i} className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
-                      ))}
-                    </div>
-                  </div>
-
-                  <p className="text-xs text-slate-700 font-medium leading-relaxed bg-slate-50/80 p-3.5 rounded-2xl border border-slate-100">
-                    "{rev.comment}"
-                  </p>
-
-                  {/* Maker Reply Box */}
-                  {rev.reply ? (
-                    <div className="pl-4 border-l-2 border-[#003CF5] py-1 bg-blue-50/50 rounded-r-2xl p-3 text-xs space-y-1">
-                      <div className="flex items-center gap-1.5 font-bold text-[#003CF5] text-[11px]">
-                        <CornerDownRight className="w-3.5 h-3.5" />
-                        <span>Maker Response ({supplierProfile.name}):</span>
-                      </div>
-                      <p className="text-slate-800 font-medium">{rev.reply}</p>
-                    </div>
-                  ) : (
-                    <div>
-                      {activeReplyId === rev.id ? (
-                        <div className="pt-2 space-y-2">
-                          <textarea
-                            rows={2}
-                            placeholder="Write a professional reply to the customer..."
-                            value={replyInput[rev.id] || ''}
-                            onChange={(e) => setReplyInput({ ...replyInput, [rev.id]: e.target.value })}
-                            className="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-xs font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#003CF5]"
-                          />
-                          <div className="flex justify-end gap-2">
-                            <button
-                              type="button"
-                              onClick={() => setActiveReplyId(null)}
-                              className="px-3 py-1.5 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-lg"
-                            >
-                              Cancel
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => handlePostReply(rev.id)}
-                              className="px-4 py-1.5 rounded-lg bg-[#003CF5] text-white text-xs font-bold hover:bg-blue-700 shadow-sm"
-                            >
-                              Publish Reply
-                            </button>
-                          </div>
-                        </div>
-                      ) : (
-                        <button
-                          type="button"
-                          onClick={() => setActiveReplyId(rev.id)}
-                          className="text-xs font-bold text-[#003CF5] hover:underline flex items-center gap-1 cursor-pointer pt-1"
-                        >
-                          <MessageCircle className="w-3.5 h-3.5" />
-                          <span>Reply to Customer</span>
-                        </button>
-                      )}
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* TAB 6: VERIFIED SUPPLIERS & MAKERS NETWORK */}
-        {activeTab === 'network' && (
-          <div className="space-y-4">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-200 pb-3">
-              <div>
-                <h2 className="text-lg font-black text-slate-950">Verified Makers & Suppliers Directory</h2>
-                <p className="text-xs text-slate-500">Explore partner workshops, machine capacities, and collaboration opportunities.</p>
-              </div>
-
-              <div className="relative w-full sm:w-64">
-                <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-                <input
-                  type="text"
-                  placeholder="Filter by name or city..."
-                  value={networkSearch}
-                  onChange={(e) => setNetworkSearch(e.target.value)}
-                  className="w-full pl-9 pr-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-[#003CF5]"
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {SUPPLIERS.filter(s => 
-                s.name.toLowerCase().includes(networkSearch.toLowerCase()) || 
-                s.city.toLowerCase().includes(networkSearch.toLowerCase())
-              ).map((sup) => (
-                <div key={sup.id} className="bg-white rounded-3xl p-5 border border-slate-200 shadow-sm space-y-3 hover:border-blue-300 transition-all flex flex-col justify-between">
-                  <div className="space-y-2">
-                    <div className="flex items-start justify-between gap-2">
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <h4 className="font-black text-sm text-slate-950">{sup.name}</h4>
-                          <span className="text-[9px] font-black uppercase text-emerald-800 bg-emerald-100 px-1.5 py-0.2 rounded-full">
-                            VERIFIED
-                          </span>
-                        </div>
-                        <p className="text-xs text-slate-500 mt-0.5">{sup.tagline}</p>
-                      </div>
-
-                      <div className="text-right shrink-0">
-                        <span className="flex items-center gap-1 text-amber-600 font-bold text-xs">
-                          <Star className="w-3.5 h-3.5 fill-amber-500 text-amber-500" />
-                          {sup.rating}
-                        </span>
-                        <span className="text-[10px] text-slate-400 font-medium">({sup.reviewsCount} orders)</span>
-                      </div>
-                    </div>
-
-                    <div className="flex flex-wrap items-center gap-2 text-xs text-slate-600 pt-1">
-                      <span className="flex items-center gap-1 text-slate-500">
-                        <MapPin className="w-3.5 h-3.5 text-[#003CF5]" />
-                        {sup.city}
-                      </span>
-                      <span>·</span>
-                      <span className="font-semibold text-slate-700">Turnaround: {sup.avgLeadTime}</span>
-                    </div>
-
-                    {sup.services && (
-                      <div className="flex flex-wrap gap-1.5 pt-1">
-                        {sup.services.slice(0, 3).map((svc, idx) => (
-                          <span key={idx} className="text-[10px] font-bold text-[#003CF5] bg-blue-50 px-2 py-0.5 rounded-md border border-blue-100">
-                            {svc.name}
-                          </span>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="pt-3 border-t border-slate-100 flex items-center justify-between text-xs">
-                    <span className="text-slate-500 font-medium">Contact: {sup.contactPerson}</span>
-                    <button
-                      type="button"
-                      onClick={() => onOpenChatWithCustomer && onOpenChatWithCustomer(sup)}
-                      className="px-3 py-1.5 rounded-xl bg-[#003CF5] hover:bg-blue-700 text-white font-bold text-[11px] shadow-xs transition-all flex items-center gap-1 cursor-pointer"
-                    >
-                      <MessageSquare className="w-3 h-3" />
-                      <span>Chat Partner</span>
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-      </main>
-
-      {/* 4. MODAL: UPLOAD NEW SAMPLE PROOF */}
-      {isSampleModalOpen && (
-        <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-4 font-sans">
-          <div className="bg-white rounded-3xl max-w-md w-full p-6 border border-slate-200 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto custom-scroll">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-              <div>
-                <span className="text-[10px] font-black uppercase text-[#003CF5] tracking-wider">Portfolio Showcase</span>
-                <h3 className="text-base font-extrabold text-slate-950 leading-tight">Upload Finished Production Sample</h3>
-              </div>
-              <button onClick={() => setIsSampleModalOpen(false)} className="text-slate-400 hover:text-slate-600">✕</button>
-            </div>
-
-            <form onSubmit={handleAddSample} className="space-y-3.5 text-xs">
-              <div>
-                <label className="block font-bold text-slate-700 uppercase mb-1">Sample Photo</label>
-                <label className="w-full h-36 rounded-2xl border-2 border-dashed border-blue-300 hover:border-[#003CF5] bg-blue-50/50 flex flex-col items-center justify-center cursor-pointer transition-colors overflow-hidden">
-                  {newSampleForm.image ? (
-                    <img src={newSampleForm.image} alt="Sample Preview" className="w-full h-full object-cover" />
-                  ) : (
-                    <div className="text-center p-3">
-                      <Camera className="w-8 h-8 text-[#003CF5] mx-auto mb-1" />
-                      <span className="font-bold text-slate-800 block">Click to upload sample image</span>
-                      <span className="text-[10px] text-slate-500">PNG, JPG up to 25MB</span>
-                    </div>
-                  )}
-                  <input type="file" accept="image/*" onChange={handleSampleImageUpload} className="hidden" />
-                </label>
-              </div>
-
-              <div>
-                <label className="block font-bold text-slate-700 uppercase mb-1">Product Title</label>
-                <input
-                  type="text"
-                  required
-                  value={newSampleForm.name}
-                  onChange={(e) => setNewSampleForm({ ...newSampleForm, name: e.target.value })}
-                  placeholder="e.g. 240 GSM Combed Cotton Acid Wash Tee"
-                  className="w-full px-3 py-2 rounded-xl border border-slate-300 font-semibold focus:outline-none focus:ring-2 focus:ring-[#003CF5]"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <label className="block font-bold text-slate-700 uppercase mb-1">Category</label>
-                  <select
-                    value={newSampleForm.category}
-                    onChange={(e) => setNewSampleForm({ ...newSampleForm, category: e.target.value })}
-                    className="w-full px-3 py-2 rounded-xl border border-slate-300 font-semibold bg-white focus:outline-none focus:ring-2 focus:ring-[#003CF5]"
-                  >
-                    <option>Apparel & Uniforms</option>
-                    <option>Event Print & Lanyards</option>
-                    <option>Bags & Totes</option>
-                    <option>Drinkware & Vessels</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block font-bold text-slate-700 uppercase mb-1">Crafting Technique</label>
-                  <input
-                    type="text"
-                    value={newSampleForm.technique}
-                    onChange={(e) => setNewSampleForm({ ...newSampleForm, technique: e.target.value })}
-                    placeholder="e.g. DTF Full Color"
-                    className="w-full px-3 py-2 rounded-xl border border-slate-300 font-semibold focus:outline-none focus:ring-2 focus:ring-[#003CF5]"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <label className="block font-bold text-slate-700 uppercase mb-1">Event / Client Name</label>
-                  <input
-                    type="text"
-                    value={newSampleForm.event}
-                    onChange={(e) => setNewSampleForm({ ...newSampleForm, event: e.target.value })}
-                    placeholder="e.g. BGC Hackathon 2026"
-                    className="w-full px-3 py-2 rounded-xl border border-slate-300 font-semibold focus:outline-none focus:ring-2 focus:ring-[#003CF5]"
-                  />
-                </div>
-
-                <div>
-                  <label className="block font-bold text-slate-700 uppercase mb-1">Price per Unit</label>
-                  <input
-                    type="text"
-                    value={newSampleForm.price}
-                    onChange={(e) => setNewSampleForm({ ...newSampleForm, price: e.target.value })}
-                    placeholder="e.g. ₱165.00/pc"
-                    className="w-full px-3 py-2 rounded-xl border border-slate-300 font-semibold focus:outline-none focus:ring-2 focus:ring-[#003CF5]"
-                  />
-                </div>
-              </div>
-
-              <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
-                <button
-                  type="button"
-                  onClick={() => setIsSampleModalOpen(false)}
-                  className="px-4 py-2 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-100"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="px-5 py-2 rounded-xl bg-[#003CF5] text-white text-xs font-bold hover:bg-blue-700 shadow-md shadow-blue-500/20"
-                >
-                  Publish to Portfolio
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
+            <Field label="About your shop" className="sm:col-span-2">
+              <Textarea rows={3} value={profileForm.bio} onChange={(e) => setProfileForm((f) => ({ ...f, bio: e.target.value }))} />
+            </Field>
+          </form>
+        </Sheet>
       )}
 
-      {/* 5. MODAL: SUBMIT MAKER BID */}
-      {biddingOnReq && (
-        <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-4 font-sans">
-          <div className="bg-white rounded-3xl max-w-lg w-full p-6 border border-slate-200 shadow-2xl space-y-4">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-              <div>
-                <span className="text-[10px] font-black uppercase text-[#003CF5] tracking-wider">Submit Maker Bid</span>
-                <h3 className="text-base font-extrabold text-slate-950 leading-tight">{biddingOnReq.title}</h3>
-              </div>
-              <button onClick={() => setBiddingOnReq(null)} className="text-slate-400 hover:text-slate-600">✕</button>
+      {/* Add portfolio sample sheet */}
+      {sampleForm && (
+        <Sheet
+          onClose={() => setSampleForm(null)}
+          title="Add to portfolio"
+          subtitle="Photos of real orders help you win bids"
+          icon={Camera}
+          footer={
+            <Button type="submit" form="sample-form" full size="lg">
+              Add to portfolio
+            </Button>
+          }
+        >
+          <form id="sample-form" onSubmit={saveSample} className="space-y-3">
+            <label className="flex h-40 rounded-2xl bg-[#F4F3F0] hover:bg-[#ECEAE5] cursor-pointer overflow-hidden items-center justify-center transition-colors">
+              {sampleForm.image ? (
+                <img src={sampleForm.image} alt="Sample preview" className="w-full h-full object-cover" />
+              ) : (
+                <span className="text-center">
+                  <Camera className="w-7 h-7 text-slate-500 mx-auto" />
+                  <span className="mt-1 block text-[15px] font-medium text-slate-900">Add a photo</span>
+                  <span className="block text-[13px] text-slate-500">PNG or JPG</span>
+                </span>
+              )}
+              <input type="file" accept="image/*" onChange={onSampleImage} className="sr-only" />
+            </label>
+            <Field label="Product">
+              <Input
+                required
+                placeholder="e.g. 240 GSM acid wash tee"
+                value={sampleForm.name}
+                onChange={(e) => setSampleForm((f) => ({ ...f, name: e.target.value }))}
+              />
+            </Field>
+            <div className="grid grid-cols-2 gap-3">
+              <Field label="Event or client">
+                <Input placeholder="e.g. BGC Hackathon" value={sampleForm.event} onChange={(e) => setSampleForm((f) => ({ ...f, event: e.target.value }))} />
+              </Field>
+              <Field label="Price">
+                <Input placeholder="e.g. ₱165/pc" value={sampleForm.price} onChange={(e) => setSampleForm((f) => ({ ...f, price: e.target.value }))} />
+              </Field>
             </div>
-
-            <form onSubmit={handleSubmitBid} className="space-y-4">
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 uppercase mb-1">Your Price (PHP / pc)</label>
-                  <input
-                    type="number"
-                    step="0.50"
-                    required
-                    value={bidPriceInput}
-                    onChange={(e) => setBidPriceInput(e.target.value)}
-                    className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-sm font-bold text-slate-900"
-                  />
-                  <p className="text-[10px] text-slate-500 mt-1">
-                    Total: ₱{(parseFloat(bidPriceInput || 0) * biddingOnReq.quantity).toLocaleString()}
-                  </p>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 uppercase mb-1">Turnaround Days</label>
-                  <input
-                    type="number"
-                    min="1"
-                    required
-                    value={bidDaysInput}
-                    onChange={(e) => setBidDaysInput(e.target.value)}
-                    className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-sm font-bold text-slate-900"
-                  />
-                  <p className="text-[10px] text-slate-500 mt-1">Business days</p>
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-slate-700 uppercase mb-1">Inclusions & Crafting Notes</label>
-                <textarea
-                  rows={2}
-                  value={bidNoteInput}
-                  onChange={(e) => setBidNoteInput(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-xs font-medium text-slate-900"
-                />
-              </div>
-
-              <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
-                <button
-                  type="button"
-                  onClick={() => setBiddingOnReq(null)}
-                  className="px-4 py-2 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-100"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="px-5 py-2 rounded-xl bg-[#003CF5] text-white text-xs font-bold hover:bg-blue-700 shadow-md shadow-blue-500/20"
-                >
-                  Confirm & Broadcast Bid
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
+          </form>
+        </Sheet>
       )}
-
     </div>
   );
 }
