@@ -43,6 +43,8 @@ export default function ToolsSheet({ onClose, onOpen }) {
             trailing={
               isPro ? (
                 <Badge tone="violet" icon={Crown}>Pro</Badge>
+              ) : left === Infinity ? (
+                <Badge tone="green">Free for makers</Badge>
               ) : left > 0 ? (
                 <Badge tone="slate">{left} free left</Badge>
               ) : (

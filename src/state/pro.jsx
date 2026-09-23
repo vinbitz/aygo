@@ -1,18 +1,18 @@
 import React, { createContext, useCallback, useContext, useMemo, useState } from 'react';
 import { toast } from '../lib/toast';
 import ProUpgradeSheet from '../components/ProUpgradeSheet';
-import { FREE_USES, PRO_FEATURES } from '../lib/pro';
+import { FREE_USES, PRO_FEATURES, MAKER_FREE_FEATURES } from '../lib/pro';
 
 const STORAGE_KEY = 'aygo.pro.v1';
 
 function load() {
   try {
     const saved = JSON.parse(localStorage.getItem(STORAGE_KEY));
-    if (saved && typeof saved === 'object') return { isPro: Boolean(saved.isPro), used: saved.used || {} };
+    if (saved && typeof saved === 'object') return { isPro: Boolean(saved.isPro), isMaker: Boolean(saved.isMaker), used: saved.used || {} };
   } catch {
     // storage unavailable: start fresh
   }
-  return { isPro: false, used: {} };
+  return { isPro: false, isMaker: false, used: {} };
 }
 
 function save(state) {
@@ -38,14 +38,14 @@ export function ProProvider({ children }) {
   }, []);
 
   const remaining = useCallback(
-    (feature) => (state.isPro ? Infinity : Math.max(0, FREE_USES - (state.used[feature] || 0))),
+    (feature) => (state.isPro || (state.isMaker && MAKER_FREE_FEATURES.includes(feature)) ? Infinity : Math.max(0, FREE_USES - (state.used[feature] || 0))),
     [state]
   );
 
   /** Runs fn if the user is Pro or still has free uses of the feature; otherwise opens the paywall */
   const gate = useCallback(
     (feature, fn) => {
-      if (state.isPro) return fn?.();
+      if (state.isPro || (state.isMaker && MAKER_FREE_FEATURES.includes(feature))) return fn?.();
       const used = state.used[feature] || 0;
       if (used >= FREE_USES) {
         setPaywallFeature(feature);
@@ -67,6 +67,9 @@ export function ProProvider({ children }) {
   const value = useMemo(
     () => ({
       isPro: state.isPro,
+      // Registered supplier: free documents, and calls in Sponsorship Connect as a brand
+      isMaker: state.isMaker,
+      registerMaker: () => update((prev) => ({ ...prev, isMaker: true })),
       remaining,
       gate,
       openPaywall: (feature = null) => setPaywallFeature(feature),
@@ -76,12 +79,12 @@ export function ProProvider({ children }) {
         toast('Welcome to Aygo Pro. Every tool is now unlimited.');
       },
       downgrade: () => {
-        update({ isPro: false, used: {} });
+        update((prev) => ({ isPro: false, isMaker: prev.isMaker, used: {} }));
         setPaywallFeature(undefined);
         toast('Back on the Free plan (demo reset)');
       },
     }),
-    [state.isPro, remaining, gate, update]
+    [state.isPro, state.isMaker, remaining, gate, update]
   );
 
   return (

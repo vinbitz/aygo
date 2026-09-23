@@ -355,7 +355,8 @@ export default function App() {
           onCompleteOnboarding={() => {
             setIsOnboardingOpen(false);
             setIsSupplierMode(true);
-            toast("Verification documents submitted! Your workshop is now in expedited review.");
+            pro.registerMaker();
+            toast('Application submitted. Documents are unlocked, and you can call organizers in Sponsorship Connect as a brand.');
           }}
         />
       )}

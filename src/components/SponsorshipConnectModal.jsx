@@ -410,7 +410,7 @@ function OrganizerProfileView({ profile, onEdit, photos, registrationLink, onInq
   );
 }
 
-function BrandsView({ brand, onEditBrand, onInquiry, onCall, viewerIsPro }) {
+function BrandsView({ brand, onEditBrand, onInquiry, onCall, viewerIsPro, isMaker }) {
   const [kind, setKind] = useState('All');
   const [showBrand, setShowBrand] = useState(false);
   const wants = brand?.wants || [];
@@ -422,11 +422,17 @@ function BrandsView({ brand, onEditBrand, onInquiry, onCall, viewerIsPro }) {
 
   return (
     <div className="space-y-4">
+      {isMaker && (
+        <p className="flex items-start gap-2 rounded-2xl bg-emerald-50 px-4 py-3 text-[13px] text-emerald-900">
+          <Phone className="w-4 h-4 shrink-0 mt-0.5" />
+          As a registered maker, you can call organizers here for free and sponsor events with your own products.
+        </p>
+      )}
       {!brand?.name ? (
         <BrandProfilePrompt onSetup={onEditBrand} />
       ) : showBrand ? (
         <div className="space-y-2">
-          <BrandProfileCard brand={{ ...brand, pro: viewerIsPro }} isOwn onEdit={onEditBrand} />
+          <BrandProfileCard brand={brand} isOwn onEdit={onEditBrand} />
           <button type="button" onClick={() => setShowBrand(false)} className="h-11 text-[13px] font-medium text-[#003CF5]">Hide brand profile</button>
         </div>
       ) : (
@@ -598,10 +604,15 @@ const FOLLOW_UP = {
   brand: 'Noted! Tap Choose on any package above when you are ready, or tell us what you have in mind.',
 };
 
-function RoleChooser({ onChoose }) {
+function RoleChooser({ onChoose, isMaker }) {
   const options = [
     { id: 'organizer', icon: GraduationCap, title: "I'm organizing an event", text: 'Create a sponsorship profile, show what sponsors get, and find brands.' },
-    { id: 'brand', icon: Building2, title: "I'm a brand or company", text: 'Browse student and community events and sponsor the right ones.' },
+    {
+      id: 'brand', icon: Building2, title: "I'm a brand or company",
+      text: isMaker
+        ? 'Sponsor events with your own products. As a registered maker, calls with organizers are free.'
+        : 'Browse student and community events and sponsor the right ones.',
+    },
   ];
   return (
     <div className="space-y-3">
@@ -643,6 +654,9 @@ export default function SponsorshipConnectModal({ onClose, photos, onPhotosChang
   const [threadsByRole, setThreadsByRole] = useState(SEED_THREADS);
   const [activeThreadId, setActiveThreadId] = useState(null);
   const pro = usePro();
+  // Registered makers who sponsor as a brand can call organizers without Pro
+  const makerCall = pro.isMaker && role === 'brand';
+  const viewerCanCall = pro.isPro || makerCall;
   const [brand, setBrand] = useState(loadBrandProfile);
   const [brandDraft, setBrandDraft] = useState(null); // non-null while editing the brand profile
   const [call, setCall] = useState(null); // { target }
@@ -667,7 +681,7 @@ export default function SponsorshipConnectModal({ onClose, photos, onPhotosChang
 
   // Calls work when either side is on Pro
   const startCall = (target) => {
-    if (!canCall(pro.isPro, target.pro)) {
+    if (!canCall(viewerCanCall, target.pro)) {
       pro.openPaywall('calls');
       return;
     }
@@ -936,7 +950,7 @@ export default function SponsorshipConnectModal({ onClose, photos, onPhotosChang
       ) : null}
     >
       {!role ? (
-        <RoleChooser onChoose={chooseRole} />
+        <RoleChooser onChoose={chooseRole} isMaker={pro.isMaker} />
       ) : (
         <>
           <Tabs
@@ -976,7 +990,7 @@ export default function SponsorshipConnectModal({ onClose, photos, onPhotosChang
               onBack={() => setActiveThreadId(null)}
               onSend={sendMessage}
               onCall={startCall}
-              viewerIsPro={pro.isPro}
+              viewerIsPro={viewerCanCall}
               onChoosePackage={role === 'brand' ? choosePackage : undefined}
               onPayPackage={payPackage}
               onSendPackages={role === 'organizer' && published ? sendPackages : undefined}
@@ -994,11 +1008,12 @@ export default function SponsorshipConnectModal({ onClose, photos, onPhotosChang
                 onEditBrand={() => setBrandDraft(brand || EMPTY_BRAND)}
                 onInquiry={startInquiry}
                 onCall={startCall}
-                viewerIsPro={pro.isPro}
+                viewerIsPro={viewerCanCall}
+                isMaker={pro.isMaker}
               />
             )
           ) : published ? (
-            <OrganizerProfileView profile={profile} photos={photos} registrationLink={registrationLink} onEdit={() => setPublished(false)} onInquiry={startInquiry} onCall={startCall} viewerIsPro={pro.isPro} />
+            <OrganizerProfileView profile={profile} photos={photos} registrationLink={registrationLink} onEdit={() => setPublished(false)} onInquiry={startInquiry} onCall={startCall} viewerIsPro={viewerCanCall} />
           ) : (
             <OrganizerProfileForm profile={profile} setProfile={setProfile} photos={photos} onPhotosChange={onPhotosChange} registrationLink={registrationLink} onRegistrationLinkChange={onRegistrationLinkChange} />
           )}
@@ -1008,7 +1023,7 @@ export default function SponsorshipConnectModal({ onClose, photos, onPhotosChang
               name={call.target.name}
               subtitle={call.target.subtitle}
               initial={call.target.name.slice(0, 1)}
-              proNote={pro.isPro ? 'You have Pro' : `${call.target.name} has Pro`}
+              proNote={pro.isPro ? 'You have Pro' : makerCall ? 'Maker account' : `${call.target.name} has Pro`}
               onEnd={endCall}
               video={call.video}
             />

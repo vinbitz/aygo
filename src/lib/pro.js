@@ -18,3 +18,20 @@ export const PRO_FEATURES = {
 
 /** A call can start when the viewer or the other person is on Pro */
 export const canCall = (viewerIsPro, otherIsPro) => Boolean(viewerIsPro || otherIsPro);
+
+// Registered makers (suppliers) get these Pro tools free, without the 3-use limit
+export const MAKER_FREE_FEATURES = ['documents'];
+
+// What every registered maker gets, shown during supplier registration
+export const MAKER_PERKS = [
+  {
+    id: 'documents',
+    title: 'Document access, like Pro',
+    text: 'Make quotations, invoices, purchase orders and delivery receipts with no limit.',
+  },
+  {
+    id: 'calls',
+    title: 'Calls in Sponsorship Connect',
+    text: 'Want to sponsor events with your brand? Join as a brand and call organizers, even without Pro.',
+  },
+];
