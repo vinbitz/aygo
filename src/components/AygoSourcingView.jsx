@@ -186,7 +186,7 @@ export default function AygoSourcingView({
             >
               <Search className="w-5 h-5 text-slate-900 shrink-0" strokeWidth={2.5} />
               <span className="text-[17px] font-semibold text-slate-900 tracking-tight">
-                What to make & for how much?
+                What do you need made?
               </span>
             </button>
 
