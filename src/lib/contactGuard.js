@@ -18,3 +18,17 @@ export function maskContactInfo(text) {
   }
   return { text: masked, found };
 }
+
+// Softer check for form fields like billing details, where long numbers (TIN) are expected:
+// only emails, mobile numbers and off-app chat handles are hidden
+export function maskDirectContact(text) {
+  let masked = text;
+  let found = false;
+  for (const re of [PATTERNS[0], PATTERNS[1], PATTERNS[3]]) {
+    masked = masked.replace(re, () => {
+      found = true;
+      return '[hidden by Aygo]';
+    });
+  }
+  return { text: masked, found };
+}

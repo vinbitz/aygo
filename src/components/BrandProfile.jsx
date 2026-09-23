@@ -20,14 +20,15 @@ function BrandLogo({ brand, size = 'md' }) {
 
 export function BrandProfileForm({ brand, onChange }) {
   const fileRef = useRef(null);
+  const whiteRef = useRef(null);
   const set = (key) => (e) => onChange({ ...brand, [key]: e.target.value });
 
-  const pickLogo = async (e) => {
+  const pickLogo = (key) => async (e) => {
     const file = e.target.files?.[0];
     e.target.value = '';
     if (!file) return;
     try {
-      onChange({ ...brand, logo: await loadImageFile(file, { maxSize: 512 }) });
+      onChange({ ...brand, [key]: await loadImageFile(file, { maxSize: 512 }) });
     } catch (err) {
       toast(err.message);
     }
@@ -48,7 +49,7 @@ export function BrandProfileForm({ brand, onChange }) {
           <Button type="button" size="sm" variant="secondary" icon={Camera} className="h-11" onClick={() => fileRef.current?.click()}>
             {brand.logo ? 'Change logo' : 'Upload logo'}
           </Button>
-          <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={pickLogo} />
+          <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={pickLogo('logo')} />
         </div>
       </div>
 
@@ -92,6 +93,32 @@ export function BrandProfileForm({ brand, onChange }) {
       <Field label="Your usual offer">
         <Input value={brand.offer} onChange={set('offer')} placeholder="e.g. Free coffee for up to 500 guests" />
       </Field>
+
+      <div className="rounded-2xl border border-slate-200 p-3.5 space-y-3">
+        <div>
+          <p className="text-[15px] font-semibold text-slate-900">Brand kit</p>
+          <p className="text-[12px] text-slate-500">Saved once, filled in whenever an event asks for your files.</p>
+        </div>
+        <div className="flex items-center gap-3">
+          {brand.logoWhite?.src
+            ? <img src={brand.logoWhite.src} alt="White logo" className="w-12 h-12 rounded-xl object-contain bg-slate-800 p-1 shrink-0" />
+            : <span className="w-12 h-12 rounded-xl bg-slate-800 shrink-0" />}
+          <div className="flex-1 min-w-0">
+            <p className="text-[14px] font-medium text-slate-900">White or one-color logo</p>
+            <p className="text-[12px] text-slate-500">For dark shirts and LED screens</p>
+          </div>
+          <Button type="button" size="sm" variant="secondary" icon={Camera} className="h-10 shrink-0" onClick={() => whiteRef.current?.click()}>
+            {brand.logoWhite ? 'Change' : 'Upload'}
+          </Button>
+          <input ref={whiteRef} type="file" accept="image/*" className="hidden" onChange={pickLogo('logoWhite')} />
+        </div>
+        <Field label="Brand colors & fonts">
+          <Input value={brand.colors || ''} onChange={set('colors')} placeholder="e.g. Red #E4002B, black #1A1A1A, Montserrat" />
+        </Field>
+        <Field label="Pages to feature">
+          <Input value={brand.socialPages || ''} onChange={set('socialPages')} placeholder="e.g. facebook.com/yourbrand, @yourbrand on IG & TikTok" />
+        </Field>
+      </div>
 
       <div>
         <p className="text-[13px] font-medium text-slate-700">What you want in return</p>

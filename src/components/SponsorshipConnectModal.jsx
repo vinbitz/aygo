@@ -33,6 +33,7 @@ import { callLength } from '../lib/calls';
 import { usePro } from '../state/pro';
 import { canCall } from '../lib/pro';
 import { packageAmount } from '../lib/sponsorDeals';
+import { filesForPackage } from '../lib/brandFiles';
 import { peso } from '../lib/marketplace';
 import { Sheet, Button, Field, Input, Textarea, Tabs, Chip, Badge, Panel, IconCircle } from './ui';
 
@@ -41,6 +42,14 @@ const toPeso = (s) => {
   if (/^\d+$/.test(str)) return '₱' + Number(str).toLocaleString('en-PH');
   return str.replace(/PHP\s?/g, '₱') || '—';
 };
+
+// Simple placeholder logo for the demo brand's reply
+function demoLogo(name, bg, fg, mono = false) {
+  const initials = name.split(' ').map((w) => w[0]).join('').slice(0, 2).toUpperCase();
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="240" height="240"><rect width="240" height="240" rx="48" fill="${bg}"/><text x="120" y="150" font-family="Arial" font-weight="700" font-size="96" text-anchor="middle" fill="${fg}">${initials}</text></svg>`;
+  const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+  return { name: `${slug}-logo${mono ? '-white' : ''}.svg`, size: svg.length, type: 'image/svg+xml', url: `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}` };
+}
 
 const NEED_OPTIONS = ['Cash', 'Event shirts', 'Lanyards & IDs', 'Food & drinks', 'Prizes', 'Venue', 'Cloud credits', 'Media partner'];
 
@@ -409,7 +418,7 @@ function BrandsView({ brand, onEditBrand, onInquiry, onCall, viewerIsPro }) {
   const list = OPPORTUNITIES.filter((o) => kind === 'All' || o.kind === kind)
     .map((o) => ({ ...o, wantsMet: wants.filter((w) => w in (o.perks || {})) }))
     .sort((a, b) => b.wantsMet.length - a.wantsMet.length);
-  const eventTarget = (item) => ({ id: item.id, name: item.eventTitle, subtitle: item.organization, kind: 'organizer', pro: item.pro, packages: item.packages });
+  const eventTarget = (item) => ({ id: item.id, name: item.eventTitle, subtitle: item.organization, kind: 'organizer', pro: item.pro, packages: item.packages, perks: item.perks });
 
   return (
     <div className="space-y-4">
@@ -564,6 +573,7 @@ const SEED_THREADS = {
     {
       id: 'spon-1', name: 'DevCon Manila Hackathon 2026', subtitle: 'Junior Developers Society', kind: 'organizer', unread: 1, pro: true,
       packages: SPONSORSHIP_LISTINGS[0].packages,
+      perks: OPPORTUNITIES[0].perks,
       messages: [{
         id: 'm1', from: 'them', time: '8:40 AM',
         text: 'Thanks for checking our event! Here are our packages. Our Swag Sponsor package puts your logo on 450 tote bags.',
@@ -732,14 +742,24 @@ export default function SponsorshipConnectModal({ onClose, photos, onPhotosChang
   };
 
   // Delayed reply from the other side
-  const replyLater = (threadId, text, delay = 1400) => {
+  const replyLater = (threadId, text, delay = 1400, extra = []) => {
     const currentRole = role;
     updateThreads((list) => list.map((t) => (t.id === threadId ? { ...t, typing: true } : t)));
     setTimeout(() => {
       setThreadsByRole((prev) => ({
         ...prev,
         [currentRole]: prev[currentRole].map((t) =>
-          t.id === threadId ? { ...t, typing: false, messages: [...t.messages, { id: `r${Date.now()}`, from: 'them', text, time: chatTime() }] } : t
+          t.id === threadId
+            ? {
+              ...t,
+              typing: false,
+              messages: [
+                ...t.messages,
+                { id: `r${Date.now()}`, from: 'them', text, time: chatTime() },
+                ...extra.map((x, i) => ({ id: `r${Date.now()}-${i}`, from: 'them', time: chatTime(), ...x })),
+              ],
+            }
+            : t
         ),
       }));
     }, delay);
@@ -747,6 +767,10 @@ export default function SponsorshipConnectModal({ onClose, photos, onPhotosChang
 
   // Brand picks a package from the organizer's list
   const choosePackage = (threadId, pkg) => {
+    if (!lockedRole) {
+      lockRole();
+      toast("You're now a brand account. You can still edit your profile, but you can't switch to organizer for 1 day.");
+    }
     const msg = { id: `s${Date.now()}`, from: 'me', type: 'selection', text: `We'd like the ${pkg.tier} package.`, pkg, status: 'open', time: chatTime() };
     updateThreads((list) => list.map((t) => (t.id === threadId ? { ...t, messages: [...t.messages, msg] } : t)));
     replyLater(threadId, packageAmount(pkg.amount)
@@ -764,7 +788,54 @@ export default function SponsorshipConnectModal({ onClose, photos, onPhotosChang
         : t
     )));
     toast(amount ? `Paid ${peso(amount)} via ${method}. Sponsorship confirmed.` : 'In-kind sponsorship confirmed.');
-    replyLater(threadId, `Received! Welcome aboard as our ${selection.pkg.tier}. Please send your logo files here in the chat.`);
+    const thread = threads.find((t) => t.id === threadId);
+    replyLater(threadId, `Received! Welcome aboard as our ${selection.pkg.tier}. Here is everything we need from you. You can upload it right here.`, 1400, [
+      { type: 'file_request', text: '', fileRequest: { items: filesForPackage(selection.pkg, thread?.perks), sent: [] } },
+    ]);
+  };
+
+  // Brand sends files for a request card
+  const sendFiles = (threadId, requestId, entries) => {
+    const ids = entries.map((e) => e.typeId);
+    const msg = { id: `f${Date.now()}`, from: 'me', type: 'brand_files', text: `Sent ${entries.length} ${entries.length === 1 ? 'item' : 'items'}.`, brandFiles: entries, time: chatTime() };
+    updateThreads((list) => list.map((t) => (t.id !== threadId ? t : {
+      ...t,
+      messages: [
+        ...t.messages.map((m) => (m.id === requestId ? { ...m, fileRequest: { ...m.fileRequest, sent: [...m.fileRequest.sent, ...ids] } } : m)),
+        msg,
+      ],
+    })));
+    toast('Files sent to the organizer');
+    replyLater(threadId, 'Got them, thank you! We will send the layout proofs here for your approval.');
+  };
+
+  // Organizer asks a brand for files; the demo brand answers with its logo and colors
+  const requestFiles = (threadId) => {
+    const pkgText = { perks: profile.packages.map((p) => p.perks).join(' ') };
+    const requestId = `q${Date.now()}`;
+    const items = filesForPackage(pkgText, profile.perks);
+    const msg = { id: requestId, from: 'me', type: 'file_request', text: 'Here are the files we need for your sponsorship.', fileRequest: { items, sent: [] }, time: chatTime() };
+    updateThreads((list) => list.map((t) => (t.id === threadId ? { ...t, messages: [...t.messages, msg] } : t)));
+    const thread = threads.find((t) => t.id === threadId);
+    const name = thread?.name || 'Brand';
+    const demo = [
+      { typeId: 'logo', files: [demoLogo(name, '#E4002B', 'white')], text: '' },
+      { typeId: 'logo-white', files: [demoLogo(name, '#1A1A1A', 'white', true)], text: '' },
+      { typeId: 'guidelines', files: [], text: 'Primary red #E4002B, black #1A1A1A. Font: Montserrat Bold. Keep clear space around the logo.' },
+    ];
+    const currentRole = role;
+    setTimeout(() => {
+      setThreadsByRole((prev) => ({
+        ...prev,
+        [currentRole]: prev[currentRole].map((t) => (t.id !== threadId ? t : {
+          ...t,
+          messages: [
+            ...t.messages.map((m) => (m.id === requestId ? { ...m, fileRequest: { ...m.fileRequest, sent: demo.map((d) => d.typeId) } } : m)),
+            { id: `f${Date.now()}`, from: 'them', type: 'brand_files', text: 'Here are our logos and colors. Photos and captions will follow.', brandFiles: demo, time: chatTime() },
+          ],
+        })),
+      }));
+    }, 2200);
   };
 
   // Organizer shares their packages in a brand chat
@@ -902,6 +973,9 @@ export default function SponsorshipConnectModal({ onClose, photos, onPhotosChang
               onChoosePackage={role === 'brand' ? choosePackage : undefined}
               onPayPackage={payPackage}
               onSendPackages={role === 'organizer' && published ? sendPackages : undefined}
+              onRequestFiles={role === 'organizer' ? requestFiles : undefined}
+              onSendFiles={role === 'brand' ? sendFiles : undefined}
+              brandKit={brand}
             />
           ) : role === 'brand' ? (
             brandDraft ? (

@@ -14,4 +14,8 @@ export const EMPTY_BRAND = {
   budget: '',
   audience: '',
   wants: ['logo', 'posts'],
+  // Brand kit: filled into every event's file request
+  logoWhite: null,
+  colors: '',
+  socialPages: '',
 };

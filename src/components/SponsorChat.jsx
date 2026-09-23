@@ -1,10 +1,11 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { ChevronLeft, Send, Building2, GraduationCap, MessagesSquare, ShieldCheck, Phone, Crown, Gift, CreditCard, CheckCheck } from 'lucide-react';
+import { ChevronLeft, Send, Building2, GraduationCap, MessagesSquare, ShieldCheck, Phone, Crown, Gift, CreditCard, CheckCheck, FolderUp } from 'lucide-react';
 import { Input, EmptyState, Button, Chip, cx } from './ui';
 import { maskContactInfo } from '../lib/contactGuard';
 import { toast } from '../lib/toast';
 import { canCall } from '../lib/pro';
 import { packageAmount, SPONSOR_PAY_METHODS } from '../lib/sponsorDeals';
+import { FileRequestCard, BrandFilesCard } from './BrandFiles';
 import { peso } from '../lib/marketplace';
 
 /**
@@ -75,7 +76,7 @@ function SelectionCard({ m, canPay, onPay }) {
   );
 }
 
-export default function SponsorChat({ threads, activeId, onOpen, onBack, onSend, onCall, viewerIsPro, onChoosePackage, onPayPackage, onSendPackages }) {
+export default function SponsorChat({ threads, activeId, onOpen, onBack, onSend, onCall, viewerIsPro, onChoosePackage, onPayPackage, onSendPackages, onRequestFiles, onSendFiles, brandKit }) {
   const active = threads.find((t) => t.id === activeId);
   const [draft, setDraft] = useState('');
   const endRef = useRef(null);
@@ -190,6 +191,15 @@ export default function SponsorChat({ threads, activeId, onOpen, onBack, onSend,
                 ))}
               </div>
             )}
+            {m.type === 'file_request' && (
+              <FileRequestCard
+                m={m}
+                canUpload={m.from === 'them' && Boolean(onSendFiles)}
+                brandKit={brandKit}
+                onSend={(msgId, entries) => onSendFiles(active.id, msgId, entries)}
+              />
+            )}
+            {m.type === 'brand_files' && <BrandFilesCard m={m} />}
             {m.type === 'selection' && (
               <SelectionCard m={m} canPay={m.from === 'me'} onPay={(msgId, method) => onPayPackage(active.id, msgId, method)} />
             )}
@@ -199,9 +209,10 @@ export default function SponsorChat({ threads, activeId, onOpen, onBack, onSend,
         <div ref={endRef} />
       </div>
 
-      {onSendPackages && (
-        <div className="px-3 pt-2">
-          <Chip icon={Gift} onClick={() => onSendPackages(active.id)}>Send our packages</Chip>
+      {(onSendPackages || onRequestFiles) && (
+        <div className="px-3 pt-2 flex gap-2 overflow-x-auto no-scrollbar">
+          {onSendPackages && <Chip icon={Gift} onClick={() => onSendPackages(active.id)}>Send our packages</Chip>}
+          {onRequestFiles && <Chip icon={FolderUp} onClick={() => onRequestFiles(active.id)}>Request brand files</Chip>}
         </div>
       )}
       <div className="flex items-center gap-2 px-3 pt-2">
