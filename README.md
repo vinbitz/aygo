@@ -37,4 +37,4 @@ src/
 └── data/mockData.js     # Sample suppliers, venues and requests
 ```
 
-See `ENGINEERING_HANDOFF.md` for the product and architecture plan.
+See `ENGINEERING_HANDOFF.md` for the product and architecture plan, and `docs/DESIGN.md` for the home screen design rules.
