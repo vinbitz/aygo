@@ -1,7 +1,8 @@
 import React, { useRef } from 'react';
 import { PANEL_MIN, PANEL_MAX, applyPanelWidth } from '../lib/panelWidth';
 
-const currentWidth = () => parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--panel-w')) || 460;
+// Measure the panel itself (its default width is responsive, not a fixed number)
+const currentWidth = (el) => el?.closest('[data-panel]')?.getBoundingClientRect().width || 460;
 
 /**
  * The small line at the top of the panel. On phones it's just the sheet handle;
@@ -12,7 +13,7 @@ export default function PanelResizeHandle({ className = '' }) {
 
   const onPointerDown = (e) => {
     if (window.innerWidth < 1024) return;
-    drag.current = { x: e.clientX, w: currentWidth() };
+    drag.current = { x: e.clientX, w: currentWidth(e.currentTarget) };
     e.currentTarget.setPointerCapture(e.pointerId);
   };
   const onPointerMove = (e) => {
@@ -28,7 +29,7 @@ export default function PanelResizeHandle({ className = '' }) {
     if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
     e.preventDefault();
     const step = e.key === 'ArrowRight' ? 20 : -20;
-    applyPanelWidth(Math.min(PANEL_MAX, Math.max(PANEL_MIN, currentWidth() + step)));
+    applyPanelWidth(Math.round(Math.min(PANEL_MAX, Math.max(PANEL_MIN, currentWidth(e.currentTarget) + step))));
   };
 
   return (

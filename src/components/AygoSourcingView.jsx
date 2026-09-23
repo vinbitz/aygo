@@ -115,7 +115,7 @@ export default function AygoSourcingView({
       </div>
 
       {/* 2. BOTTOM SHEET: scrolls up over the map on mobile, floating panel on desktop */}
-      <div className="absolute inset-0 z-30 overflow-y-auto no-scrollbar overscroll-contain pointer-events-none lg:inset-auto lg:top-24 lg:bottom-5 lg:left-7 lg:w-[var(--panel-w)] 2xl:top-28 lg:rounded-[32px]">
+      <div data-panel className="absolute inset-0 z-30 overflow-y-auto no-scrollbar overscroll-contain pointer-events-none lg:inset-auto lg:top-24 lg:bottom-5 lg:left-7 lg:w-[var(--panel-w)] 2xl:top-28 lg:rounded-[32px]">
         {/* Map peek area on mobile (touches pass through to the map) */}
         <div className="h-[42vh] lg:hidden" />
 

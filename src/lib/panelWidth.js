@@ -2,6 +2,7 @@
 // Stored as a CSS variable on <html>, so every panel updates together.
 const KEY = 'aygo.panelWidth';
 export const PANEL_MIN = 380;
+// Upper bound matches the default clamp() in index.css
 export const PANEL_MAX = 760;
 
 export function loadPanelWidth() {

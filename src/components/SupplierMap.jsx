@@ -151,7 +151,7 @@ export default function SupplierMap({
       {topBar}
 
       {/* Sheet over the map on phones, floating panel on desktop */}
-      <div className="absolute inset-0 z-20 overflow-y-auto no-scrollbar overscroll-contain pointer-events-none lg:inset-auto lg:top-24 lg:bottom-5 lg:left-7 lg:w-[var(--panel-w)] 2xl:top-28 lg:rounded-[32px]">
+      <div data-panel className="absolute inset-0 z-20 overflow-y-auto no-scrollbar overscroll-contain pointer-events-none lg:inset-auto lg:top-24 lg:bottom-5 lg:left-7 lg:w-[var(--panel-w)] 2xl:top-28 lg:rounded-[32px]">
         <div className="h-[42vh] lg:hidden" />
         <div className={cx(
           'desk-zoom pointer-events-auto rounded-t-[28px] lg:rounded-[32px] min-h-[58vh] lg:min-h-0 pt-2.5 pb-28 lg:pb-5 shadow-[0_-8px_30px_rgba(15,23,42,0.08)] space-y-3',
