@@ -16,6 +16,8 @@ import { SPONSORSHIP_LISTINGS } from '../data/mockData';
 import { toast } from '../lib/toast';
 import EventPhotos from './EventPhotos';
 import RegistrationLink from './RegistrationLink';
+import { SponsorPerksPicker, SponsorPerksList } from './SponsorPerks';
+import { perkLabel } from '../lib/sponsorPerks';
 import { Sheet, Button, Field, Input, Textarea, Tabs, Chip, Badge, Panel, IconCircle } from './ui';
 
 const toPeso = (s) => {
@@ -40,6 +42,9 @@ const EMPTY_PROFILE = {
   attendance: '',
   date: '',
   needs: ['Event shirts', 'Cash'],
+  // What sponsors get: { perkId: details }, plus where their logo appears
+  perks: { 'fb-likes': '', reels: '', logo: '' },
+  logoSpots: ['Event shirts', 'Backdrop / photo wall'],
   packages: DEFAULT_PACKAGES,
   deckLink: '',
   socialReach: ''
@@ -47,15 +52,19 @@ const EMPTY_PROFILE = {
 
 // Brands and the kinds of events they already support
 const BRANDS = [
-  { id: 'b1', name: 'Kape Tayo Coffee', industry: 'Food & beverage', supports: 'Campus fairs, hackathons, org weeks', offer: 'Free coffee for up to 500 guests', tags: ['Food & drinks', 'Prizes'] },
-  { id: 'b2', name: 'Lakbay Telco', industry: 'Telecom', supports: 'Tech conferences, esports, student summits', offer: 'Cash ₱20,000–₱80,000 + data SIMs', tags: ['Cash', 'Prizes', 'Media partner'] },
-  { id: 'b3', name: 'Habi Apparel', industry: 'Local fashion', supports: 'Fun runs, org anniversaries, cultural nights', offer: 'In-kind event shirts (up to 300 pcs)', tags: ['Event shirts', 'Lanyards & IDs'] },
-  { id: 'b4', name: 'Ulap Cloud PH', industry: 'Cloud & software', supports: 'Hackathons, dev meetups', offer: 'Cloud credits + mentors', tags: ['Cloud credits', 'Prizes'] }
+  { id: 'b1', name: 'Kape Tayo Coffee', industry: 'Food & beverage', supports: 'Campus fairs, hackathons, org weeks', offer: 'Free coffee for up to 500 guests', tags: ['Food & drinks', 'Prizes'], wants: ['sampling', 'booth', 'posts'] },
+  { id: 'b2', name: 'Lakbay Telco', industry: 'Telecom', supports: 'Tech conferences, esports, student summits', offer: 'Cash ₱20,000–₱80,000 + data SIMs', tags: ['Cash', 'Prizes', 'Media partner'], wants: ['fb-likes', 'reels', 'logo', 'livestream', 'leads'] },
+  { id: 'b3', name: 'Habi Apparel', industry: 'Local fashion', supports: 'Fun runs, org anniversaries, cultural nights', offer: 'In-kind event shirts (up to 300 pcs)', tags: ['Event shirts', 'Lanyards & IDs'], wants: ['logo', 'reels', 'coverage'] },
+  { id: 'b4', name: 'Ulap Cloud PH', industry: 'Cloud & software', supports: 'Hackathons, dev meetups', offer: 'Cloud credits + mentors', tags: ['Cloud credits', 'Prizes'], wants: ['speaking', 'leads', 'logo'] }
 ];
 
 // Mock data listing plus a few more open opportunities
 const OPPORTUNITIES = [
-  ...SPONSORSHIP_LISTINGS.map((l) => ({ ...l, kind: 'Tech', audience: 'Student and junior developers', socialReach: '18k followers' })),
+  ...SPONSORSHIP_LISTINGS.map((l) => ({
+    ...l, kind: 'Tech', audience: 'Student and junior developers', socialReach: '18k followers',
+    perks: { 'fb-likes': '1,000 new likes', reels: '3 reels', logo: '', speaking: '10-minute talk', leads: '~300 opt-ins' },
+    logoSpots: ['Event shirts', 'Lanyards & IDs', 'Stage LED'],
+  })),
   {
     id: 'spon-2',
     eventTitle: 'Sinag Cultural Night 2026',
@@ -67,6 +76,8 @@ const OPPORTUNITIES = [
     audience: 'College students, alumni and families',
     socialReach: '32k followers',
     seeking: ['Food & drinks', 'Event shirts', 'Media partner'],
+    perks: { booth: '2x2 m', stage: '6 mentions', posts: '5 posts', reels: '2 reels', logo: '' },
+    logoSpots: ['Event shirts', 'Backdrop / photo wall', 'Pubmats & posters'],
     packages: [
       { tier: 'Major sponsor', amount: 'PHP 40,000', perks: 'Booth, stage mention, logo on shirts' },
       { tier: 'Minor sponsor', amount: 'PHP 12,000', perks: 'Logo on programme and social posts' }
@@ -83,6 +94,8 @@ const OPPORTUNITIES = [
     audience: 'Young professionals and families',
     socialReach: '9k followers',
     seeking: ['Event shirts', 'Food & drinks', 'Prizes'],
+    perks: { 'fb-likes': '800 new likes', logo: '', sampling: '800 race kits', coverage: '' },
+    logoSpots: ['Race bibs', 'Event shirts', 'Tarpaulin & banners'],
     packages: [
       { tier: 'Race partner', amount: 'PHP 60,000', perks: 'Naming rights on race bib, finish-line arch' },
       { tier: 'Hydration partner', amount: 'In-kind', perks: 'Water stations branding' }
@@ -183,6 +196,17 @@ function OrganizerProfileForm({ profile, setProfile, photos, onPhotosChange, reg
       </div>
 
       <div>
+        <p className="text-[13px] font-medium text-slate-700">What sponsors get</p>
+        <p className="mb-2 text-[12px] text-slate-500">Pick everything you can give. Add numbers so brands know the reach.</p>
+        <SponsorPerksPicker
+          value={profile.perks}
+          onChange={(perks) => setProfile((p) => ({ ...p, perks }))}
+          logoSpots={profile.logoSpots}
+          onLogoSpotsChange={(logoSpots) => setProfile((p) => ({ ...p, logoSpots }))}
+        />
+      </div>
+
+      <div>
         <p className="mb-1.5 text-[13px] font-medium text-slate-700">Sponsorship packages</p>
         <div className="space-y-2">
           {profile.packages.map((pkg, i) => (
@@ -210,7 +234,11 @@ function OrganizerProfileForm({ profile, setProfile, photos, onPhotosChange, reg
 }
 
 function OrganizerProfileView({ profile, onEdit, photos, registrationLink }) {
-  const matches = BRANDS.map((b) => ({ ...b, score: b.tags.filter((t) => profile.needs.includes(t)).length }))
+  // Match on what the event needs and on what the brand wants in return
+  const matches = BRANDS.map((b) => {
+    const wantsMet = (b.wants || []).filter((w) => w in (profile.perks || {}));
+    return { ...b, wantsMet, score: b.tags.filter((t) => profile.needs.includes(t)).length + wantsMet.length };
+  })
     .sort((a, b) => b.score - a.score);
 
   return (
@@ -253,6 +281,12 @@ function OrganizerProfileView({ profile, onEdit, photos, registrationLink }) {
             {profile.needs.map((n) => <Badge key={n}>{n}</Badge>)}
           </div>
         )}
+        {Object.keys(profile.perks || {}).length > 0 && (
+          <div className="mt-4">
+            <p className="text-[13px] font-semibold text-slate-500 mb-2">What sponsors get</p>
+            <SponsorPerksList value={profile.perks} logoSpots={profile.logoSpots} />
+          </div>
+        )}
         <div className="mt-4">
           <PackageList packages={profile.packages.filter((p) => p.tier)} />
         </div>
@@ -280,6 +314,9 @@ function OrganizerProfileView({ profile, onEdit, photos, registrationLink }) {
                   </div>
                   <p className="text-[13px] text-slate-500">{b.industry} · supports {b.supports.toLowerCase()}</p>
                   <p className="text-[13px] text-slate-700 mt-0.5">{b.offer}</p>
+                  {b.wantsMet.length > 0 && (
+                    <p className="text-[12px] text-emerald-700 mt-0.5">Wants what you offer: {b.wantsMet.map(perkLabel).join(', ')}</p>
+                  )}
                 </div>
               </div>
               <Button
@@ -346,6 +383,14 @@ function BrandsView() {
               {item.seeking.map((s) => <Badge key={s}>{s}</Badge>)}
             </div>
           </div>
+
+          {item.perks && (
+            <div>
+              <p className="text-[13px] text-slate-500 mb-1.5">Sponsors get</p>
+              <SponsorPerksList value={item.perks} compact />
+              {item.logoSpots?.length > 0 && <p className="mt-1.5 text-[12px] text-slate-500">Logo on: {item.logoSpots.join(', ')}</p>}
+            </div>
+          )}
 
           <PackageList packages={item.packages} />
 
