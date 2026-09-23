@@ -132,7 +132,7 @@ export default function AygoSourcingView({
               aria-label="Search products, suppliers and services"
               className="w-full h-16 bg-[#F4F3F0] hover:bg-[#ECEAE5] px-4 rounded-2xl flex items-center gap-3 text-left transition-colors active:scale-[0.99]"
             >
-              <Search className="w-5 h-5 text-slate-900 shrink-0" strokeWidth={2.5} />
+              <Search className="w-5 h-5 text-slate-500 shrink-0" strokeWidth={2.25} />
               <RotatingPrompt />
             </button>
 
@@ -282,9 +282,19 @@ function RotatingPrompt() {
     const t = setInterval(() => setIndex((i) => (i + 1) % SEARCH_PROMPTS.length), 5000);
     return () => clearInterval(t);
   }, []);
+  const text = 'min-w-0 line-clamp-2 text-[17px] leading-tight font-medium text-slate-400 tracking-tight';
+  const previous = (index - 1 + SEARCH_PROMPTS.length) % SEARCH_PROMPTS.length;
   return (
-    <span key={index} className="min-w-0 line-clamp-2 text-[17px] leading-tight font-semibold text-slate-900 tracking-tight animate-fade-in" aria-hidden="true">
-      {SEARCH_PROMPTS[index]}
+    // New prompt drops in from above while the old one drops out below
+    <span className="relative flex-1 min-w-0 h-full flex items-center overflow-hidden" aria-hidden="true">
+      {index > 0 && (
+        <span key={`out-${index}`} className={`absolute inset-x-0 top-1/2 -translate-y-1/2 ${text}`}>
+          <span className="block animate-drop-out">{SEARCH_PROMPTS[previous]}</span>
+        </span>
+      )}
+      <span key={`in-${index}`} className={`${text} ${index > 0 ? 'animate-drop-in' : ''}`}>
+        {SEARCH_PROMPTS[index]}
+      </span>
     </span>
   );
 }
