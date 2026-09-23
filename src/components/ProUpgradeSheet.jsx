@@ -23,7 +23,7 @@ const ORGANIZER_BENEFITS = [
 ];
 
 // "Aygo Pro for Suppliers": for the supplier portal
-const MAKER_ICONS = { listings: Store, placement: Rocket, analytics: BarChart3, mockups: Wand2, calls: Phone, badge: BadgeCheck };
+const MAKER_ICONS = { listings: Store, placement: Rocket, analytics: BarChart3, mockups: Wand2, documents: FileText, calls: Phone, badge: BadgeCheck };
 const MAKER_BENEFITS = MAKER_PRO_PERKS.map((p) => ({ icon: MAKER_ICONS[p.id], title: p.title, text: p.text }));
 
 // "Sponsorship Connect Pro": for brands and organizers closing sponsorships

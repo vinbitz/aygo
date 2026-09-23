@@ -19,23 +19,6 @@ export const PRO_FEATURES = {
 /** A call can start when the viewer or the other person is on Pro */
 export const canCall = (viewerIsPro, otherIsPro) => Boolean(viewerIsPro || otherIsPro);
 
-// Registered makers (suppliers) get these Pro tools free, without the 3-use limit
-export const MAKER_FREE_FEATURES = ['documents'];
-
-// What every registered maker gets, shown during supplier registration
-export const MAKER_PERKS = [
-  {
-    id: 'documents',
-    title: 'Document access, like Pro',
-    text: 'Make quotations, invoices, purchase orders and delivery receipts with no limit.',
-  },
-  {
-    id: 'calls',
-    title: 'Calls in Sponsorship Connect',
-    text: 'Want to sponsor events with your brand? Join as a brand and call organizers, even without Pro.',
-  },
-];
-
 // Three Pro plans, one per interface. Each has a discounted first month.
 export const PRO_PLANS = {
   organizer: {
@@ -74,6 +57,7 @@ export const MAKER_PRO_PERKS = [
   { id: 'placement', title: 'Priority placement in search and bids', text: 'Show first to organizers near their venue' },
   { id: 'analytics', title: 'Storefront and bid analytics', text: 'Views, winning prices and response benchmarks' },
   { id: 'mockups', title: '20 AI mockup credits per month', text: 'Send proofs that win the job' },
+  { id: 'documents', title: 'Unlimited documents', text: 'Quotations, invoices, purchase orders and delivery receipts' },
   { id: 'calls', title: 'Book a call button on your storefront', text: 'Organizers book voice or video calls in your free times' },
   { id: 'badge', title: 'Pro badge on your storefront and bids', text: 'Stand out to organizers comparing offers' },
 ];

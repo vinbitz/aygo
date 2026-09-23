@@ -172,6 +172,7 @@ const PRO_PERK_STYLE = {
   placement: { icon: Rocket, tone: 'blue' },
   analytics: { icon: BarChart3, tone: 'violet' },
   mockups: { icon: Wand2, tone: 'amber' },
+  documents: { icon: FileText, tone: 'blue' },
   calls: { icon: PhoneCall, tone: 'rose' },
   badge: { icon: Award, tone: 'slate' }
 };

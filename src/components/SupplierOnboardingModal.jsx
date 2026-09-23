@@ -19,42 +19,11 @@ import {
   Crown,
   ClipboardCheck,
   Camera,
-  LifeBuoy,
-  FileText,
-  Phone,
-  Gift
+  LifeBuoy
 } from 'lucide-react';
 import { toast } from '../lib/toast';
 import { Sheet, Button, Field, Input, Select, Badge, IconCircle, Panel, cx } from './ui';
-import { MAKER_PERKS, MAKER_PRO_PRICE, MAKER_PRO_PERKS, PRO_PLANS } from '../lib/pro';
-
-const PERK_ICONS = { documents: FileText, calls: Phone };
-
-/** Included for every registered maker, on the Free plan too */
-function MakerPerksNote() {
-  return (
-    <div className="rounded-[22px] bg-gradient-to-br from-blue-50 to-violet-50 p-4">
-      <p className="flex items-center gap-2 text-[15px] font-semibold text-slate-900">
-        <Gift className="w-4 h-4 text-[#003CF5]" /> Included for every registered maker
-      </p>
-      <ul className="mt-3 space-y-3">
-        {MAKER_PERKS.map((perk) => {
-          const Icon = PERK_ICONS[perk.id] || Check;
-          return (
-            <li key={perk.id} className="flex items-start gap-3">
-              <span className="w-9 h-9 rounded-full bg-white text-[#003CF5] flex items-center justify-center shrink-0"><Icon className="w-4 h-4" /></span>
-              <span>
-                <span className="block text-[14px] font-medium text-slate-900">{perk.title}</span>
-                <span className="block text-[13px] text-slate-600 leading-snug">{perk.text}</span>
-              </span>
-            </li>
-          );
-        })}
-      </ul>
-      <p className="mt-3 text-[12px] text-slate-500">Free plan included. These turn on once you submit your application.</p>
-    </div>
-  );
-}
+import { MAKER_PRO_PRICE, MAKER_PRO_PERKS, PRO_PLANS } from '../lib/pro';
 
 const INCOME_OPTIONS = [
   {
@@ -528,7 +497,6 @@ export default function SupplierOnboardingModal({
       {/* STEP 5: plan */}
       {step === 5 && (
         <div className="space-y-3" role="radiogroup" aria-label="Plan">
-          <MakerPerksNote />
           {PLANS.map((p) => {
             const isSelected = plan === p.id;
             const isPro = p.id === 'pro';
@@ -605,8 +573,6 @@ export default function SupplierOnboardingModal({
             <ReviewRow label="Documents" value={`${docsUploaded} of ${BUSINESS_DOCS.length + 1} uploaded`} />
             <ReviewRow label="Plan" value={plan === 'pro' ? `Aygo Pro · ₱${MAKER_PRO_PRICE.firstMonth.toLocaleString('en-PH')} first month` : 'Free'} />
           </Panel>
-
-          <MakerPerksNote />
 
           {docsUploaded < BUSINESS_DOCS.length + 1 && (
             <p className="text-[13px] text-amber-700 bg-amber-50 rounded-2xl px-4 py-3">

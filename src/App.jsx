@@ -426,8 +426,7 @@ export default function App() {
           onCompleteOnboarding={() => {
             setIsOnboardingOpen(false);
             setIsSupplierMode(true);
-            pro.registerMaker();
-            toast('Application submitted. Documents are unlocked, and you can call organizers in Sponsorship Connect as a brand.');
+            toast('Application submitted. We review your documents within 24 hours.');
           }}
         />
       )}
