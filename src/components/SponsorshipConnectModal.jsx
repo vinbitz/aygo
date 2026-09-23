@@ -411,8 +411,26 @@ function BrandsView({ onInquiry }) {
   );
 }
 
-// The role becomes permanent once an organizer publishes an event or a brand sends an inquiry
-const LOCK_KEY = 'aygo.sponsorRoleLocked';
+// The role is set once an organizer publishes an event or a brand sends an inquiry.
+// After that it can only be switched once a day.
+const LOCK_KEY = 'aygo.sponsorRoleLock';
+const SWITCH_COOLDOWN_MS = 24 * 60 * 60 * 1000;
+
+function loadLock() {
+  try {
+    const lock = JSON.parse(readStorage(LOCK_KEY));
+    return lock?.role ? lock : null;
+  } catch {
+    return null;
+  }
+}
+
+function timeLeft(ms) {
+  const totalMin = Math.ceil(ms / 60000);
+  const h = Math.floor(totalMin / 60);
+  const m = totalMin % 60;
+  return h > 0 ? `${h}h ${m}m` : `${m}m`;
+}
 const PROFILE_KEY = 'aygo.sponsorProfile';
 const chatTime = () => new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
@@ -498,7 +516,8 @@ function RoleChooser({ onChoose }) {
 }
 
 export default function SponsorshipConnectModal({ onClose, photos, onPhotosChange, registrationLink, onRegistrationLinkChange }) {
-  const [lockedRole, setLockedRole] = useState(() => readStorage(LOCK_KEY));
+  const [lock, setLock] = useState(loadLock);
+  const lockedRole = lock?.role || null;
   // Until the role is locked, every visit starts at the brand/organizer choice
   const [role, setRole] = useState(lockedRole);
   const [activeTab, setActiveTab] = useState('main');
@@ -522,9 +541,22 @@ export default function SponsorshipConnectModal({ onClose, photos, onPhotosChang
     setActiveThreadId(null);
   };
 
-  const lockRole = () => {
-    writeStorage(LOCK_KEY, role);
-    setLockedRole(role);
+  const lockRole = (nextRole = role) => {
+    const next = { role: nextRole, at: Date.now() };
+    writeStorage(LOCK_KEY, JSON.stringify(next));
+    setLock(next);
+  };
+
+  // Switching is allowed once a day after the role is set
+  const msUntilSwitch = lock ? Math.max(0, lock.at + SWITCH_COOLDOWN_MS - Date.now()) : 0;
+  const switchRole = () => {
+    if (msUntilSwitch > 0) return;
+    const next = role === 'brand' ? 'organizer' : 'brand';
+    lockRole(next);
+    setRole(next);
+    setActiveTab('main');
+    setActiveThreadId(null);
+    toast(`Switched to ${next === 'brand' ? 'a brand' : 'an organizer'} account. You can switch again after 1 day.`);
   };
 
   const updateThreads = (fn) => setThreadsByRole((prev) => ({ ...prev, [role]: fn(prev[role]) }));
@@ -603,7 +635,7 @@ export default function SponsorshipConnectModal({ onClose, photos, onPhotosChang
             Continue as {roleName === 'brand' ? 'a brand' : 'an organizer'}?
           </p>
           <p className="mt-0.5 text-[13px] text-slate-500">
-            {pendingLock.kind === 'publish' ? 'Publishing your event' : 'Sending your first inquiry'} makes this {roleName === 'brand' ? 'a brand' : 'an organizer'} account for good. You won't be able to change it to {otherRole === 'brand' ? 'a brand' : 'an organizer'} account later.
+            {pendingLock.kind === 'publish' ? 'Publishing your event' : 'Sending your first inquiry'} sets this as {roleName === 'brand' ? 'a brand' : 'an organizer'} account. You can still edit your profile anytime, but you can't switch to {otherRole === 'brand' ? 'a brand' : 'an organizer'} account for 1 day.
           </p>
           <div className="mt-3 flex gap-2">
             <Button variant="secondary" size="lg" onClick={() => setPendingLock(null)}>Not yet</Button>
@@ -648,6 +680,18 @@ export default function SponsorshipConnectModal({ onClose, photos, onPhotosChang
             <OrganizerProfileView profile={profile} photos={photos} registrationLink={registrationLink} onEdit={() => setPublished(false)} onInquiry={startInquiry} />
           ) : (
             <OrganizerProfileForm profile={profile} setProfile={setProfile} photos={photos} onPhotosChange={onPhotosChange} registrationLink={registrationLink} onRegistrationLinkChange={onRegistrationLinkChange} />
+          )}
+
+          {lockedRole && activeTab === 'main' && (
+            <div className="mt-6 flex items-center justify-between gap-3 rounded-2xl bg-[#F4F3F0] px-4 py-3">
+              <span className="text-[13px] text-slate-500">
+                {role === 'brand' ? 'Brand' : 'Organizer'} account
+                {msUntilSwitch > 0 && ` · switch available in ${timeLeft(msUntilSwitch)}`}
+              </span>
+              <Button size="sm" variant="ghost" className="shrink-0 text-[#003CF5]" disabled={msUntilSwitch > 0} onClick={switchRole}>
+                Switch to {otherRole}
+              </Button>
+            </div>
           )}
         </>
       )}
