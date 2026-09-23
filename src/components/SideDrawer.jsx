@@ -1,7 +1,7 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import {
   X,
-  MapPin,
+  Map as MapIcon,
   Clock,
   Users,
   Sparkles,
@@ -12,16 +12,40 @@ import {
   Repeat,
   MessageSquare,
   Building2,
-  Coins,
-  Award,
+  Wallet,
+  Gift,
   UserCheck,
-  TrendingUp
+  Handshake,
+  Store,
+  Crown,
+  ChevronRight,
+  Star
 } from 'lucide-react';
 import { toast } from '../lib/toast';
+import { ListRow, Badge, Button } from './ui';
 
-export default function SideDrawer({ 
-  isOpen, 
-  onClose, 
+/** Small red counter used for unread items */
+function CountBadge({ count }) {
+  return (
+    <span className="min-w-[22px] h-[22px] px-1.5 rounded-full bg-red-500 text-white text-[12px] font-semibold flex items-center justify-center shrink-0">
+      {count}
+    </span>
+  );
+}
+
+/** White rounded group with a sentence-case label, matching the home sheet sections */
+function MenuGroup({ title, children }) {
+  return (
+    <section className="bg-white rounded-[28px] px-4 pt-3 pb-1.5">
+      <h3 className="px-0.5 pb-0.5 text-[13px] font-semibold text-slate-500">{title}</h3>
+      <div className="flex flex-col">{children}</div>
+    </section>
+  );
+}
+
+export default function SideDrawer({
+  isOpen,
+  onClose,
   userProfile = {
     firstName: 'Marvin',
     lastName: 'Barrios',
@@ -33,9 +57,9 @@ export default function SideDrawer({
   },
   onOpenUserProfile,
   onOpenAppSettings,
-  onOpenMockup, 
-  onOpenDocs, 
-  onOpenSponsorship, 
+  onOpenMockup,
+  onOpenDocs,
+  onOpenSponsorship,
   onOpenMessages,
   onOpenSupplierSetup,
   onOpenBalance,
@@ -44,257 +68,251 @@ export default function SideDrawer({
   onOpenReferral,
   onOpenOnboarding,
   isSupplierMode = false,
-  onToggleSupplierMode 
+  onToggleSupplierMode
 }) {
+  const panelRef = useRef(null);
+
+  // Slide-in animation (runs once each time the drawer opens)
+  useEffect(() => {
+    if (!isOpen) return;
+    const reduceMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+    if (!reduceMotion && panelRef.current?.animate) {
+      panelRef.current.animate(
+        [{ transform: 'translateX(-100%)' }, { transform: 'translateX(0)' }],
+        { duration: 260, easing: 'cubic-bezier(0.2, 0.8, 0.2, 1)' }
+      );
+    }
+  }, [isOpen]);
+
+  // Esc to close + lock page scroll while open
+  useEffect(() => {
+    if (!isOpen) return undefined;
+    const onKey = (e) => {
+      if (e.key === 'Escape') onClose?.();
+    };
+    document.addEventListener('keydown', onKey);
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.removeEventListener('keydown', onKey);
+      document.body.style.overflow = prevOverflow;
+    };
+  }, [isOpen, onClose]);
+
   if (!isOpen) return null;
 
   const initials = `${(userProfile.firstName || 'M').charAt(0)}${(userProfile.lastName || 'B').charAt(0)}`.toUpperCase();
 
+  // Run a callback (if provided) and close the drawer
+  const go = (fn) => () => {
+    if (fn) fn();
+    onClose();
+  };
+
   return (
-    <div className="fixed inset-0 z-50 flex">
+    <div className="fixed inset-0 z-50 flex font-sans">
       {/* Backdrop */}
-      <div 
+      <div
         onClick={onClose}
-        className="fixed inset-0 bg-black/60 backdrop-blur-sm transition-opacity"
+        className="fixed inset-0 bg-slate-950/50 backdrop-blur-[2px] animate-fade-in"
+        aria-hidden="true"
       />
 
-      {/* Drawer Panel */}
-      <div className="relative w-80 max-w-[85vw] bg-white h-full shadow-2xl z-10 flex flex-col justify-between overflow-y-auto font-sans">
-        
-        {/* Top Profile Card (Clickable to Edit Profile) */}
-        <div className="p-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
-          <div 
-            onClick={() => {
-              if (onOpenUserProfile) onOpenUserProfile();
-              onClose();
-            }}
-            className="flex items-center gap-3 cursor-pointer group flex-1 mr-2"
-            title="Click to edit profile"
+      {/* Drawer panel */}
+      <aside
+        ref={panelRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Main menu"
+        className="relative z-10 w-[340px] max-w-[88vw] h-full bg-[#F2F1ED] shadow-2xl flex flex-col overflow-y-auto overscroll-contain no-scrollbar rounded-r-[28px]"
+      >
+        {/* Profile header */}
+        <div className="bg-white rounded-b-[28px] px-4 pt-[max(16px,env(safe-area-inset-top))] pb-4">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-[15px] font-semibold text-slate-900 tracking-tight">
+              aygo<span className="text-[#003CF5]">.</span>
+            </span>
+            <button
+              type="button"
+              onClick={onClose}
+              aria-label="Close menu"
+              className="w-11 h-11 -mr-1.5 rounded-full flex items-center justify-center text-slate-700 hover:bg-[#F4F3F0] transition-colors"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+
+          <button
+            type="button"
+            onClick={go(onOpenUserProfile)}
+            className="w-full flex items-center gap-3 p-3 rounded-2xl bg-[#F4F3F0] hover:bg-[#ECEAE5] text-left transition-colors active:scale-[0.99]"
           >
-            <div 
-              className="w-12 h-12 rounded-full overflow-hidden border-2 border-white shadow-sm flex items-center justify-center font-black text-white text-base transition-transform group-hover:scale-105 shrink-0"
+            <span
+              className="w-14 h-14 rounded-full overflow-hidden flex items-center justify-center text-white text-[17px] font-semibold shrink-0"
               style={{ backgroundColor: userProfile.avatarUrl ? '#0f172a' : (userProfile.avatarColor || '#003CF5') }}
             >
               {userProfile.avatarUrl ? (
-                <img src={userProfile.avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
+                <img src={userProfile.avatarUrl} alt="" className="w-full h-full object-cover" />
               ) : (
-                <span>{initials}</span>
+                initials
+              )}
+            </span>
+            <span className="flex-1 min-w-0">
+              <span className="block text-[17px] font-semibold text-slate-900 truncate">
+                {userProfile.firstName} {userProfile.lastName}
+              </span>
+              <span className="flex items-center gap-1 text-[13px] text-slate-500 truncate">
+                <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400 shrink-0" />
+                {userProfile.rating || 4.84}
+                <span className="text-slate-300">·</span>
+                <span className="truncate">{userProfile.city || 'Taguig City'}</span>
+              </span>
+              <span className="block text-[13px] font-medium text-[#003CF5] mt-0.5">View profile</span>
+            </span>
+            <ChevronRight className="w-4 h-4 text-slate-400 shrink-0" />
+          </button>
+
+          <div className="mt-3">
+            <Badge tone={isSupplierMode ? 'violet' : 'blue'}>
+              {isSupplierMode ? 'Supplier mode' : 'Organizer mode'}
+            </Badge>
+          </div>
+        </div>
+
+        <div className="flex-1 px-2 py-2 space-y-2">
+          {/* Sourcing */}
+          <MenuGroup title="Sourcing">
+            <ListRow icon={MapIcon} tone="blue" title="Home map" subtitle="Find makers near your venue" onClick={onClose} />
+            <ListRow icon={Clock} tone="slate" title="My requests" subtitle="Active bids and past orders" onClick={go(onOpenHistory)} />
+            <ListRow
+              icon={MessageSquare}
+              tone="blue"
+              title="Messages"
+              subtitle="Chat with your makers"
+              onClick={go(onOpenMessages)}
+              trailing={<CountBadge count={2} />}
+            />
+            <ListRow icon={Users} tone="green" title="Suppliers" subtitle="Browse verified makers" onClick={go(onOpenSuppliers)} />
+          </MenuGroup>
+
+          {/* Supplier-only tools */}
+          {isSupplierMode && (
+            <MenuGroup title="Your workshop">
+              <ListRow icon={Building2} tone="violet" title="Maker profile" subtitle="Services, pricing and portfolio" onClick={go(onOpenSupplierSetup)} />
+              <ListRow
+                icon={UserCheck}
+                tone="amber"
+                title="Verification"
+                subtitle="Get the verified badge"
+                onClick={go(onOpenOnboarding)}
+                trailing={<Badge tone="amber">1 of 4</Badge>}
+              />
+            </MenuGroup>
+          )}
+
+          {/* Tools */}
+          <MenuGroup title="Tools">
+            <ListRow icon={Sparkles} tone="violet" title="Mockup studio" subtitle="Preview your designs on merch" onClick={go(onOpenMockup)} />
+            <ListRow icon={FileText} tone="slate" title="Documents" subtitle="RFQs, POs and quotes" onClick={go(onOpenDocs)} />
+            <ListRow icon={Handshake} tone="amber" title="Sponsorship Connect" subtitle="Match with event sponsors" onClick={go(onOpenSponsorship)} />
+          </MenuGroup>
+
+          {/* Account */}
+          <MenuGroup title="Account">
+            <ListRow
+              icon={Wallet}
+              tone="green"
+              title="Wallet"
+              subtitle="Balance & payments"
+              onClick={go(onOpenBalance)}
+              trailing={<span className="text-[13px] font-semibold text-emerald-700 shrink-0">₱15,000</span>}
+            />
+            <ListRow
+              icon={Gift}
+              tone="rose"
+              title="Refer & earn"
+              subtitle="Get ₱500 per partner"
+              onClick={go(onOpenReferral)}
+            />
+            <ListRow
+              icon={Bell}
+              tone="slate"
+              title="Notifications"
+              onClick={go(() => toast('You have 4 new notifications.'))}
+              trailing={<CountBadge count={4} />}
+            />
+            <ListRow
+              icon={Settings}
+              tone="slate"
+              title="Settings"
+              onClick={go(onOpenAppSettings || onOpenUserProfile)}
+            />
+            <ListRow
+              icon={HelpCircle}
+              tone="slate"
+              title="Help"
+              subtitle="support@aygo.store"
+              onClick={go(() => toast('Support: support@aygo.store'))}
+            />
+          </MenuGroup>
+
+          {/* Supplier mode card */}
+          <section className="bg-white rounded-[28px] p-4">
+            <div className="flex items-start gap-3">
+              <span className="w-10 h-10 rounded-full bg-violet-50 text-violet-600 flex items-center justify-center shrink-0">
+                <Store className="w-5 h-5" />
+              </span>
+              <div className="flex-1 min-w-0">
+                <p className="text-[15px] font-semibold text-slate-900">
+                  {isSupplierMode ? 'Planning an event?' : 'Make things for events?'}
+                </p>
+                <p className="text-[13px] text-slate-500 leading-snug">
+                  {isSupplierMode
+                    ? 'Switch back to post requests and compare bids.'
+                    : 'Bid on organizer requests near you and grow your workshop.'}
+                </p>
+              </div>
+            </div>
+            <div className="mt-3 flex flex-col gap-2">
+              <Button
+                variant={isSupplierMode ? 'secondary' : 'primary'}
+                full
+                icon={Repeat}
+                onClick={go(onToggleSupplierMode)}
+              >
+                {isSupplierMode ? 'Switch to organizer mode' : 'Switch to supplier mode'}
+              </Button>
+              {!isSupplierMode && (
+                <Button variant="ghost" full onClick={go(onOpenOnboarding)}>
+                  Become a verified supplier
+                </Button>
               )}
             </div>
-            <div className="min-w-0 flex-1">
-              <div className="flex items-center gap-1.5">
-                <h3 className="font-bold text-sm sm:text-base text-slate-950 truncate group-hover:text-[#003CF5] transition-colors">
-                  {userProfile.firstName} {userProfile.lastName}
-                </h3>
-              </div>
-              <p className="text-[11px] text-amber-600 font-bold mt-0.5 truncate">
-                ★ {userProfile.rating || 4.84} · {userProfile.city || 'Taguig City'}
-              </p>
-              <span className="text-[10px] font-bold text-[#003CF5] group-hover:underline block mt-0.5">
-                Edit Profile →
-              </span>
-            </div>
-          </div>
-          <button onClick={onClose} className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors">
-            <X className="w-5 h-5" />
+          </section>
+
+          {/* Aygo Pro upsell */}
+          <button
+            type="button"
+            onClick={() => toast('Aygo Pro is coming soon. We will let you know when it launches.')}
+            className="w-full flex items-center gap-3 rounded-[28px] bg-white hover:bg-[#FBFAF8] text-left p-4 transition-colors active:scale-[0.99]"
+          >
+            <span className="w-10 h-10 rounded-full bg-amber-50 text-amber-600 flex items-center justify-center shrink-0">
+              <Crown className="w-5 h-5" />
+            </span>
+            <span className="flex-1 min-w-0">
+              <span className="flex items-center gap-1.5 text-[15px] font-semibold text-slate-900">Aygo Pro <Badge tone="amber">Soon</Badge></span>
+              <span className="block text-[13px] text-slate-500 leading-snug">Your event sourcing workspace</span>
+            </span>
+            <ChevronRight className="w-4 h-4 text-slate-400 shrink-0" />
           </button>
         </div>
 
-        {/* Menu Items List */}
-        <div className="py-3 px-3 space-y-1.5 text-xs font-semibold text-slate-700 flex-1">
-          
-          {/* 1. Map */}
-          <button 
-            onClick={onClose} 
-            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl bg-slate-100 text-slate-950 font-bold text-left"
-          >
-            <MapPin className="w-4 h-4 text-[#003CF5]" />
-            <span>Map</span>
-          </button>
-
-          {/* 2. Messages */}
-          <button 
-            onClick={() => { onOpenMessages(); onClose(); }} 
-            className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl hover:bg-slate-50 text-left transition-colors"
-          >
-            <div className="flex items-center gap-3">
-              <MessageSquare className="w-4 h-4 text-[#003CF5]" />
-              <span>Messages</span>
-            </div>
-            <span className="w-5 h-5 rounded-full bg-red-500 text-white font-bold text-[10px] flex items-center justify-center">
-              2
-            </span>
-          </button>
-
-          {/* 3. Verified Suppliers Directory */}
-          <button 
-            onClick={() => { onOpenSuppliers(); onClose(); }} 
-            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-slate-50 text-left transition-colors"
-          >
-            <Users className="w-4 h-4 text-slate-500" />
-            <span>Verified Suppliers Directory</span>
-          </button>
-
-          {/* 4. Studio (Mockups & Document Generator) */}
-          <div className="space-y-1">
-            <button 
-              onClick={() => { onOpenMockup(); onClose(); }} 
-              className="w-full flex items-center justify-between px-3 py-2 rounded-xl hover:bg-slate-50 text-left transition-colors"
-            >
-              <div className="flex items-center gap-3">
-                <Sparkles className="w-4 h-4 text-[#003CF5]" />
-                <span>Studio</span>
-              </div>
-              <span className="text-[9px] font-bold text-white bg-[#003CF5] px-1.5 py-0.5 rounded">MOCKUPS</span>
-            </button>
-            <button 
-              onClick={() => { onOpenDocs(); onClose(); }} 
-              className="w-full flex items-center justify-between pl-10 pr-3 py-1.5 rounded-lg text-slate-500 hover:text-slate-900 hover:bg-slate-50 text-left transition-colors text-[11px]"
-            >
-              <div className="flex items-center gap-2">
-                <FileText className="w-3.5 h-3.5 text-slate-400" />
-                <span>Document Generator</span>
-              </div>
-              <span className="text-[9px] font-medium text-slate-400">RFQ/PO</span>
-            </button>
-          </div>
-
-          {/* 5. Request History */}
-          <button 
-            onClick={() => { onOpenHistory(); onClose(); }} 
-            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-slate-50 text-left transition-colors"
-          >
-            <Clock className="w-4 h-4 text-slate-500" />
-            <span>Request History</span>
-          </button>
-
-          {/* 6. Balance & Payment */}
-          <button 
-            onClick={() => { onOpenBalance(); onClose(); }} 
-            className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl hover:bg-slate-50 text-left transition-colors"
-          >
-            <div className="flex items-center gap-3">
-              <Coins className="w-4 h-4 text-emerald-600" />
-              <span>Balance & Payment</span>
-            </div>
-            <span className="text-[10px] font-black text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
-              ₱15,000
-            </span>
-          </button>
-
-          {/* 7. Notification */}
-          <button 
-            onClick={() => { toast('You have 4 new notifications.'); onClose(); }} 
-            className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl hover:bg-slate-50 text-left transition-colors"
-          >
-            <div className="flex items-center gap-3">
-              <Bell className="w-4 h-4 text-slate-500" />
-              <span>Notification</span>
-            </div>
-            <span className="w-5 h-5 rounded-full bg-red-600 text-white font-bold text-[10px] flex items-center justify-center">
-              4
-            </span>
-          </button>
-
-          {/* 8. Setting (App settings modal) */}
-          <button 
-            onClick={() => { if (onOpenAppSettings) onOpenAppSettings(); else if (onOpenUserProfile) onOpenUserProfile(); onClose(); }} 
-            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-slate-50 text-left transition-colors"
-          >
-            <Settings className="w-4 h-4 text-slate-500" />
-            <span>Setting</span>
-          </button>
-
-          {/* 9. Help & Support */}
-          <button 
-            onClick={() => { toast('Support: support@aygo.store'); onClose(); }} 
-            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-slate-50 text-left transition-colors"
-          >
-            <HelpCircle className="w-4 h-4 text-slate-500" />
-            <span>Help & Support</span>
-          </button>
-
-          {/* 10. How do you want to get income with us? */}
-          <button 
-            onClick={() => { onOpenOnboarding(); onClose(); }} 
-            className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl bg-blue-50/80 hover:bg-blue-100/80 border border-blue-200 text-left transition-all group"
-          >
-            <div className="flex items-center gap-3">
-              <TrendingUp className="w-4 h-4 text-[#003CF5]" />
-              <div>
-                <span className="font-extrabold text-slate-950 block leading-tight">How do you want to get income with us?</span>
-                <span className="text-[10px] text-slate-500 font-medium">Makers, Fleet & Ambassadors</span>
-              </div>
-            </div>
-            <span className="text-[9px] font-black text-[#003CF5] bg-white px-2 py-0.5 rounded-full border border-blue-200 shrink-0">
-              EARN
-            </span>
-          </button>
-
-          {/* 11. Invite & Earn */}
-          <button 
-            onClick={() => { onOpenReferral(); onClose(); }} 
-            className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl hover:bg-slate-50 text-left transition-colors"
-          >
-            <div className="flex items-center gap-3">
-              <Award className="w-4 h-4 text-amber-500" />
-              <span>Invite & Earn</span>
-            </div>
-            <span className="text-[10px] font-bold text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded">
-              ₱500
-            </span>
-          </button>
-
-          {/* Supplier Mode Items: Setup Maker Profile & Maker Verification */}
-          {isSupplierMode && (
-            <div className="pt-2 border-t border-slate-100 space-y-1.5">
-              <button 
-                onClick={() => { onOpenSupplierSetup(); onClose(); }} 
-                className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl bg-blue-50/60 hover:bg-blue-100/70 border border-blue-200 text-left transition-all"
-              >
-                <div className="flex items-center gap-3">
-                  <Building2 className="w-4 h-4 text-[#003CF5]" />
-                  <span className="font-bold text-[#003CF5]">Setup Maker Profile</span>
-                </div>
-                <span className="text-[9px] font-black text-[#003CF5] bg-white px-1.5 py-0.5 rounded border border-blue-200">MAKER</span>
-              </button>
-
-              <button 
-                onClick={() => { onOpenOnboarding(); onClose(); }} 
-                className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl hover:bg-slate-50 text-left transition-colors"
-              >
-                <div className="flex items-center gap-3">
-                  <UserCheck className="w-4 h-4 text-[#003CF5]" />
-                  <span>Maker Verification (1 of 4)</span>
-                </div>
-                <span className="text-[9px] font-bold text-[#003CF5] bg-blue-50 px-1.5 py-0.5 rounded">ID</span>
-              </button>
-            </div>
-          )}
+        {/* Footer */}
+        <div className="px-6 pt-2 pb-[max(20px,env(safe-area-inset-bottom))] text-[12px] text-slate-500 flex items-center justify-between">
+          <span>You Plan. We Connect.</span>
+          <span>aygo.store</span>
         </div>
-
-        {/* Bottom Switch Mode Button */}
-        <div className="p-5 border-t border-slate-100 space-y-3">
-          <button 
-            onClick={() => { onToggleSupplierMode(); onClose(); }}
-            className={`w-full py-3.5 rounded-2xl font-black text-xs shadow-md transition-all text-center flex items-center justify-center gap-2 ${
-              isSupplierMode
-                ? 'bg-slate-900 hover:bg-slate-800 text-white'
-                : 'bg-[#003CF5] hover:bg-blue-700 text-white shadow-blue-500/20'
-            }`}
-          >
-            <Repeat className="w-4 h-4" />
-            <span>{isSupplierMode ? 'Switch to Customer View' : 'Switch to Supplier Mode'}</span>
-          </button>
-
-          <div className="flex items-center justify-around text-slate-400 text-xs font-bold pt-1">
-            <span className="hover:text-slate-800 cursor-pointer">TikTok</span>
-            <span className="hover:text-slate-800 cursor-pointer">Viber</span>
-            <span className="hover:text-slate-800 cursor-pointer">Facebook</span>
-            <span className="hover:text-slate-800 cursor-pointer">Instagram</span>
-          </div>
-        </div>
-      </div>
+      </aside>
     </div>
   );
 }

@@ -1,14 +1,19 @@
 import React, { useState } from 'react';
 import {
   ArrowLeft,
-  ChevronRight,
   Pencil,
   MapPin,
   Package,
   Shirt,
-  Check
+  Check,
+  Settings,
+  LogOut,
+  Mail,
+  Phone,
+  UserRound
 } from 'lucide-react';
 import { toast } from '../lib/toast';
+import { Sheet, Button, Field, Input, ListRow, Section, Panel } from './ui';
 
 const POPULAR_CITIES = [
   'Metro Manila',
@@ -24,30 +29,44 @@ const POPULAR_CITIES = [
   'Davao City'
 ];
 
+function BackButton({ onClick }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-label="Back"
+      className="w-9 h-9 rounded-full bg-[#F4F3F0] hover:bg-[#ECEAE5] text-slate-700 flex items-center justify-center shrink-0 transition-colors"
+    >
+      <ArrowLeft className="w-4 h-4" />
+    </button>
+  );
+}
+
 export default function UserProfileModal({
   isOpen,
   onClose,
-  initialView = 'overview', // 'overview' (Image 1) | 'edit' (Image 3)
+  initialView = 'overview', // 'overview' | 'edit'
   userProfile = {},
   onSaveProfile,
-  onOpenOnboarding
+  onOpenOnboarding,
+  onOpenSettings
 }) {
   const [currentView, setCurrentView] = useState(initialView); // 'overview' | 'edit' | 'city_picker'
-  
-  // Form State
+  const [confirmLogout, setConfirmLogout] = useState(false);
+
+  // Form state
   const [firstName, setFirstName] = useState(userProfile.firstName || 'Marvin');
   const [lastName, setLastName] = useState(userProfile.lastName || 'Barrios');
   const [email, setEmail] = useState(userProfile.email || 'vinbarrios.work@gmail.com');
-  
+
   const cleanPhone = (userProfile.phone || '9175550149')
     .replace(/^\+?63/, '')
     .replace(/\D/g, '')
     .slice(0, 10);
-  
+
   const [phone, setPhone] = useState(cleanPhone);
   const [city, setCity] = useState(userProfile.city || 'Metro Manila');
   const [avatarUrl, setAvatarUrl] = useState(userProfile.avatarUrl || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=300&q=80');
-  const [toastMessage, setToastMessage] = useState('');
 
   if (!isOpen) return null;
 
@@ -79,11 +98,8 @@ export default function UserProfileModal({
       onSaveProfile(updated);
     }
 
-    setToastMessage('Profile updated successfully!');
-    setTimeout(() => {
-      setToastMessage('');
-      setCurrentView('overview');
-    }, 600);
+    toast('Profile saved');
+    setCurrentView('overview');
   };
 
   const getInitials = () => {
@@ -92,304 +108,247 @@ export default function UserProfileModal({
     return `${f}${l}`;
   };
 
-  return (
-    <div className="fixed inset-0 z-[60] overflow-y-auto bg-slate-950/70 backdrop-blur-sm flex justify-center items-center p-3 font-sans">
-      <div className="relative w-full max-w-md bg-[#F4F4F4] rounded-3xl shadow-2xl overflow-hidden flex flex-col min-h-[580px] max-h-[92vh]">
-        
-        {/* ============================================================ */}
-        {/* VIEW 1: PROFILE & INCOME OVERVIEW (MATCHING SCREENSHOT 1) */}
-        {/* ============================================================ */}
-        {currentView === 'overview' && (
-          <div className="flex flex-col h-full flex-1">
-            {/* Top Header */}
-            <div className="p-4 bg-white border-b border-slate-100 flex items-center justify-between">
-              <button
-                type="button"
-                onClick={onClose}
-                className="w-9 h-9 rounded-full flex items-center justify-center text-slate-800 hover:bg-slate-100 transition-colors"
-              >
-                <ArrowLeft className="w-5 h-5 stroke-[2.5]" />
-              </button>
+  const openOnboarding = () => {
+    onClose();
+    if (onOpenOnboarding) onOpenOnboarding();
+  };
 
-              <h2 className="text-xl font-bold text-slate-950 tracking-tight flex-1 text-left pl-3">
-                {firstName}
-              </h2>
+  const avatar = (sizeClass, textClass) => (
+    <span className={`${sizeClass} rounded-full overflow-hidden bg-[#003CF5] text-white flex items-center justify-center font-semibold shrink-0 ${textClass}`}>
+      {avatarUrl ? <img src={avatarUrl} alt="" className="w-full h-full object-cover" /> : getInitials()}
+    </span>
+  );
 
-              {/* Top Right Avatar Thumbnail -> opens Profile Settings */}
-              <div 
-                onClick={() => setCurrentView('edit')}
-                className="w-10 h-10 rounded-full overflow-hidden border border-slate-200 shadow-xs cursor-pointer hover:scale-105 transition-transform"
-                title="Edit profile settings"
+  const formattedPhone = phone ? `+63 ${phone}` : 'Add a phone number';
+
+  /* ---------------------------------------------------------------- */
+  /* Edit profile                                                      */
+  /* ---------------------------------------------------------------- */
+  if (currentView === 'edit') {
+    return (
+      <Sheet
+        onClose={onClose}
+        title="Edit profile"
+        subtitle="Makers see your name and city on requests"
+        headerAction={<BackButton onClick={() => setCurrentView('overview')} />}
+        size="sm"
+        footer={
+          <div className="flex gap-2">
+            <Button variant="secondary" size="lg" onClick={() => setCurrentView('overview')}>
+              Cancel
+            </Button>
+            <Button type="submit" form="aygo-profile-form" size="lg" full>
+              Save changes
+            </Button>
+          </div>
+        }
+      >
+        <form id="aygo-profile-form" onSubmit={handleSave} className="space-y-4">
+          {/* Avatar */}
+          <div className="flex justify-center pt-1 pb-2">
+            <div className="relative">
+              {avatar('w-24 h-24', 'text-[24px]')}
+              <label
+                className="absolute -bottom-1 -right-1 w-11 h-11 rounded-full bg-white shadow-md border border-slate-100 flex items-center justify-center cursor-pointer hover:bg-slate-50 transition-colors"
+                title="Change photo"
               >
-                {avatarUrl ? (
-                  <img src={avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
-                ) : (
-                  <div className="w-full h-full bg-[#003CF5] text-white flex items-center justify-center font-bold text-xs">
-                    {getInitials()}
-                  </div>
-                )}
-              </div>
+                <Pencil className="w-4 h-4 text-slate-900" />
+                <span className="sr-only">Change photo</span>
+                <input type="file" accept="image/*" onChange={handleAvatarUpload} className="hidden" />
+              </label>
             </div>
+          </div>
 
-            {/* Content Body */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-3 custom-scroll">
-              
-              {/* Card 1: How do you want to get income with us? */}
-              <div className="bg-white rounded-3xl p-5 shadow-xs border border-slate-100 space-y-4">
-                <h3 className="text-xl font-black text-slate-950 tracking-tight leading-tight">
-                  How do you want to get income with us?
-                </h3>
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="First name">
+              <Input
+                type="text"
+                required
+                value={firstName}
+                onChange={(e) => setFirstName(e.target.value)}
+                placeholder="Marvin"
+                autoComplete="given-name"
+              />
+            </Field>
+            <Field label="Last name">
+              <Input
+                type="text"
+                value={lastName}
+                onChange={(e) => setLastName(e.target.value)}
+                placeholder="Barrios"
+                autoComplete="family-name"
+              />
+            </Field>
+          </div>
 
-                <div className="divide-y divide-slate-100">
-                  {/* Verified Supplier & Maker */}
-                  <div 
-                    onClick={() => {
-                      onClose();
-                      if (onOpenOnboarding) onOpenOnboarding();
-                    }}
-                    className="py-3.5 flex items-center justify-between hover:bg-slate-50 transition-colors rounded-2xl px-1 cursor-pointer group"
-                  >
-                    <div className="flex items-center gap-3.5">
-                      <div className="w-12 h-12 rounded-2xl bg-blue-50 flex items-center justify-center text-[#003CF5] shrink-0">
-                        <Shirt className="w-6 h-6" />
-                      </div>
-                      <div>
-                        <span className="font-bold text-sm text-slate-950 block leading-tight">Verified Supplier & Maker</span>
-                        <span className="text-xs text-slate-500 font-medium">Produce custom apparel, garments & bulk merchandise</span>
-                      </div>
-                    </div>
-                    <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-slate-900 transition-colors" />
-                  </div>
+          <Field label="Email">
+            <Input
+              type="email"
+              required
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="you@example.com"
+              autoComplete="email"
+            />
+          </Field>
 
-                  {/* Print & Craft Workshop */}
-                  <div 
-                    onClick={() => {
-                      onClose();
-                      if (onOpenOnboarding) onOpenOnboarding();
-                    }}
-                    className="py-3.5 flex items-center justify-between hover:bg-slate-50 transition-colors rounded-2xl px-1 cursor-pointer group"
-                  >
-                    <div className="flex items-center gap-3.5">
-                      <div className="w-12 h-12 rounded-2xl bg-amber-50 flex items-center justify-center text-amber-700 shrink-0">
-                        <Package className="w-6 h-6" />
-                      </div>
-                      <div>
-                        <span className="font-bold text-sm text-slate-950 block leading-tight">Print & Craft Workshop</span>
-                        <span className="text-xs text-slate-500 font-medium">Fulfill DTF, sublimation, lanyards, tumblers & event swag</span>
-                      </div>
-                    </div>
-                    <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-slate-900 transition-colors" />
-                  </div>
-                </div>
-              </div>
+          <Field label="Mobile number" hint="Used for order updates via SMS">
+            <div className="flex items-center gap-2">
+              <span className="h-[50px] px-3.5 rounded-2xl bg-[#F4F3F0] text-[15px] font-medium text-slate-700 flex items-center shrink-0">
+                +63
+              </span>
+              <Input
+                type="tel"
+                inputMode="numeric"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
+                placeholder="917 555 0149"
+                autoComplete="tel-national"
+              />
+            </div>
+          </Field>
 
-              {/* Card 2: City / Location */}
-              <div 
-                onClick={() => setCurrentView('city_picker')}
-                className="bg-white rounded-3xl p-4 shadow-xs border border-slate-100 flex items-center justify-between cursor-pointer hover:bg-slate-50 transition-colors"
-              >
-                <div>
-                  <h4 className="font-black text-base text-slate-950 leading-tight">{city}</h4>
-                  <p className="text-xs text-slate-500 font-medium mt-0.5">Change the city</p>
-                </div>
-                
-                <div className="w-8 h-8 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center">
-                  <MapPin className="w-4 h-4 fill-emerald-600 text-white" />
-                </div>
-              </div>
+          <div>
+            <span className="block mb-1.5 text-[13px] font-medium text-slate-700">City</span>
+            <button
+              type="button"
+              onClick={() => setCurrentView('city_picker')}
+              className="w-full min-h-[50px] rounded-2xl bg-[#F4F3F0] hover:bg-[#ECEAE5] px-4 flex items-center gap-2 text-left transition-colors"
+            >
+              <MapPin className="w-4 h-4 text-slate-500 shrink-0" />
+              <span className="flex-1 text-[15px] font-medium text-slate-900 truncate">{city}</span>
+              <span className="text-[13px] font-medium text-[#003CF5]">Change</span>
+            </button>
+          </div>
+        </form>
+      </Sheet>
+    );
+  }
 
-              {/* Card 3: Log out button */}
+  /* ---------------------------------------------------------------- */
+  /* City picker                                                       */
+  /* ---------------------------------------------------------------- */
+  if (currentView === 'city_picker') {
+    return (
+      <Sheet
+        onClose={onClose}
+        title="Choose your city"
+        subtitle="We'll show makers who deliver there"
+        icon={MapPin}
+        headerAction={<BackButton onClick={() => setCurrentView('edit')} />}
+        size="sm"
+      >
+        <div className="flex flex-col">
+          {POPULAR_CITIES.map((c) => {
+            const selected = city === c;
+            return (
               <button
+                key={c}
                 type="button"
                 onClick={() => {
-                  if (confirm('Are you sure you want to log out?')) {
-                    toast('Logged out of Aygo session.');
-                    onClose();
-                  }
+                  setCity(c);
+                  setCurrentView('edit');
                 }}
-                className="w-full py-4 bg-white hover:bg-slate-100 text-slate-950 rounded-3xl font-black text-sm shadow-xs border border-slate-100 transition-colors cursor-pointer text-center"
+                aria-pressed={selected}
+                className={`w-full min-h-[52px] px-4 rounded-2xl flex items-center justify-between text-left text-[15px] font-medium transition-colors ${
+                  selected ? 'bg-blue-50 text-[#003CF5]' : 'text-slate-900 hover:bg-[#F4F3F0]'
+                }`}
+              >
+                <span>{c}</span>
+                {selected && <Check className="w-4 h-4" />}
+              </button>
+            );
+          })}
+        </div>
+      </Sheet>
+    );
+  }
+
+  /* ---------------------------------------------------------------- */
+  /* Overview                                                          */
+  /* ---------------------------------------------------------------- */
+  return (
+    <Sheet onClose={onClose} title="Your profile" subtitle="Account details and ways to earn" icon={UserRound} size="sm">
+      {/* Profile card */}
+      <Panel className="flex items-center gap-3.5 rounded-[28px]">
+        {avatar('w-16 h-16', 'text-[19px]')}
+        <div className="flex-1 min-w-0">
+          <p className="text-[17px] font-semibold text-slate-900 truncate">
+            {firstName} {lastName}
+          </p>
+          <p className="text-[13px] text-slate-500 truncate">{city}</p>
+        </div>
+        <Button variant="outline" icon={Pencil} onClick={() => setCurrentView('edit')}>
+          Edit
+        </Button>
+      </Panel>
+
+      <Section title="Contact">
+        <ListRow icon={Mail} tone="slate" title={email} subtitle="Email" />
+        <ListRow icon={Phone} tone="slate" title={formattedPhone} subtitle="Mobile number" />
+        <ListRow
+          icon={MapPin}
+          tone="green"
+          title={city}
+          subtitle="Change your city"
+          onClick={() => setCurrentView('city_picker')}
+        />
+      </Section>
+
+      <Section title="Earn with Aygo">
+        <ListRow
+          icon={Shirt}
+          tone="blue"
+          title="Verified supplier & maker"
+          subtitle="Custom apparel, garments and bulk merch"
+          onClick={openOnboarding}
+        />
+        <ListRow
+          icon={Package}
+          tone="amber"
+          title="Print & craft workshop"
+          subtitle="DTF, sublimation, lanyards, tumblers, swag"
+          onClick={openOnboarding}
+        />
+      </Section>
+
+      {onOpenSettings && (
+        <Section title="App">
+          <ListRow icon={Settings} tone="slate" title="App settings" subtitle="Appearance, language, privacy" onClick={onOpenSettings} />
+        </Section>
+      )}
+
+      <div className="pt-2">
+        {confirmLogout ? (
+          <Panel className="space-y-3">
+            <div>
+              <p className="text-[15px] font-semibold text-slate-900">Log out of Aygo?</p>
+              <p className="text-[13px] text-slate-500">Your requests and chats stay saved to your account.</p>
+            </div>
+            <div className="flex gap-2">
+              <Button variant="outline" full onClick={() => setConfirmLogout(false)}>
+                Cancel
+              </Button>
+              <Button
+                variant="danger"
+                full
+                icon={LogOut}
+                onClick={() => {
+                  toast('Logged out of Aygo');
+                  setConfirmLogout(false);
+                  onClose();
+                }}
               >
                 Log out
-              </button>
-
+              </Button>
             </div>
-          </div>
+          </Panel>
+        ) : (
+          <Button variant="secondary" full icon={LogOut} onClick={() => setConfirmLogout(true)}>
+            Log out
+          </Button>
         )}
-
-        {/* ============================================================ */}
-        {/* VIEW 2: PROFILE SETTINGS (MATCHING SCREENSHOT 3) */}
-        {/* ============================================================ */}
-        {currentView === 'edit' && (
-          <div className="flex flex-col h-full flex-1">
-            {/* Top Header matching Image 3 */}
-            <div className="p-4 bg-white border-b border-slate-100 flex items-center justify-between">
-              <button
-                type="button"
-                onClick={() => setCurrentView('overview')}
-                className="w-9 h-9 rounded-full flex items-center justify-center text-slate-800 hover:bg-slate-100 transition-colors"
-              >
-                <ArrowLeft className="w-5 h-5 stroke-[2.5]" />
-              </button>
-
-              <h2 className="text-lg font-black text-slate-950 tracking-tight flex-1 text-center pr-9">
-                Profile settings
-              </h2>
-            </div>
-
-            {/* Form Content matching Image 3 */}
-            <form onSubmit={handleSave} className="flex-1 overflow-y-auto p-4 space-y-3.5 custom-scroll">
-              
-              {/* Profile Avatar Center with Edit Pencil */}
-              <div className="flex justify-center py-2">
-                <div className="relative">
-                  <div className="w-24 h-24 rounded-full overflow-hidden border-2 border-white shadow-md bg-slate-300">
-                    {avatarUrl ? (
-                      <img src={avatarUrl} alt="Profile" className="w-full h-full object-cover" />
-                    ) : (
-                      <div className="w-full h-full bg-[#003CF5] text-white flex items-center justify-center font-bold text-2xl">
-                        {getInitials()}
-                      </div>
-                    )}
-                  </div>
-                  <label 
-                    className="absolute bottom-0 right-0 w-8 h-8 rounded-full bg-white shadow-md border border-slate-200 flex items-center justify-center cursor-pointer hover:bg-slate-50 transition-colors"
-                    title="Change profile picture"
-                  >
-                    <Pencil className="w-4 h-4 text-slate-900" />
-                    <input type="file" accept="image/*" onChange={handleAvatarUpload} className="hidden" />
-                  </label>
-                </div>
-              </div>
-
-              {/* Inputs matching Image 3 (Light gray rounded cards) */}
-              <div className="space-y-2.5">
-                {/* Name */}
-                <div className="bg-[#EDEDED] rounded-2xl px-4 py-2.5">
-                  <label className="block text-[11px] font-medium text-slate-500">Name</label>
-                  <input
-                    type="text"
-                    required
-                    value={firstName}
-                    onChange={(e) => setFirstName(e.target.value)}
-                    placeholder="Marvin"
-                    className="w-full bg-transparent font-bold text-sm text-slate-950 focus:outline-none placeholder:text-slate-400"
-                  />
-                </div>
-
-                {/* Last name */}
-                <div className="bg-[#EDEDED] rounded-2xl px-4 py-2.5">
-                  <label className="block text-[11px] font-medium text-slate-500">Last name</label>
-                  <input
-                    type="text"
-                    value={lastName}
-                    onChange={(e) => setLastName(e.target.value)}
-                    placeholder="Last name"
-                    className="w-full bg-transparent font-bold text-sm text-slate-950 focus:outline-none placeholder:text-slate-400"
-                  />
-                </div>
-
-                {/* Email */}
-                <div className="bg-[#EDEDED] rounded-2xl px-4 py-2.5">
-                  <label className="block text-[11px] font-medium text-slate-500">Email</label>
-                  <input
-                    type="email"
-                    required
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="vinbarrios.work@gmail.com"
-                    className="w-full bg-transparent font-bold text-sm text-slate-950 focus:outline-none placeholder:text-slate-400"
-                  />
-                </div>
-
-                {/* City */}
-                <div 
-                  onClick={() => setCurrentView('city_picker')}
-                  className="bg-[#EDEDED] rounded-2xl px-4 py-2.5 flex items-center justify-between cursor-pointer hover:bg-[#e4e4e4] transition-colors"
-                >
-                  <div>
-                    <label className="block text-[11px] font-medium text-slate-500">City</label>
-                    <span className="font-bold text-sm text-slate-950 block">{city}</span>
-                  </div>
-                  <ChevronRight className="w-4 h-4 text-slate-500" />
-                </div>
-
-                {/* Phone number (63*********49) */}
-                <div className="bg-[#EDEDED] rounded-2xl px-4 py-2.5">
-                  <label className="block text-[11px] font-medium text-slate-500">Phone number</label>
-                  <div className="flex items-center">
-                    <span className="font-bold text-sm text-slate-900 mr-1">63</span>
-                    <input
-                      type="tel"
-                      value={phone}
-                      onChange={(e) => setPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
-                      placeholder="9175550149"
-                      className="w-full bg-transparent font-bold text-sm text-slate-950 focus:outline-none font-mono"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Feedback Toast */}
-              {toastMessage && (
-                <div className="p-3 bg-emerald-50 rounded-2xl border border-emerald-200 text-emerald-900 text-xs font-bold text-center animate-fade-in">
-                  ✓ {toastMessage}
-                </div>
-              )}
-
-              {/* Bottom Lime Save Button matching Image 3 */}
-              <div className="pt-3">
-                <button
-                  type="submit"
-                  className="w-full py-4 bg-[#C5F76B] hover:bg-[#b5ee50] text-[#1a3300] font-black text-base rounded-2xl shadow-md transition-all active:scale-[0.99] cursor-pointer"
-                >
-                  Save
-                </button>
-              </div>
-
-            </form>
-          </div>
-        )}
-
-        {/* ============================================================ */}
-        {/* VIEW 3: CITY PICKER MODAL */}
-        {/* ============================================================ */}
-        {currentView === 'city_picker' && (
-          <div className="flex flex-col h-full flex-1">
-            <div className="p-4 bg-white border-b border-slate-100 flex items-center justify-between">
-              <button
-                type="button"
-                onClick={() => setCurrentView('edit')}
-                className="w-9 h-9 rounded-full flex items-center justify-center text-slate-800 hover:bg-slate-100 transition-colors"
-              >
-                <ArrowLeft className="w-5 h-5 stroke-[2.5]" />
-              </button>
-
-              <h2 className="text-lg font-black text-slate-950 tracking-tight flex-1 text-center pr-9">
-                Select City
-              </h2>
-            </div>
-
-            <div className="flex-1 overflow-y-auto p-4 space-y-2 custom-scroll">
-              {POPULAR_CITIES.map((c) => (
-                <div
-                  key={c}
-                  onClick={() => {
-                    setCity(c);
-                    setCurrentView('edit');
-                  }}
-                  className={`p-3.5 rounded-2xl border cursor-pointer transition-all flex items-center justify-between ${
-                    city === c ? 'bg-blue-50 border-[#003CF5] text-[#003CF5] font-black' : 'bg-white border-slate-100 text-slate-800 font-bold hover:bg-slate-50'
-                  }`}
-                >
-                  <span>{c}</span>
-                  {city === c && <Check className="w-4 h-4 text-[#003CF5]" />}
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
       </div>
-    </div>
+    </Sheet>
   );
 }
