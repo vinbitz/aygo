@@ -32,6 +32,8 @@ import CallScreen from './CallScreen';
 import { callLength } from '../lib/calls';
 import { usePro } from '../state/pro';
 import { canCall } from '../lib/pro';
+import { packageAmount } from '../lib/sponsorDeals';
+import { peso } from '../lib/marketplace';
 import { Sheet, Button, Field, Input, Textarea, Tabs, Chip, Badge, Panel, IconCircle } from './ui';
 
 const toPeso = (s) => {
@@ -407,7 +409,7 @@ function BrandsView({ brand, onEditBrand, onInquiry, onCall, viewerIsPro }) {
   const list = OPPORTUNITIES.filter((o) => kind === 'All' || o.kind === kind)
     .map((o) => ({ ...o, wantsMet: wants.filter((w) => w in (o.perks || {})) }))
     .sort((a, b) => b.wantsMet.length - a.wantsMet.length);
-  const eventTarget = (item) => ({ id: item.id, name: item.eventTitle, subtitle: item.organization, kind: 'organizer', pro: item.pro });
+  const eventTarget = (item) => ({ id: item.id, name: item.eventTitle, subtitle: item.organization, kind: 'organizer', pro: item.pro, packages: item.packages });
 
   return (
     <div className="space-y-4">
@@ -561,7 +563,12 @@ const SEED_THREADS = {
   brand: [
     {
       id: 'spon-1', name: 'DevCon Manila Hackathon 2026', subtitle: 'Junior Developers Society', kind: 'organizer', unread: 1, pro: true,
-      messages: [{ id: 'm1', from: 'them', text: 'Thanks for checking our event! Our Swag sponsor package includes your logo on 450 tote bags.', time: '8:40 AM' }],
+      packages: SPONSORSHIP_LISTINGS[0].packages,
+      messages: [{
+        id: 'm1', from: 'them', time: '8:40 AM',
+        text: 'Thanks for checking our event! Here are our packages. Our Swag Sponsor package puts your logo on 450 tote bags.',
+        packages: SPONSORSHIP_LISTINGS[0].packages,
+      }],
     },
   ],
 };
@@ -574,6 +581,11 @@ const INTRO = {
 const REPLY = {
   organizer: 'Thanks for reaching out! Send us your audience size and what sponsors get, and we will review it this week.',
   brand: 'Thank you! We would be happy to discuss. Which package are you looking at?',
+};
+// Follow-up replies once the packages are already in the chat
+const FOLLOW_UP = {
+  organizer: 'Noted, thanks! We will check it with our team.',
+  brand: 'Noted! Tap Choose on any package above when you are ready, or tell us what you have in mind.',
 };
 
 function RoleChooser({ onChoose }) {
@@ -707,13 +719,64 @@ export default function SponsorshipConnectModal({ onClose, photos, onPhotosChang
     setTimeout(() => {
       setThreadsByRole((prev) => ({
         ...prev,
-        [currentRole]: prev[currentRole].map((t) =>
-          t.id === threadId
-            ? { ...t, typing: false, messages: [...t.messages, { id: `r${Date.now()}`, from: 'them', text: REPLY[currentRole], time: chatTime() }] }
-            : t
-        ),
+        [currentRole]: prev[currentRole].map((t) => {
+          if (t.id !== threadId) return t;
+          // The organizer asks which package and shows the packages right in the chat
+          const shown = t.messages.some((x) => x.packages || x.type === 'selection');
+          const packages = currentRole === 'brand' && !shown && t.packages?.length ? t.packages : undefined;
+          const text = packages || !shown ? REPLY[currentRole] : FOLLOW_UP[currentRole];
+          return { ...t, typing: false, messages: [...t.messages, { id: `r${Date.now()}`, from: 'them', text, packages, time: chatTime() }] };
+        }),
       }));
     }, 1600);
+  };
+
+  // Delayed reply from the other side
+  const replyLater = (threadId, text, delay = 1400) => {
+    const currentRole = role;
+    updateThreads((list) => list.map((t) => (t.id === threadId ? { ...t, typing: true } : t)));
+    setTimeout(() => {
+      setThreadsByRole((prev) => ({
+        ...prev,
+        [currentRole]: prev[currentRole].map((t) =>
+          t.id === threadId ? { ...t, typing: false, messages: [...t.messages, { id: `r${Date.now()}`, from: 'them', text, time: chatTime() }] } : t
+        ),
+      }));
+    }, delay);
+  };
+
+  // Brand picks a package from the organizer's list
+  const choosePackage = (threadId, pkg) => {
+    const msg = { id: `s${Date.now()}`, from: 'me', type: 'selection', text: `We'd like the ${pkg.tier} package.`, pkg, status: 'open', time: chatTime() };
+    updateThreads((list) => list.map((t) => (t.id === threadId ? { ...t, messages: [...t.messages, msg] } : t)));
+    replyLater(threadId, packageAmount(pkg.amount)
+      ? 'Great choice! You can pay through Aygo right here to lock it in. We will send the logo specs next.'
+      : 'Great choice! Confirm it here and we will send the list of items and the delivery date.');
+  };
+
+  const payPackage = (threadId, msgId, method) => {
+    const selection = threads.find((t) => t.id === threadId)?.messages.find((m) => m.id === msgId);
+    if (!selection) return;
+    const amount = packageAmount(selection.pkg.amount);
+    updateThreads((list) => list.map((t) => (
+      t.id === threadId
+        ? { ...t, messages: t.messages.map((m) => (m.id === msgId ? { ...m, status: 'paid', method } : m)) }
+        : t
+    )));
+    toast(amount ? `Paid ${peso(amount)} via ${method}. Sponsorship confirmed.` : 'In-kind sponsorship confirmed.');
+    replyLater(threadId, `Received! Welcome aboard as our ${selection.pkg.tier}. Please send your logo files here in the chat.`);
+  };
+
+  // Organizer shares their packages in a brand chat
+  const sendPackages = (threadId) => {
+    const packages = profile.packages.filter((p) => p.tier);
+    if (!packages.length) {
+      toast('Add your sponsorship packages to your event profile first.');
+      return;
+    }
+    const msg = { id: `p${Date.now()}`, from: 'me', text: 'Here are our sponsorship packages.', packages, time: chatTime() };
+    updateThreads((list) => list.map((t) => (t.id === threadId ? { ...t, messages: [...t.messages, msg] } : t)));
+    replyLater(threadId, `Thanks! The ${packages[0].tier} looks like a fit. We will confirm with our marketing team.`);
   };
 
   // "Send inquiry" opens (or starts) a chat with that brand or event
@@ -810,7 +873,7 @@ export default function SponsorshipConnectModal({ onClose, photos, onPhotosChang
             ]}
           />
 
-          {lockedRole && (
+          {lockedRole && activeTab === 'main' && !brandDraft && (
             <div className="mb-4 flex items-center gap-3 rounded-2xl bg-amber-50 px-4 py-3">
               {msUntilSwitch > 0 ? <Lock className="w-5 h-5 text-amber-700 shrink-0" /> : <Repeat className="w-5 h-5 text-amber-700 shrink-0" />}
               <p className="flex-1 min-w-0 text-[13px] text-amber-900 leading-snug">
@@ -836,6 +899,9 @@ export default function SponsorshipConnectModal({ onClose, photos, onPhotosChang
               onSend={sendMessage}
               onCall={startCall}
               viewerIsPro={pro.isPro}
+              onChoosePackage={role === 'brand' ? choosePackage : undefined}
+              onPayPackage={payPackage}
+              onSendPackages={role === 'organizer' && published ? sendPackages : undefined}
             />
           ) : role === 'brand' ? (
             brandDraft ? (
