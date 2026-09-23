@@ -10,7 +10,7 @@ import {
   Printer,
   Coffee,
   ShoppingBag,
-  Factory,
+  Ruler,
   MessageSquare
 } from 'lucide-react';
 import { SUPPLIERS, PRESET_VENUES, PRESET_HOMES } from '../data/mockData';
@@ -182,8 +182,8 @@ export default function AygoSourcingView({
           {/* SECTION 3: Maker bids */}
           <section className="bg-white rounded-[28px] py-4">
             <div className="px-4 flex items-center gap-3">
-              <span className="w-10 h-10 rounded-full bg-[#F4F3F0] flex items-center justify-center text-[#003CF5] shrink-0">
-                <Factory className="w-5 h-5" />
+              <span className="w-11 h-11 rounded-2xl bg-[#003CF5] flex items-center justify-center text-white shrink-0 shadow-md shadow-blue-500/25">
+                <Ruler className="w-5 h-5 -rotate-45" strokeWidth={2.25} />
               </span>
               <div className="flex-1 min-w-0">
                 <h4 className="text-[19px] font-semibold text-slate-900 tracking-tight leading-tight">Choose a maker</h4>
