@@ -69,3 +69,8 @@ Rules: one primary button per view, sticky in the `footer` when it completes the
 - Free plan: 3 uses of each (`FREE_USES`), counted on open; then the Aygo Pro screen (`ProUpgradeSheet`). Always free: posting requests, offers, chat, accepting, Sponsorship Connect.
 - Gate new Pro features with `usePro().gate('feature', open)`; show remaining tries with `remaining('feature')`.
 - Prices in `ProUpgradeSheet.jsx` (`PRO_PRICING`) are placeholders.
+
+## Catalog ("Find anything")
+- `src/data/catalog.js`: 13 categories, ~85 products, gift kits and event services, 18 occasions, with options, customization methods, minimum order and lead time. Prices always come from maker offers.
+- The home search bar and category chips open `CatalogSheet`. Picking an item opens its details, then "Get offers" pre-fills the request form. Anything not listed goes through "Describe anything".
+- Every catalog category must have at least 2 makers (`categories` on each supplier in `mockData.js`).

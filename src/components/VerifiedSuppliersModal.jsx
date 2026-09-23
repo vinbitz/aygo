@@ -1,14 +1,13 @@
 import React, { useState } from 'react';
 import { Search, MapPin, Star, ShieldCheck, MessageSquare, Clock, Crown, Store } from 'lucide-react';
 import { SUPPLIERS } from '../data/mockData';
+import { CATALOG_CATEGORIES } from '../data/catalog';
 import { Sheet, Input, Badge, VerifiedBadge, Chip, EmptyState } from './ui';
 
+// "All" plus every catalog category; makers are matched on the categories they serve
 const CATEGORIES = [
-  { id: 'All', label: 'All', match: null },
-  { id: 'Apparel', label: 'Apparel', match: /apparel|shirt|garment|embroider/i },
-  { id: 'Print & Lanyards', label: 'Print & lanyards', match: /print|lanyard|badge|sticker/i },
-  { id: 'Bags', label: 'Bags', match: /bag|tote|pouch/i },
-  { id: 'Drinkware', label: 'Drinkware', match: /drinkware|tumbler|mug|bottle/i }
+  { id: 'All', label: 'All' },
+  ...CATALOG_CATEGORIES.map((c) => ({ id: c.id, label: c.short })),
 ];
 
 const searchableText = (s) =>
@@ -25,7 +24,7 @@ export default function VerifiedSuppliersModal({ isOpen, onClose, onSelectSuppli
 
   const filtered = SUPPLIERS.filter((s) => {
     const text = searchableText(s);
-    const matchCat = !category?.match || category.match.test(text);
+    const matchCat = !category || category.id === 'All' || (s.categories || []).includes(category.id);
     const matchText = !query || text.includes(query);
     return matchCat && matchText;
   });

@@ -12,19 +12,23 @@ import {
   Megaphone,
   Download,
   Globe,
-  LayoutGrid
+  LayoutGrid,
+  NotebookPen,
+  Cpu,
+  Umbrella,
+  Leaf,
+  Gift,
+  Store,
+  PartyPopper
 } from 'lucide-react';
 import { PRESET_VENUES } from '../data/mockData';
 import AygoGoogleMap from './AygoGoogleMap';
 import RequestOffers from './RequestOffers';
-import { Sheet, Button, Input, ListRow, Section, Logo } from './ui';
+import { Sheet, Button, Input, ListRow, Section, Logo, TINTS } from './ui';
+import { CATALOG_CATEGORIES } from '../data/catalog';
 
-const CATEGORY_TILES = [
-  { id: 'apparel', label: 'Apparel', Icon: Shirt, tint: { bg: 'bg-blue-100', fg: 'text-[#003CF5]' } },
-  { id: 'event-print', label: 'Event Print', Icon: Printer, tint: { bg: 'bg-amber-100', fg: 'text-amber-600' } },
-  { id: 'drinkware', label: 'Drinkware', Icon: Coffee, tint: { bg: 'bg-emerald-100', fg: 'text-emerald-600' } },
-  { id: 'bags', label: 'Bags & Swag', Icon: ShoppingBag, tint: { bg: 'bg-rose-100', fg: 'text-rose-500' } }
-];
+const CHIP_ICONS = { Shirt, ShoppingBag, Coffee, Printer, NotebookPen, Cpu, Umbrella, Leaf, Gift, Package, Store, PartyPopper, Megaphone };
+const CATEGORY_CHIPS = CATALOG_CATEGORIES.map((c) => ({ ...c, Icon: CHIP_ICONS[c.icon] || Package }));
 
 const REQUEST_TYPES = [
   { mode: 'single', label: 'Single Category', hint: 'One item or service type', Icon: Tag, tint: { bg: 'bg-blue-100', fg: 'text-[#003CF5]' } },
@@ -44,6 +48,7 @@ export default function AygoSourcingView({
   onCompareBids,
   onOpenSponsorship,
   onOpenTools,
+  onOpenCatalog,
   onOpenWaitlist
 }) {
   const [localVenue, setLocalVenue] = useState(PRESET_VENUES[0]);
@@ -121,7 +126,7 @@ export default function AygoSourcingView({
 
             <button
               type="button"
-              onClick={() => onRequestNewJob && onRequestNewJob()}
+              onClick={() => onOpenCatalog()}
               className="w-full bg-[#F4F3F0] hover:bg-[#ECEAE5] px-4 py-4 rounded-2xl flex items-center gap-3 text-left transition-colors active:scale-[0.99]"
             >
               <Search className="w-5 h-5 text-slate-900 shrink-0" strokeWidth={2.5} />
@@ -152,19 +157,26 @@ export default function AygoSourcingView({
             </div>
 
             <div className="mt-3 flex gap-2 overflow-x-auto no-scrollbar -mx-3 px-3">
-              {CATEGORY_TILES.map(({ id, label, Icon, tint }) => (
+              {CATEGORY_CHIPS.map(({ id, short, Icon, tone }) => (
                 <button
                   key={id}
                   type="button"
-                  onClick={() => onRequestNewJob && onRequestNewJob('single', id)}
+                  onClick={() => onOpenCatalog(id)}
                   className="shrink-0 flex items-center gap-2 pl-1.5 pr-3.5 py-1.5 rounded-full bg-[#F4F3F0] hover:bg-[#ECEAE5] text-[13px] font-medium text-slate-800 transition-colors active:scale-95"
                 >
-                  <span className={`w-7 h-7 rounded-full flex items-center justify-center ${tint.bg}`}>
-                    <Icon className={`w-4 h-4 ${tint.fg}`} />
+                  <span className={`w-7 h-7 rounded-full flex items-center justify-center ${TINTS[tone]}`}>
+                    <Icon className="w-4 h-4" />
                   </span>
-                  {label}
+                  {short}
                 </button>
               ))}
+              <button
+                type="button"
+                onClick={() => onOpenCatalog()}
+                className="shrink-0 h-10 px-4 rounded-full border border-slate-200 text-[13px] font-medium text-[#003CF5] hover:bg-blue-50"
+              >
+                See all
+              </button>
             </div>
           </section>
 

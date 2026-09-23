@@ -37,6 +37,13 @@ const INCLUSIONS = {
   bags: ['Free digital proof', 'Reinforced handles', 'Folded + bundled per 50', 'Free delivery in Metro Manila'],
   eco: ['Eco kraft packaging', 'Free digital proof', 'Material sample photo'],
   booths: ['Site ocular', 'Installation + dismantling', 'Free digital layout'],
+  writing: ['Free digital proof', 'Engraving / deboss included', 'Individual sleeve packaging'],
+  tech: ['Free digital proof', 'Tested before packing', 'Individual gift box', '1-year replacement warranty'],
+  'rain-care': ['Free digital proof', 'Individual sleeve', 'Free delivery in Metro Manila'],
+  'gift-sets': ['Branded gift box', 'Custom message card', 'Kitting and packing per recipient', 'Free digital layout'],
+  packaging: ['Free dieline and proof', 'Flat-packed delivery', 'Free delivery in Metro Manila'],
+  'event-services': ['Ocular visit', 'Crew and set-up', 'Pack-up after the event'],
+  marketing: ['2 rounds of revisions', 'Source files included', 'Social-ready sizes'],
 };
 
 /** Builds one maker's offer for a request */

@@ -1,12 +1,12 @@
-export const CATEGORIES = [
-  { id: 'apparel', name: 'Apparel & Uniforms', count: 42, icon: 'Shirt' },
-  { id: 'bags', name: 'Bags & Totes', count: 28, icon: 'ShoppingBag' },
-  { id: 'drinkware', name: 'Drinkware & Tumblers', count: 35, icon: 'Coffee' },
-  { id: 'event-print', name: 'Event Print & Lanyards', count: 50, icon: 'Printer' },
-  { id: 'eco', name: 'Eco Line & Wooden Wares', count: 18, icon: 'Leaf' },
-  { id: 'tech', name: 'Tech & Gadgets', count: 22, icon: 'Cpu' },
-  { id: 'booths', name: 'Booths & Event Equipment', count: 15, icon: 'Layers' },
-];
+import { CATALOG, CATALOG_CATEGORIES } from './catalog';
+
+// Categories shown across the app; counts come from the catalog
+export const CATEGORIES = CATALOG_CATEGORIES.map((c) => ({
+  id: c.id,
+  name: c.name,
+  icon: c.icon,
+  count: CATALOG.filter((item) => item.category === c.id).length,
+}));
 
 export const PRESET_VENUES = [
   {
@@ -128,7 +128,7 @@ export const SUPPLIERS = [
   {
     id: 's2',
     shortName: 'Manila Bag Works',
-    categories: ['bags', 'eco'],
+    categories: ['bags', 'eco', 'packaging'],
     verified: true,
     km: 15.1,
     name: 'Manila Bag Works & Leathercraft',
@@ -163,11 +163,11 @@ export const SUPPLIERS = [
   {
     id: 's3',
     shortName: 'JJT Digital',
-    categories: ['event-print', 'apparel', 'booths'],
+    categories: ['event-print', 'apparel', 'booths', 'bags', 'drinkware', 'writing', 'tech', 'rain-care', 'eco', 'gift-sets', 'packaging', 'event-services', 'marketing'],
     verified: true,
     km: 11.8,
     name: 'JJT Digital Innovative Print',
-    tagline: 'Lanyards, ID badges, stickers, and roll-up event prints',
+    tagline: 'Corporate merchandise, gift sets, event set-ups and marketing support',
     badge: 'Verified Aygo Partner',
     rating: 4.9,
     reviewsCount: 215,
@@ -180,16 +180,18 @@ export const SUPPLIERS = [
     distanceFromVenue: '11.8 km from Makati',
     contactPerson: 'Sales Team JJT',
     phone: '+63 917 143 5890',
-    email: 'sales.jtdigital@gmail.com',
+    email: 'sales.jjtdigital@gmail.com',
     terms: '50% downpayment, balance on pickup',
     coverImage: 'https://images.unsplash.com/photo-1562654501-a0ccc0fc3fb1?auto=format&fit=crop&w=1200&q=80',
     avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=200&q=80',
-    bio: 'Industrial heat transfer and sublimation facility specializing in high-definition satin lanyards, RFID conference badges, weatherproof vinyl stickers, and pull-up banners. Rush 48-hour turnarounds available for approved graphics.',
+    bio: 'Corporate marketing partner since 2020. Customized merchandise (apparel, bags, drinkware, tech, rain gear, eco line), curated gift sets and occasion packages, plus event set-ups: booths, LED walls, photo booth, registration, hosts and documentation. Tell them what you have in mind and they tailor it.',
     services: [
-      { name: 'Full-Color Sublimation Lanyards', moq: 100, turnaround: '3-4 days', priceTier: 'Competitive' },
-      { name: 'RFID PVC Event Badges', moq: 100, turnaround: '3-5 days', priceTier: 'Tech Events' },
-      { name: 'Die-cut Matte/Glossy Sticker Packs', moq: 200, turnaround: '2-3 days', priceTier: 'Fast Run' },
-      { name: 'Retractable Aluminum Roll-Up Banners', moq: 1, turnaround: '24-48 hours', priceTier: 'Event Gear' }
+      { name: 'Sublimation Lanyards & PVC / QR IDs', moq: 100, turnaround: '3-4 days', priceTier: 'Competitive' },
+      { name: 'Apparel & Headwear (DTF, Sublimation, Embroidery)', moq: 30, turnaround: '5-7 days', priceTier: 'Mid-range' },
+      { name: 'Curated Corporate Gift Sets & Kits', moq: 20, turnaround: '7-10 days', priceTier: 'Premium' },
+      { name: 'Tech, Drinkware, Umbrellas & Eco Items', moq: 30, turnaround: '5-7 days', priceTier: 'Mid-range' },
+      { name: 'Booths, LED Walls, Photo Booth & Event Set-ups', moq: 1, turnaround: 'Book 1-2 weeks ahead', priceTier: 'Event Gear' },
+      { name: 'Pubmats, Campaign Materials & Digital Marketing', moq: 1, turnaround: '2-4 days', priceTier: 'Services' }
     ],
     supportedBlanks: ['Polyester Satin', 'Smooth Nylon Ribbon', 'Waterproof Vinyl Sheets', 'Matte Lam PVC'],
     dispatchOptions: ['Direct van courier', 'Grab Express', 'Lalamove', 'Airspeed Air Cargo'],
@@ -199,7 +201,7 @@ export const SUPPLIERS = [
   {
     id: 's4',
     shortName: 'Everyday Drinkware',
-    categories: ['drinkware', 'eco'],
+    categories: ['drinkware', 'eco', 'gift-sets'],
     verified: true,
     km: 19.5,
     name: 'Everyday Drinkware & Custom Vessels',
@@ -234,7 +236,7 @@ export const SUPPLIERS = [
   {
     id: 's5',
     shortName: 'Makati Print Hub',
-    categories: ['event-print', 'apparel', 'booths'],
+    categories: ['event-print', 'apparel', 'booths', 'event-services', 'marketing', 'packaging'],
     verified: true,
     km: 3.2,
     name: 'Makati Print Hub & Event Booths',
@@ -269,7 +271,7 @@ export const SUPPLIERS = [
   {
     id: 's6',
     shortName: 'Pasig Eco Wares',
-    categories: ['eco', 'bags', 'drinkware'],
+    categories: ['eco', 'bags', 'drinkware', 'writing'],
     verified: false,
     km: 7.9,
     name: 'Pasig Eco Wares Collective',
@@ -298,6 +300,41 @@ export const SUPPLIERS = [
     supportedBlanks: ['Bamboo', 'Cork', 'Abaca', 'Recycled PET Fabric'],
     dispatchOptions: ['Lalamove', 'Pickup at workshop'],
     pickupHours: 'Tuesday - Saturday: 10:00 AM - 6:00 PM',
+    proStorefront: false
+  },
+  {
+    id: 's7',
+    shortName: 'Divisoria Gadget Hub',
+    categories: ['tech', 'rain-care', 'writing', 'gift-sets', 'packaging'],
+    verified: true,
+    km: 9.6,
+    name: 'Divisoria Gadget & Giveaway Hub',
+    tagline: 'Powerbanks, umbrellas, notebooks and ready gift kits in bulk',
+    badge: 'Verified Aygo Partner',
+    rating: 4.5,
+    reviewsCount: 67,
+    onTimeRate: '96.9%',
+    avgLeadTime: '4-6 business days',
+    city: 'Manila',
+    address: 'Tabora St, Divisoria, Manila',
+    lat: 14.603,
+    lng: 120.975,
+    distanceFromVenue: '9.6 km from BGC',
+    contactPerson: 'Carlo Tan',
+    phone: '+63 917 555 0107',
+    email: 'orders@divigadget.example',
+    terms: '50% downpayment, balance on delivery',
+    coverImage: 'https://images.unsplash.com/photo-1519389950473-47ba0277781c?auto=format&fit=crop&w=1200&q=80',
+    avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=200&q=80',
+    bio: 'Bulk importer and printer of corporate giveaways: powerbanks, wireless chargers, fans, umbrellas, notebooks and pens, with in-house UV printing, engraving and kit packing.',
+    services: [
+      { name: 'UV Print & Engraving on Gadgets', moq: 30, turnaround: '4-6 days', priceTier: 'Competitive' },
+      { name: 'Umbrellas & Rain Gear Printing', moq: 30, turnaround: '5-7 days', priceTier: 'Competitive' },
+      { name: 'Gift Kit Assembly & Packaging', moq: 20, turnaround: '6-8 days', priceTier: 'Mid-range' }
+    ],
+    supportedBlanks: ['Powerbanks', 'Foldable Umbrellas', 'A5 Notebooks', 'Metal Pens', 'Gift Boxes'],
+    dispatchOptions: ['Lalamove', 'In-house courier', 'Pickup'],
+    pickupHours: 'Monday - Saturday: 8:00 AM - 6:00 PM',
     proStorefront: false
   }
 ];

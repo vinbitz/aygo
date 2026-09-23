@@ -36,18 +36,23 @@ export default function CreateRequestModal({
   initialDeliveryDate = '2026-10-15',
   initialMode = 'single',
   initialCategory = 'apparel',
+  initialTitle = '',
+  initialQuantity = '300',
+  initialBudget = '15000',
+  initialSpecs = '',
+  initialPrompt = '',
 }) {
   const [requestMode, setRequestMode] = useState(initialMode);
-  const [prompt, setPrompt] = useState('');
-  const [title, setTitle] = useState('');
+  const [prompt, setPrompt] = useState(initialPrompt);
+  const [title, setTitle] = useState(initialTitle);
   const [singleCategory, setSingleCategory] = useState(initialCategory || CATEGORIES[0].id);
   const [selectedCategories, setSelectedCategories] = useState(['apparel', 'event-print', 'bags']);
   const [packageBreakdown, setPackageBreakdown] = useState('');
-  const [quantity, setQuantity] = useState('300');
-  const [targetBudget, setTargetBudget] = useState('15000');
+  const [quantity, setQuantity] = useState(String(initialQuantity));
+  const [targetBudget, setTargetBudget] = useState(String(initialBudget));
   const [location, setLocation] = useState(initialLocation);
   const [deliveryDate, setDeliveryDate] = useState(toDateInput(initialDeliveryDate));
-  const [specs, setSpecs] = useState('');
+  const [specs, setSpecs] = useState(initialSpecs);
   const [mockupImg, setMockupImg] = useState(null);
   const [mockupName, setMockupName] = useState('');
 
@@ -225,7 +230,7 @@ export default function CreateRequestModal({
           <Field label={isPackage ? 'Attendee sets' : 'Quantity'}>
             <Input type="number" inputMode="numeric" min="1" value={quantity} onChange={(e) => setQuantity(e.target.value)} />
           </Field>
-          <Field label="Total budget (₱)" hint={`${peso(unitPrice, 2)} per ${isPackage ? 'set' : 'piece'}`}>
+          <Field label="Total budget (₱)" hint={Number(targetBudget) > 0 ? `${peso(unitPrice, 2)} per ${isPackage ? 'set' : 'piece'}` : 'Your max for the whole order'}>
             <Input type="number" inputMode="numeric" min="1" value={targetBudget} onChange={(e) => setTargetBudget(e.target.value)} />
           </Field>
         </div>

@@ -21,6 +21,7 @@ const SupplierOnboardingModal = lazy(() => import('./components/SupplierOnboardi
 const VerifiedSuppliersModal = lazy(() => import('./components/VerifiedSuppliersModal'));
 const RequestHistoryModal = lazy(() => import('./components/RequestHistoryModal'));
 const BiddingComparisonModal = lazy(() => import('./components/BiddingComparisonModal'));
+const CatalogSheet = lazy(() => import('./components/CatalogSheet'));
 const ToolsSheet = lazy(() => import('./components/ToolsSheet'));
 const EventWorkspace = lazy(() => import('./components/EventWorkspace'));
 const InternationalWaitlistModal = lazy(() => import('./components/InternationalWaitlistModal'));
@@ -48,6 +49,16 @@ export default function App() {
   const [isAppSettingsOpen, setIsAppSettingsOpen] = useState(false);
   const [createMode, setCreateMode] = useState('single');
   const [createCategory, setCreateCategory] = useState('apparel');
+  // Extra pre-fill for the request form (from the catalog or a typed search)
+  const [createPrefill, setCreatePrefill] = useState({});
+  const [catalogCategory, setCatalogCategory] = useState(undefined); // undefined = catalog closed
+
+  const openCreate = (mode = 'single', cat = 'apparel', prefill = {}) => {
+    setCreateMode(mode);
+    setCreateCategory(cat);
+    setCreatePrefill(prefill);
+    setIsCreateOpen(true);
+  };
   const [isCompareOpen, setIsCompareOpen] = useState(false);
   const [isWaitlistOpen, setIsWaitlistOpen] = useState(false);
   const [isWorkspaceOpen, setIsWorkspaceOpen] = useState(false);
@@ -187,11 +198,8 @@ export default function App() {
               setChatSupplier(supplier);
               setIsMessagesOpen(true);
             }}
-            onRequestNewJob={(mode = 'single', cat = 'apparel') => {
-              setCreateMode(mode);
-              setCreateCategory(cat);
-              setIsCreateOpen(true);
-            }}
+            onRequestNewJob={(mode = 'single', cat = 'apparel') => openCreate(mode, cat)}
+            onOpenCatalog={(cat = null) => setCatalogCategory(cat)}
             request={market.activeRequest}
             onAcceptBid={acceptOffer}
             onCompareBids={openCompare}
@@ -256,6 +264,7 @@ export default function App() {
           initialCategory={createCategory}
           initialLocation={`${activeVenue.name}, ${activeVenue.address}`}
           initialDeliveryDate={deliveryDate}
+          {...createPrefill}
           onClose={() => setIsCreateOpen(false)}
           onOpenMockupStudio={openMockup}
           onCreateRequest={(draft) => {
@@ -425,7 +434,7 @@ export default function App() {
           }}
           onNewRequest={() => {
             setIsWorkspaceOpen(false);
-            setIsCreateOpen(true);
+            openCreate();
           }}
           onOpenDocs={openDocs}
           onOpenMockup={openMockup}
@@ -434,6 +443,27 @@ export default function App() {
       )}
 
       {isToolsOpen && <ToolsSheet onClose={() => setIsToolsOpen(false)} onOpen={openTool} />}
+
+      {catalogCategory !== undefined && (
+        <CatalogSheet
+          initialCategory={catalogCategory}
+          onClose={() => setCatalogCategory(undefined)}
+          onDescribe={(text) => {
+            setCatalogCategory(undefined);
+            openCreate('single', 'apparel', text.trim() ? { initialPrompt: text.trim() } : {});
+          }}
+          onOrder={({ item, quantity, specs }) => {
+            setCatalogCategory(undefined);
+            const isCustomSet = item.id === 'custom-gift-set';
+            openCreate(isCustomSet ? 'package' : 'single', item.category, {
+              initialTitle: isCustomSet ? 'Custom gift set' : `${quantity} ${item.name.toLowerCase()}`,
+              initialQuantity: quantity,
+              initialBudget: '',
+              initialSpecs: specs,
+            });
+          }}
+        />
+      )}
 
       </Suspense>
     </div>
