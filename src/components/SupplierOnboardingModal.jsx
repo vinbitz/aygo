@@ -3,6 +3,7 @@ import {
   ArrowLeft,
   ArrowRight,
   Check,
+  X,
   Plus,
   ShieldCheck,
   Shirt,
@@ -139,7 +140,9 @@ const PLANS = [
     name: 'Free',
     price: '₱0',
     period: 'forever',
-    perks: ['Up to 5 product listings', 'Bid on open requests', 'Chat with organizers']
+    perks: ['Up to 5 product listings', 'Bid on open requests', 'Chat with organizers'],
+    // What Free doesn't include, so makers can see what they miss out on
+    missing: MAKER_PRO_PERKS.map((p) => p.title)
   },
   {
     id: 'pro',
@@ -572,6 +575,12 @@ export default function SupplierOnboardingModal({
                     <li key={perk} className="flex items-start gap-2 text-[14px] text-slate-700">
                       <Check className={cx('w-4 h-4 mt-0.5 shrink-0', isPro ? 'text-[#003CF5]' : 'text-emerald-600')} />
                       {perk}
+                    </li>
+                  ))}
+                  {p.missing?.map((perk) => (
+                    <li key={perk} className="flex items-start gap-2 text-[14px] text-slate-400">
+                      <X className="w-4 h-4 mt-0.5 shrink-0 text-rose-400" aria-hidden="true" />
+                      <span><span className="sr-only">Not included: </span>{perk}</span>
                     </li>
                   ))}
                 </ul>
