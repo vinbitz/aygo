@@ -14,6 +14,8 @@ import {
 } from 'lucide-react';
 import { SPONSORSHIP_LISTINGS } from '../data/mockData';
 import { toast } from '../lib/toast';
+import EventPhotos from './EventPhotos';
+import RegistrationLink from './RegistrationLink';
 import { Sheet, Button, Field, Input, Textarea, Tabs, Chip, Badge, Panel, IconCircle } from './ui';
 
 const toPeso = (s) => {
@@ -113,7 +115,7 @@ function PackageList({ packages }) {
   );
 }
 
-function OrganizerProfileForm({ profile, setProfile }) {
+function OrganizerProfileForm({ profile, setProfile, photos, onPhotosChange, registrationLink, onRegistrationLinkChange }) {
   const set = (key) => (e) => setProfile((p) => ({ ...p, [key]: e.target.value }));
   const toggleNeed = (need) =>
     setProfile((p) => ({
@@ -134,6 +136,17 @@ function OrganizerProfileForm({ profile, setProfile }) {
           Create an event sponsorship profile. Brands that support events like yours will see it and can reach out.
         </p>
       </Panel>
+
+      <div>
+        <span className="block mb-1.5 text-[13px] font-medium text-slate-700">Event photos</span>
+        <p className="mb-2 text-[12px] text-slate-500">Show brands what your event looks like: past editions, crowd, venue, booths.</p>
+        <EventPhotos photos={photos} onChange={onPhotosChange} compact />
+      </div>
+
+      <div>
+        <span className="block mb-1.5 text-[13px] font-medium text-slate-700">Registration link</span>
+        <RegistrationLink value={registrationLink} onChange={onRegistrationLinkChange} />
+      </div>
 
       <Field label="Event name">
         <Input required value={profile.eventName} onChange={set('eventName')} placeholder="e.g. UST Tech Week 2026" />
@@ -196,13 +209,17 @@ function OrganizerProfileForm({ profile, setProfile }) {
   );
 }
 
-function OrganizerProfileView({ profile, onEdit }) {
+function OrganizerProfileView({ profile, onEdit, photos, registrationLink }) {
   const matches = BRANDS.map((b) => ({ ...b, score: b.tags.filter((t) => profile.needs.includes(t)).length }))
     .sort((a, b) => b.score - a.score);
 
   return (
     <div className="space-y-5">
-      <div className="rounded-[28px] border border-slate-200 p-4 sm:p-5">
+      <div className="rounded-[28px] border border-slate-200 overflow-hidden">
+        {photos?.cover && (
+          <img src={photos.cover.src} alt={`${profile.eventName} cover`} className="w-full aspect-[21/9] object-cover" />
+        )}
+        <div className="p-4 sm:p-5">
         <div className="flex items-start gap-3">
           <IconCircle icon={GraduationCap} tone="violet" />
           <div className="flex-1 min-w-0">
@@ -220,6 +237,11 @@ function OrganizerProfileView({ profile, onEdit }) {
           {profile.audience && <Meta icon={GraduationCap}>{profile.audience}</Meta>}
           {profile.date && <Meta icon={Calendar}>{profile.date}</Meta>}
           {profile.socialReach && <Meta icon={Megaphone}>{profile.socialReach}</Meta>}
+          {registrationLink && (
+            <a href={registrationLink} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 text-[13px] font-medium text-[#003CF5] hover:underline">
+              <Link2 className="w-3.5 h-3.5" /> Event registration
+            </a>
+          )}
           {profile.deckLink && (
             <a href={profile.deckLink} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 text-[13px] font-medium text-[#003CF5] hover:underline">
               <Link2 className="w-3.5 h-3.5" /> Sponsorship deck
@@ -233,6 +255,14 @@ function OrganizerProfileView({ profile, onEdit }) {
         )}
         <div className="mt-4">
           <PackageList packages={profile.packages.filter((p) => p.tier)} />
+        </div>
+        {photos?.gallery?.length > 0 && (
+          <div className="mt-4 flex gap-2 overflow-x-auto no-scrollbar">
+            {photos.gallery.map((p) => (
+              <img key={p.id} src={p.src} alt={p.name || 'Event photo'} className="w-24 h-24 rounded-2xl object-cover shrink-0" />
+            ))}
+          </div>
+        )}
         </div>
       </div>
 
@@ -334,8 +364,9 @@ function BrandsView() {
   );
 }
 
-export default function SponsorshipConnectModal({ onClose }) {
-  const [activeTab, setActiveTab] = useState('organizers');
+export default function SponsorshipConnectModal({ onClose, photos, onPhotosChange, registrationLink, onRegistrationLinkChange }) {
+  // Brands view first: organizers see who sponsors events before creating a profile
+  const [activeTab, setActiveTab] = useState('brands');
   const [profile, setProfile] = useState(EMPTY_PROFILE);
   const [published, setPublished] = useState(false);
 
@@ -371,16 +402,16 @@ export default function SponsorshipConnectModal({ onClose }) {
         value={activeTab}
         onChange={setActiveTab}
         tabs={[
-          { id: 'organizers', label: 'For organizers', icon: GraduationCap },
-          { id: 'brands', label: 'For brands', icon: Building2 }
+          { id: 'brands', label: 'For brands', icon: Building2 },
+          { id: 'organizers', label: 'For organizers', icon: GraduationCap }
         ]}
       />
 
       {activeTab === 'organizers' ? (
         published ? (
-          <OrganizerProfileView profile={profile} onEdit={() => setPublished(false)} />
+          <OrganizerProfileView profile={profile} photos={photos} registrationLink={registrationLink} onEdit={() => setPublished(false)} />
         ) : (
-          <OrganizerProfileForm profile={profile} setProfile={setProfile} />
+          <OrganizerProfileForm profile={profile} setProfile={setProfile} photos={photos} onPhotosChange={onPhotosChange} registrationLink={registrationLink} onRegistrationLinkChange={onRegistrationLinkChange} />
         )
       ) : (
         <BrandsView />

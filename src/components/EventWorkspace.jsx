@@ -4,6 +4,8 @@ import {
 } from 'lucide-react';
 import { Sheet, Button, Badge, Section, ListRow, cx } from './ui';
 import { peso, shortDate } from '../lib/marketplace';
+import EventPhotos from './EventPhotos';
+import RegistrationLink from './RegistrationLink';
 
 const DEFAULT_CHECKLIST = [
   { id: 'venue', label: 'Confirm venue and delivery bay hours', done: true },
@@ -34,6 +36,10 @@ export default function EventWorkspace({
   onOpenDocs,
   onOpenMockup,
   onOpenSponsorship,
+  photos,
+  onPhotosChange,
+  registrationLink,
+  onRegistrationLinkChange,
 }) {
   const [checklist, setChecklist] = useState(DEFAULT_CHECKLIST);
 
@@ -59,6 +65,11 @@ export default function EventWorkspace({
       headerAction={<Badge tone="violet" icon={Crown} className="self-center">Pro</Badge>}
       footer={<Button size="lg" full icon={Plus} onClick={onNewRequest}>Add supplies to this event</Button>}
     >
+      {/* Event cover */}
+      {photos?.cover && (
+        <img src={photos.cover.src} alt="Event cover" className="w-full aspect-[21/9] object-cover rounded-[22px] mb-4" />
+      )}
+
       {/* Summary */}
       <div className="grid grid-cols-3 gap-2">
         <Stat label="Budget" value={peso(planned)} />
@@ -101,6 +112,15 @@ export default function EventWorkspace({
           })}
           {requests.length === 0 && <p className="text-[13px] text-slate-500">No supplies yet.</p>}
         </div>
+      </Section>
+
+      <Section title="Registration" className="pt-5">
+        <RegistrationLink value={registrationLink} onChange={onRegistrationLinkChange} />
+      </Section>
+
+      <Section title="Event photos">
+        <p className="mb-3 text-[13px] text-slate-500">Your cover and photos also show on your Sponsorship Connect profile.</p>
+        <EventPhotos photos={photos} onChange={onPhotosChange} />
       </Section>
 
       <Section title={`Event day checklist · ${doneCount}/${checklist.length}`}>

@@ -6,6 +6,7 @@ import { toast } from './lib/toast';
 import useMarketplace from './state/useMarketplace';
 import { usePro } from './state/pro';
 import { peso } from './lib/marketplace';
+import { EMPTY_EVENT_PHOTOS } from './lib/images';
 
 // Popups are loaded on first open so the home screen ships a smaller bundle
 const SupplierProfileModal = lazy(() => import('./components/SupplierProfileModal'));
@@ -64,6 +65,9 @@ export default function App() {
   const [isWorkspaceOpen, setIsWorkspaceOpen] = useState(false);
   const [setupSupplier, setSetupSupplier] = useState(null);
   const [isToolsOpen, setIsToolsOpen] = useState(false);
+  // Event cover + gallery, shared by the event workspace and Sponsorship Connect
+  const [eventPhotos, setEventPhotos] = useState(EMPTY_EVENT_PHOTOS);
+  const [registrationLink, setRegistrationLink] = useState('');
 
   // Pro tools: 3 free uses each on the Free plan, then the Aygo Pro paywall
   const pro = usePro();
@@ -309,6 +313,10 @@ export default function App() {
       {isSponsorshipOpen && (
         <SponsorshipConnectModal
           onClose={() => setIsSponsorshipOpen(false)}
+          photos={eventPhotos}
+          onPhotosChange={setEventPhotos}
+          registrationLink={registrationLink}
+          onRegistrationLinkChange={setRegistrationLink}
         />
       )}
 
@@ -439,6 +447,10 @@ export default function App() {
           onOpenDocs={openDocs}
           onOpenMockup={openMockup}
           onOpenSponsorship={() => setIsSponsorshipOpen(true)}
+          photos={eventPhotos}
+          onPhotosChange={setEventPhotos}
+          registrationLink={registrationLink}
+          onRegistrationLinkChange={setRegistrationLink}
         />
       )}
 
