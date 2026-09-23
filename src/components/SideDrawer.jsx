@@ -61,6 +61,7 @@ export default function SideDrawer({
   onOpenSuppliers,
   onOpenHistory,
   onOpenAvailability,
+  unreadMessages = 2,
   onOpenPro,
   isPro = false,
   onOpenReferral,
@@ -189,7 +190,7 @@ export default function SideDrawer({
               title="Messages"
               subtitle="Chat with your makers"
               onClick={go(onOpenMessages)}
-              trailing={<CountBadge count={2} />}
+              trailing={unreadMessages > 0 ? <CountBadge count={unreadMessages} /> : undefined}
             />
             <ListRow icon={Users} tone="green" title="Suppliers" subtitle="Browse verified makers" onClick={go(onOpenSuppliers)} />
             <ListRow icon={CalendarClock} tone="violet" title="My availability" subtitle="When you're free for calls" onClick={go(onOpenAvailability)} />
@@ -231,8 +232,9 @@ export default function SideDrawer({
               icon={Bell}
               tone="slate"
               title="Notifications"
-              onClick={go(() => toast('You have 4 new notifications.'))}
-              trailing={<CountBadge count={4} />}
+              subtitle="Offers, payments and messages"
+              onClick={go(onOpenMessages)}
+              trailing={unreadMessages > 0 ? <CountBadge count={unreadMessages} /> : undefined}
             />
             <ListRow
               icon={Settings}

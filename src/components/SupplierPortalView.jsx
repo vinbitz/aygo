@@ -26,10 +26,13 @@ import {
   Search,
   CornerDownRight,
   Users,
-  Boxes
+  Boxes,
+  FileText,
+  Crown
 } from 'lucide-react';
 import { SUPPLIERS } from '../data/mockData';
 import { MAKER_PRO_PRICE } from '../lib/pro';
+import { organizerParty } from '../lib/chatStore';
 import { toast } from '../lib/toast';
 import {
   Sheet,
@@ -241,7 +244,9 @@ export default function SupplierPortalView({
   onOpenDrawer,
   onSwitchToCustomer,
   onOpenChatWithCustomer,
-  onOpenMockupStudio
+  onOpenMockupStudio,
+  onOpenDocuments,
+  onOpenPro
 }) {
   const [activeTab, setActiveTab] = useState('requests');
   const [requestFilter, setRequestFilter] = useState('All');
@@ -282,9 +287,16 @@ export default function SupplierPortalView({
   const pendingCount = bids.filter((b) => b.status === 'Pending' || b.status === 'Countered').length;
   const activeOrders = orders.filter((o) => o.step < ORDER_STEPS.length).length;
 
-  const organizerChat = () => {
-    const contact = SUPPLIERS.find((s) => s.id === 's3') || SUPPLIERS[0];
-    onOpenChatWithCustomer?.(contact);
+  // Chat with the organizer behind a request, bid or order
+  const organizerChat = (ctx) => {
+    onOpenChatWithCustomer?.(organizerParty({
+      organizer: ctx.organizer,
+      item: ctx.item,
+      qty: ctx.qty,
+      budget: ctx.budget,
+      venue: ctx.venue,
+      deadline: ctx.deadline
+    }));
   };
 
   /* ---------- bids ---------- */
@@ -343,10 +355,10 @@ export default function SupplierPortalView({
       return;
     }
     submitBid();
-    const contact = SUPPLIERS.find((s) => s.id === 's3') || SUPPLIERS[0];
-    onOpenChatWithCustomer?.(contact, {
+    onOpenChatWithCustomer?.(organizerParty(bidReq), {
       id: `pkg-${Date.now()}`,
-      note: `Hi ${bidReq.organizer}! Here is our package. You can pay the downpayment right here in chat.`,
+      type: 'package',
+      text: `Hi ${bidReq.organizer}! Here is our package. You can pay the downpayment right here in chat.`,
       packageData: {
         title: bidReq.item,
         items: [{ name: bidReq.item, qty: bidReq.qty, unitPrice: price }],
@@ -374,6 +386,18 @@ export default function SupplierPortalView({
     const next = order.step + 1;
     setOrders((prev) => prev.map((o) => (o.id === order.id ? { ...o, step: next } : o)));
     toast(next >= ORDER_STEPS.length ? 'Marked as dispatched. Organizer notified' : `${ORDER_STEPS[order.step]} done. Organizer notified`);
+    // Demo: the organizer confirms delivery a moment later, which releases the payout
+    if (next >= ORDER_STEPS.length) {
+      setTimeout(() => {
+        setOrders((prev) => prev.map((o) => (o.id === order.id ? { ...o, received: true } : o)));
+        toast(`${order.organizer} confirmed delivery. ${peso(order.payout)} released to your Aygo wallet.`);
+      }, 4000);
+    }
+  };
+
+  const withdraw = (order) => {
+    setOrders((prev) => prev.map((o) => (o.id === order.id ? { ...o, withdrawn: true } : o)));
+    toast(`${peso(order.payout)} is on its way to your GCash. Usually within 1 business day.`);
   };
 
   /* ---------- storefront ---------- */
@@ -518,7 +542,7 @@ export default function SupplierPortalView({
                 </>
               ) : (
                 <>
-                  <Button variant="secondary" icon={MessageSquare} onClick={organizerChat} aria-label="Message organizer">
+                  <Button variant="secondary" icon={MessageSquare} onClick={() => organizerChat(req)} aria-label="Message organizer">
                     <span className="hidden sm:inline">Ask</span>
                   </Button>
                   <Button className="flex-1" icon={Gavel} onClick={() => openBid(req)}>
@@ -595,7 +619,7 @@ export default function SupplierPortalView({
                     {peso(bid.counter)}/pc · {peso(bid.counter * bid.qty)}
                   </p>
                 </div>
-                <Button variant="outline" onClick={organizerChat}>Reply</Button>
+                <Button variant="outline" onClick={() => organizerChat(bid)}>Reply</Button>
                 <Button onClick={() => acceptCounter(bid)}>Accept</Button>
               </Panel>
             )}
@@ -639,7 +663,13 @@ export default function SupplierPortalView({
 
             <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1">
               <Meta icon={MapPin}>{order.venue}</Meta>
-              <Meta icon={Package}>{peso(order.payout)} payout, held by Aygo</Meta>
+              <Meta icon={Package}>
+                {order.withdrawn
+                  ? `${peso(order.payout)} sent to your GCash`
+                  : order.received
+                    ? `${peso(order.payout)} released to your wallet`
+                    : `${peso(order.payout)} payout, held by Aygo until the organizer confirms delivery`}
+              </Meta>
             </div>
 
             <div className="mt-4">
@@ -652,10 +682,20 @@ export default function SupplierPortalView({
                   Proof
                 </Button>
               )}
-              <Button variant="secondary" icon={MessageSquare} onClick={organizerChat} aria-label="Message organizer" />
-              <Button className="flex-1" disabled={finished} icon={finished ? Check : undefined} onClick={() => advanceOrder(order)}>
-                {finished ? 'Completed' : order.step === ORDER_STEPS.length - 1 ? 'Mark dispatched' : `${ORDER_STEPS[order.step]} done`}
-              </Button>
+              <Button variant="secondary" icon={MessageSquare} onClick={() => organizerChat(order)} aria-label="Message organizer" />
+              {finished ? (
+                order.received ? (
+                  <Button className="flex-1" disabled={order.withdrawn} icon={order.withdrawn ? Check : undefined} onClick={() => withdraw(order)}>
+                    {order.withdrawn ? 'Withdrawn' : `Withdraw ${peso(order.payout)}`}
+                  </Button>
+                ) : (
+                  <Button className="flex-1" disabled>Waiting for delivery confirmation</Button>
+                )
+              ) : (
+                <Button className="flex-1" onClick={() => advanceOrder(order)}>
+                  {order.step === ORDER_STEPS.length - 1 ? 'Mark dispatched' : `${ORDER_STEPS[order.step]} done`}
+                </Button>
+              )}
             </div>
           </article>
         );
@@ -678,6 +718,7 @@ export default function SupplierPortalView({
           <span className="ml-2 text-slate-400 line-through">₱{MAKER_PRO_PRICE.monthly.toLocaleString('en-PH')}</span>
         </p>
         <p className="text-[12.5px] text-emerald-800/80">Then ₱{MAKER_PRO_PRICE.monthly.toLocaleString('en-PH')}/month. Cancel anytime.</p>
+        <Button className="mt-2.5" full icon={Crown} onClick={() => onOpenPro?.()}>Start Pro</Button>
       </div>
       <div className="mt-2 divide-y divide-slate-100">
         {PRO_PERKS.map((p) => (
@@ -688,8 +729,11 @@ export default function SupplierPortalView({
         <Button variant="secondary" icon={Wand2} onClick={() => onOpenMockupStudio?.()}>
           Try mockups
         </Button>
-        <Button className="flex-1" icon={PhoneCall} onClick={() => toast('Thanks! Our team will call you within 1 business day')}>
-          Book a call
+        <Button variant="secondary" icon={FileText} onClick={() => onOpenDocuments?.()}>
+          Documents
+        </Button>
+        <Button className="flex-1" icon={PhoneCall} onClick={() => toast('Thanks! The Aygo team will call you within 1 business day about Pro.')}>
+          Talk to Aygo
         </Button>
       </div>
     </section>

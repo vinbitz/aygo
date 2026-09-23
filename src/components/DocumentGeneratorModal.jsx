@@ -16,6 +16,7 @@ import {
   FileSignature
 } from 'lucide-react';
 import { toast } from '../lib/toast';
+import { downloadDocument } from '../lib/chatDocs';
 import { INITIAL_REQUESTS } from '../data/mockData';
 import { Sheet, Button, Field, Input, Tabs, Chip, cx, Logo } from './ui';
 
@@ -284,7 +285,7 @@ function DocumentPreview({ doc, brand, logo }) {
   );
 }
 
-export default function DocumentGeneratorModal({ onClose }) {
+export default function DocumentGeneratorModal({ onClose, onAttach }) {
   const [selectedDoc, setSelectedDoc] = useState(DOC_TYPES[0]);
   const [brand, setBrand] = useState({
     name: REQUEST.client,
@@ -322,14 +323,19 @@ export default function DocumentGeneratorModal({ onClose }) {
             variant="secondary"
             icon={MessageSquare}
             className="flex-1 sm:flex-none"
-            onClick={() => toast(`${selectedDoc.name} attached to “${REQUEST.title}”.`)}
+            onClick={() => onAttach?.({ name: `${selectedDoc.name} — ${REQUEST.title}.pdf`, meta: `${selectedDoc.desc} · Made with Aygo` })}
           >
             Attach to chat
           </Button>
           <Button
             icon={Download}
             className="flex-1 sm:flex-none"
-            onClick={() => toast(`Downloading ${selectedDoc.name} as PDF.`)}
+            onClick={() => downloadDocument({ name: `${selectedDoc.name} — ${REQUEST.title}.pdf`, meta: selectedDoc.desc }, [
+              `Issued by: ${brand.name}`,
+              ...LINE_ITEMS.map((i) => `${i.qty} × ${i.desc}: ${peso(i.qty * i.unit)}`),
+              `Total: ${peso(subtotal)}`,
+              `Date: ${DATE}`
+            ])}
           >
             Download PDF
           </Button>

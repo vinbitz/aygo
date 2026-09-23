@@ -5,7 +5,7 @@ import { maskContactInfo } from '../lib/contactGuard';
 import { toast } from '../lib/toast';
 import { canCall } from '../lib/pro';
 import { packageAmount, SPONSOR_PAY_METHODS } from '../lib/sponsorDeals';
-import { FileRequestCard, BrandFilesCard } from './BrandFiles';
+import { FileRequestCard, BrandFilesCard, ProofCard } from './BrandFiles';
 import { SchedulePanel, MeetingCard } from './ScheduleCall';
 import { ProChip, DocumentPicker, DocumentCard } from './ChatTools';
 import { SPONSOR_DOCS } from '../lib/chatDocs';
@@ -80,7 +80,7 @@ function SelectionCard({ m, canPay, onPay }) {
   );
 }
 
-export default function SponsorChat({ threads, activeId, onOpen, onBack, onSend, onCall, viewerIsPro, onChoosePackage, onPayPackage, onSendPackages, onRequestFiles, onSendFiles, brandKit, onBookCall, onSendDocument }) {
+export default function SponsorChat({ threads, activeId, onOpen, onBack, onSend, onCall, viewerIsPro, onChoosePackage, onPayPackage, onSendPackages, onRequestFiles, onSendFiles, brandKit, onBookCall, onSendDocument, onSendProof, onAnswerProof }) {
   const active = threads.find((t) => t.id === activeId);
   const [draft, setDraft] = useState('');
   const [scheduling, setScheduling] = useState(false);
@@ -208,6 +208,9 @@ export default function SponsorChat({ threads, activeId, onOpen, onBack, onSend,
             )}
             {m.type === 'brand_files' && <BrandFilesCard m={m} />}
             {m.type === 'document' && <DocumentCard doc={m.doc} />}
+            {m.type === 'proof' && (
+              <ProofCard m={m} canAnswer={m.from === 'them' && Boolean(onAnswerProof)} onAnswer={(msgId, ok) => onAnswerProof(active.id, msgId, ok)} />
+            )}
             {m.type === 'meeting' && (
               <MeetingCard
                 meeting={m.meeting}
@@ -228,11 +231,12 @@ export default function SponsorChat({ threads, activeId, onOpen, onBack, onSend,
       {(onSendPackages || onRequestFiles || onBookCall) && (
         <div className="px-3 pt-2 flex gap-2 overflow-x-auto no-scrollbar">
           {onSendDocument && (
-            <ProChip feature="documents" icon={FileText} gateOnClick={false} onClick={() => setPickingDoc(true)}>Documents</ProChip>
+            <ProChip feature="documents" plan="sponsorship" icon={FileText} gateOnClick={false} onClick={() => setPickingDoc(true)}>Documents</ProChip>
           )}
           {onBookCall && <Chip icon={CalendarClock} onClick={() => setScheduling(true)}>Book a call</Chip>}
           {onSendPackages && <Chip icon={Gift} onClick={() => onSendPackages(active.id)}>Send our packages</Chip>}
           {onRequestFiles && <Chip icon={FolderUp} onClick={() => onRequestFiles(active.id)}>Request brand files</Chip>}
+          {onSendProof && <Chip icon={CheckCheck} onClick={() => onSendProof(active.id)}>Send proof</Chip>}
         </div>
       )}
       <div className="flex items-center gap-2 px-3 pt-2">
@@ -263,7 +267,7 @@ export default function SponsorChat({ threads, activeId, onOpen, onBack, onSend,
           onPick={(d) => pro.gate('documents', () => {
             setPickingDoc(false);
             onSendDocument(active.id, { name: `${d.name} — ${active.name}.pdf`, meta: d.meta });
-          })}
+          }, 'sponsorship')}
         />
       )}
       {scheduling && (

@@ -135,7 +135,10 @@ export default function SupplierProfileModal({
   onAcceptBid,
   onOpenChat,
   onOpenSupplierSetup,
-  liveOffer
+  liveOffer,
+  onCounter,
+  onInvite,
+  onCallBooked
 }) {
   const [activeTab, setActiveTab] = useState('about');
   const [counterPrice, setCounterPrice] = useState('');
@@ -176,7 +179,8 @@ export default function SupplierProfileModal({
       toast('Enter a price per piece for your counter-offer.');
       return;
     }
-    toast(`Counter-offer of ${peso(value)}/pc sent to ${supplier.name}.`);
+    if (onCounter && !onCounter(supplier, value)) return;
+    if (!onCounter) toast(`Counter-offer of ${peso(value)}/pc sent to ${supplier.name}.`);
     setShowCounterInput(false);
     setCounterPrice('');
   };
@@ -184,7 +188,8 @@ export default function SupplierProfileModal({
   const confirmCall = () => {
     setCallBooked(true);
     setIsBookingCall(false);
-    toast(`Call booked for ${callDay}, ${callTime}. ${supplier.contactPerson || 'The supplier'} gets it by email and calendar invite.`);
+    if (onCallBooked) onCallBooked(supplier, `${callDay}, ${callTime}`);
+    else toast(`Call booked for ${callDay}, ${callTime}.`);
   };
 
   // ---- Book-a-call view (Pro storefronts) ----
@@ -540,7 +545,7 @@ export default function SupplierProfileModal({
               action={
                 <Button
                   variant="outline"
-                  onClick={() => toast(`Invite sent. ${supplier.name} will be notified of your open request.`)}
+                  onClick={() => (onInvite ? onInvite(supplier) : toast(`Invite sent to ${supplier.name}.`))}
                 >
                   Invite to bid
                 </Button>

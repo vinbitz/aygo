@@ -20,6 +20,7 @@ const DEFAULT_CHECKLIST = [
 const STATUS = {
   booked: { label: 'Booked', tone: 'green' },
   bidding: { label: 'Getting offers', tone: 'blue' },
+  completed: { label: 'Delivered', tone: 'green' },
 };
 
 /**
@@ -49,7 +50,7 @@ export default function EventWorkspace({
     const bid = r.bids.find((b) => b.id === r.acceptedBidId);
     return sum + (bid ? bid.total : 0);
   }, 0);
-  const booked = requests.filter((r) => r.status === 'booked').length;
+  const booked = requests.filter((r) => r.status === 'booked' || r.status === 'completed').length;
   const doneCount = checklist.filter((c) => c.done).length;
   const nextDeadline = requests
     .map((r) => r.deliveryDate)

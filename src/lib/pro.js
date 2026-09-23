@@ -36,5 +36,33 @@ export const MAKER_PERKS = [
   },
 ];
 
-// Aygo Pro for makers: intro price for the first month, then the regular monthly price
-export const MAKER_PRO_PRICE = { firstMonth: 999, monthly: 1500 };
+// Three Pro plans, one per interface. Each has a discounted first month.
+export const PRO_PLANS = {
+  organizer: {
+    id: 'organizer',
+    name: 'Aygo Pro for Organizers',
+    tagline: 'Your event sourcing workspace.',
+    headline: 'Plan every event in one place.',
+    firstMonth: 149,
+    monthly: 299,
+    yearly: 2990,
+  },
+  maker: {
+    id: 'maker',
+    name: 'Aygo Pro for Suppliers',
+    tagline: 'Win more jobs and grow your storefront.',
+    headline: 'Win more jobs, faster.',
+    firstMonth: 999,
+    monthly: 1500,
+  },
+  sponsorship: {
+    id: 'sponsorship',
+    name: 'Sponsorship Connect Pro',
+    tagline: 'Close more sponsorship deals.',
+    headline: 'Close more sponsorship deals.',
+    firstMonth: 999,
+    monthly: 1500,
+  },
+};
+
+export const MAKER_PRO_PRICE = { firstMonth: PRO_PLANS.maker.firstMonth, monthly: PRO_PLANS.maker.monthly };

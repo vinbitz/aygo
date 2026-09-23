@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Clock, ChevronRight, MapPin, Inbox } from 'lucide-react';
+import { Clock, ChevronRight, MapPin, Inbox, RotateCcw } from 'lucide-react';
+import { peso, shortDate } from '../lib/marketplace';
 import { Sheet, Badge, Chip, EmptyState } from './ui';
 
 const FILTERS = [
@@ -8,22 +9,27 @@ const FILTERS = [
   { id: 'done', label: 'Completed' }
 ];
 
-export default function RequestHistoryModal({ isOpen, onClose, activeItem, onOpenItem, onSelectRequest }) {
+export default function RequestHistoryModal({ isOpen, onClose, onOpenItem, onSelectRequest, requests = [], onReorder }) {
   const [filter, setFilter] = useState('all');
 
   if (!isOpen) return null;
 
+  const STATUS = { bidding: 'Collecting bids', booked: 'In production', completed: 'Delivered' };
+  // Live requests from this session, then earlier orders
+  const live = requests.map((r) => ({
+    id: r.id,
+    marketId: r.id,
+    title: r.title,
+    qty: `${r.quantity} ${r.unit || 'pcs'}`,
+    budget: peso(r.targetBudget),
+    status: STATUS[r.status] || 'Collecting bids',
+    bids: r.bids.length,
+    date: shortDate(r.deliveryDate),
+    venue: r.location,
+    isActive: r.status !== 'completed'
+  }));
   const pastRequests = [
-    {
-      id: 'req-01',
-      title: activeItem?.title || '300 Customized Satin Lanyards',
-      qty: activeItem?.qty || '300 pcs',
-      budget: activeItem?.budget || '₱15,000',
-      status: 'Collecting bids',
-      bids: 4,
-      date: 'Oct 15, 2026',
-      isActive: true
-    },
+    ...live,
     {
       id: 'req-02',
       title: '500 Dri-Fit Event Shirts for Run Manila',
@@ -86,11 +92,11 @@ export default function RequestHistoryModal({ isOpen, onClose, activeItem, onOpe
       ) : (
         <ul className="space-y-3">
           {visible.map((req) => {
-            const Tag = req.isActive ? 'button' : 'div';
+            const Tag = req.isActive || req.marketId ? 'button' : 'div';
             return (
               <li key={req.id}>
                 <Tag
-                  {...(req.isActive ? { type: 'button', onClick: () => openRequest(req) } : {})}
+                  {...(Tag === 'button' ? { type: 'button', onClick: () => openRequest(req) } : {})}
                   className={`w-full text-left rounded-2xl p-4 transition-colors ${
                     req.isActive
                       ? 'bg-white border border-[#003CF5]/30 shadow-sm hover:border-[#003CF5]/60 active:scale-[0.99]'
@@ -99,7 +105,7 @@ export default function RequestHistoryModal({ isOpen, onClose, activeItem, onOpe
                 >
                   <div className="flex items-center justify-between gap-2">
                     <Badge tone={req.isActive ? 'blue' : 'green'}>
-                      {req.isActive ? `${req.status} · ${req.bids} bids` : req.status}
+                      {req.status === 'Collecting bids' ? `${req.status} · ${req.bids} offers` : req.status}
                     </Badge>
                     <span className="text-[12px] text-slate-500 shrink-0">
                       {req.isActive ? 'Needed by' : 'Delivered'} {req.date}
@@ -114,13 +120,21 @@ export default function RequestHistoryModal({ isOpen, onClose, activeItem, onOpe
                   <div className="mt-3 pt-3 border-t border-slate-200/70 flex items-center justify-between gap-2">
                     <span className="flex items-center gap-1.5 min-w-0 text-[13px] text-slate-500">
                       <MapPin className="w-3.5 h-3.5 shrink-0" />
-                      <span className="truncate">Arthaland Century Pacific Tower, BGC</span>
+                      <span className="truncate">{req.venue || 'Arthaland Century Pacific Tower, BGC'}</span>
                     </span>
-                    {req.isActive && (
+                    {req.isActive || req.marketId ? (
                       <span className="flex items-center gap-0.5 text-[13px] font-semibold text-[#003CF5] shrink-0">
-                        View bids
+                        {req.status === 'Collecting bids' ? 'View offers' : 'Track order'}
                         <ChevronRight className="w-4 h-4" />
                       </span>
+                    ) : onReorder && (
+                      <button
+                        type="button"
+                        onClick={() => { onReorder(req); onClose(); }}
+                        className="flex items-center gap-1 h-9 px-3 rounded-full bg-white text-[13px] font-semibold text-[#003CF5] shrink-0"
+                      >
+                        <RotateCcw className="w-3.5 h-3.5" /> Order again
+                      </button>
                     )}
                   </div>
                 </Tag>

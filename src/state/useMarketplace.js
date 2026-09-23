@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useReducer, useRef } from 'react';
-import { makeBid, matchSuppliers, respondToCounter } from '../lib/marketplace';
+import { makeBid, matchSuppliers, respondToCounter, ORDER_STEPS } from '../lib/marketplace';
 
 // Demo request shown on first load, with its offers already in
 const SEED_REQUEST = {
@@ -72,6 +72,13 @@ function reducer(state, action) {
             : b
         ),
       }));
+    case 'advance':
+      return updateRequest(state, action.requestId, (r) => ({ ...r, orderStep: Math.min(ORDER_STEPS.length - 1, r.orderStep + 1) }));
+    // Organizer confirms the delivery: Aygo releases the held payment to the maker
+    case 'receive':
+      return updateRequest(state, action.requestId, (r) => ({ ...r, status: 'completed', received: true, paymentReleased: true }));
+    case 'rate':
+      return updateRequest(state, action.requestId, (r) => ({ ...r, rating: { stars: action.stars, comment: action.comment } }));
     case 'select':
       return { ...state, activeRequestId: action.id };
     default:
@@ -105,7 +112,19 @@ export default function useMarketplace({ onEvent } = {}) {
     return request;
   }, []);
 
-  const acceptBid = useCallback((requestId, bidId) => dispatch({ type: 'accept', requestId, bidId }), []);
+  // Accepting starts production; the maker's progress updates arrive over time
+  const acceptBid = useCallback((requestId, bidId) => {
+    dispatch({ type: 'accept', requestId, bidId });
+    ORDER_STEPS.slice(1).forEach((step, i) =>
+      later(() => {
+        dispatch({ type: 'advance', requestId });
+        if (i === ORDER_STEPS.length - 2) onEventRef.current?.({ type: 'dispatched', requestId });
+      }, 7000 * (i + 1))
+    );
+  }, []);
+
+  const confirmReceived = useCallback((requestId) => dispatch({ type: 'receive', requestId }), []);
+  const rateOrder = useCallback((requestId, stars, comment) => dispatch({ type: 'rate', requestId, stars, comment }), []);
 
   const counterBid = useCallback((request, bid, price) => {
     dispatch({ type: 'counter', requestId: request.id, bidId: bid.id, price });
@@ -119,7 +138,7 @@ export default function useMarketplace({ onEvent } = {}) {
   const selectRequest = useCallback((id) => dispatch({ type: 'select', id }), []);
 
   const activeRequest = state.requests.find((r) => r.id === state.activeRequestId) || null;
-  const matchesMade = state.requests.filter((r) => r.status === 'booked').length;
+  const matchesMade = state.requests.filter((r) => r.status === 'booked' || r.status === 'completed').length;
 
-  return { ...state, activeRequest, matchesMade, createRequest, acceptBid, counterBid, selectRequest };
+  return { ...state, activeRequest, matchesMade, createRequest, acceptBid, counterBid, selectRequest, confirmReceived, rateOrder };
 }

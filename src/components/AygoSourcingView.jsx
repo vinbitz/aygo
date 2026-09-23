@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import {
+  MessageSquare,
   MapPin,
   Search,
   Check,
@@ -46,8 +47,12 @@ export default function AygoSourcingView({
   request,
   onAcceptBid,
   onCompareBids,
+  onConfirmReceived,
+  onRateOrder,
   onOpenSponsorship,
   onOpenTools,
+  onOpenMessages,
+  unreadMessages = 0,
   onOpenCatalog,
   onOpenWaitlist
 }) {
@@ -103,6 +108,7 @@ export default function AygoSourcingView({
 
       {/* Floating shortcuts on the map (the sheet scrolls over them on phones) */}
       <div className="desk-zoom absolute z-20 right-4 bottom-[calc(58vh+72px)] lg:right-6 lg:bottom-20 flex flex-col items-end gap-2.5">
+        <FloatingButton icon={MessageSquare} tone="text-emerald-600" label="Chats" badge={unreadMessages} onClick={onOpenMessages} />
         <FloatingButton icon={Megaphone} tone="text-rose-500" label="Sponsors" onClick={onOpenSponsorship} />
         <FloatingButton icon={LayoutGrid} tone="text-[#003CF5]" label="Tools" onClick={onOpenTools} />
       </div>
@@ -181,6 +187,8 @@ export default function AygoSourcingView({
             request={request}
             onAccept={onAcceptBid}
             onCompare={onCompareBids}
+            onConfirmReceived={onConfirmReceived}
+            onRate={onRateOrder}
             onChat={onOpenChatWithSupplier}
             onViewSupplier={onSelectSupplier}
             onNewRequest={() => onRequestNewJob && onRequestNewJob()}
@@ -255,16 +263,19 @@ export default function AygoSourcingView({
   );
 }
 
-function FloatingButton({ icon: Icon, tone, label, onClick }) {
+function FloatingButton({ icon: Icon, tone, label, onClick, badge = 0 }) {
   return (
     <button
       type="button"
       onClick={onClick}
-      aria-label={label}
-      className="h-11 pl-3 pr-3.5 rounded-full bg-white shadow-xl border border-slate-200/80 flex items-center gap-2 text-[13px] font-semibold text-slate-800 hover:bg-slate-50 active:scale-95 transition-all"
+      aria-label={badge ? `${label}, ${badge} unread` : label}
+      className="relative h-11 pl-3 pr-3.5 rounded-full bg-white shadow-xl border border-slate-200/80 flex items-center gap-2 text-[13px] font-semibold text-slate-800 hover:bg-slate-50 active:scale-95 transition-all"
     >
       <Icon className={`w-5 h-5 ${tone}`} />
       {label}
+      {badge > 0 && (
+        <span className="absolute -top-1.5 -right-1.5 min-w-5 h-5 px-1 rounded-full bg-[#003CF5] text-white text-[11px] font-semibold flex items-center justify-center">{badge}</span>
+      )}
     </button>
   );
 }

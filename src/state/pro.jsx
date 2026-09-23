@@ -27,7 +27,8 @@ const ProContext = createContext(null);
 
 export function ProProvider({ children }) {
   const [state, setState] = useState(load);
-  const [paywallFeature, setPaywallFeature] = useState(undefined); // undefined = closed, null = opened without a feature
+  // undefined = closed; otherwise { feature (or null), plan: 'organizer' | 'maker' | 'sponsorship' }
+  const [paywall, setPaywall] = useState(undefined);
 
   const update = useCallback((next) => {
     setState((prev) => {
@@ -44,11 +45,11 @@ export function ProProvider({ children }) {
 
   /** Runs fn if the user is Pro or still has free uses of the feature; otherwise opens the paywall */
   const gate = useCallback(
-    (feature, fn) => {
+    (feature, fn, plan = 'organizer') => {
       if (state.isPro || (state.isMaker && MAKER_FREE_FEATURES.includes(feature))) return fn?.();
       const used = state.used[feature] || 0;
       if (used >= FREE_USES) {
-        setPaywallFeature(feature);
+        setPaywall({ feature, plan });
         return undefined;
       }
       update((prev) => ({ ...prev, used: { ...prev.used, [feature]: used + 1 } }));
@@ -72,15 +73,15 @@ export function ProProvider({ children }) {
       registerMaker: () => update((prev) => ({ ...prev, isMaker: true })),
       remaining,
       gate,
-      openPaywall: (feature = null) => setPaywallFeature(feature),
+      openPaywall: (feature = null, plan = 'organizer') => setPaywall({ feature, plan }),
       upgrade: () => {
         update((prev) => ({ ...prev, isPro: true }));
-        setPaywallFeature(undefined);
+        setPaywall(undefined);
         toast('Welcome to Aygo Pro. Every tool is now unlimited.');
       },
       downgrade: () => {
         update((prev) => ({ isPro: false, isMaker: prev.isMaker, used: {} }));
-        setPaywallFeature(undefined);
+        setPaywall(undefined);
         toast('Back on the Free plan (demo reset)');
       },
     }),
@@ -90,11 +91,12 @@ export function ProProvider({ children }) {
   return (
     <ProContext.Provider value={value}>
       {children}
-      {paywallFeature !== undefined && (
+      {paywall !== undefined && (
         <ProUpgradeSheet
-          feature={paywallFeature}
+          feature={paywall.feature}
+          plan={paywall.plan}
           isPro={state.isPro}
-          onClose={() => setPaywallFeature(undefined)}
+          onClose={() => setPaywall(undefined)}
           onUpgrade={value.upgrade}
           onDowngrade={value.downgrade}
         />

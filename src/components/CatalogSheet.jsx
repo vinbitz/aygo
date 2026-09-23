@@ -45,7 +45,7 @@ function ItemCard({ item, onOpen }) {
  * "Find anything": searchable catalog of products, gift sets and event services.
  * Picking an item sends a pre-filled request to matching makers.
  */
-export default function CatalogSheet({ initialCategory = null, onClose, onOrder, onDescribe }) {
+export default function CatalogSheet({ initialCategory = null, onClose, onOrder, onDescribe, onViewMaker }) {
   const [query, setQuery] = useState('');
   const [category, setCategory] = useState(initialCategory);
   const [occasion, setOccasion] = useState(null);
@@ -55,7 +55,7 @@ export default function CatalogSheet({ initialCategory = null, onClose, onOrder,
   const browsing = !query.trim() && !category && !occasion;
 
   if (selected) {
-    return <ItemDetail item={selected} onBack={() => setSelected(null)} onClose={onClose} onOrder={onOrder} />;
+    return <ItemDetail item={selected} onBack={() => setSelected(null)} onClose={onClose} onOrder={onOrder} onViewMaker={onViewMaker} />;
   }
 
   return (
@@ -173,7 +173,7 @@ export default function CatalogSheet({ initialCategory = null, onClose, onOrder,
   );
 }
 
-function ItemDetail({ item, onBack, onClose, onOrder }) {
+function ItemDetail({ item, onBack, onClose, onOrder, onViewMaker }) {
   const cat = categoryOf(item.category);
   const makers = matchSuppliers({ categories: [item.category] });
   const [choices, setChoices] = useState(() =>
@@ -258,11 +258,17 @@ function ItemDetail({ item, onBack, onClose, onOrder }) {
       <Section title={`${makers.length} makers make this`}>
         <div className="space-y-1">
           {makers.map((m) => (
-            <div key={m.id} className="flex items-center gap-2 text-[14px]">
+            <button
+              key={m.id}
+              type="button"
+              onClick={() => onViewMaker?.(m)}
+              className="w-full flex items-center gap-2 text-[14px] text-left rounded-xl -mx-2 px-2 min-h-[40px] hover:bg-[#F4F3F0]"
+            >
               <span className="font-medium text-slate-900 truncate">{m.shortName}</span>
               {m.verified && <BadgeCheck className="w-4 h-4 text-[#003CF5] shrink-0" aria-label="Verified" />}
-              <span className="text-slate-500 truncate">· {m.city} · ★ {m.rating}</span>
-            </div>
+              <span className="flex-1 text-slate-500 truncate">· {m.city} · ★ {m.rating}</span>
+              <span className="text-[12px] font-medium text-[#003CF5] shrink-0">View</span>
+            </button>
           ))}
         </div>
       </Section>

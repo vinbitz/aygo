@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Handshake,
   Users,
@@ -31,9 +31,10 @@ import { EMPTY_BRAND } from '../lib/brands';
 import CallScreen from './CallScreen';
 import { callLength } from '../lib/calls';
 import { usePro } from '../state/pro';
-import { canCall } from '../lib/pro';
+import { canCall, PRO_PLANS } from '../lib/pro';
 import { packageAmount } from '../lib/sponsorDeals';
 import { filesForPackage } from '../lib/brandFiles';
+import { getSponsorThreads, saveSponsorThreads } from '../lib/chatStore';
 import { peso } from '../lib/marketplace';
 import { Sheet, Button, Field, Input, Textarea, Tabs, Chip, Badge, Panel, IconCircle } from './ui';
 
@@ -418,7 +419,7 @@ function BrandsView({ brand, onEditBrand, onInquiry, onCall, viewerIsPro, isMake
   const list = OPPORTUNITIES.filter((o) => kind === 'All' || o.kind === kind)
     .map((o) => ({ ...o, wantsMet: wants.filter((w) => w in (o.perks || {})) }))
     .sort((a, b) => b.wantsMet.length - a.wantsMet.length);
-  const eventTarget = (item) => ({ id: item.id, name: item.eventTitle, subtitle: item.organization, kind: 'organizer', pro: item.pro, packages: item.packages, perks: item.perks });
+  const eventTarget = (item) => ({ id: item.id, name: item.eventTitle, subtitle: item.organization, kind: 'organizer', pro: item.pro, packages: item.packages, perks: item.perks, logoSpots: item.logoSpots });
 
   return (
     <div className="space-y-4">
@@ -651,7 +652,11 @@ export default function SponsorshipConnectModal({ onClose, photos, onPhotosChang
   const [published, setPublished] = useState(Boolean(savedProfile));
   // Pending first action that will lock the role: { kind: 'publish' } or { kind: 'inquiry', target }
   const [pendingLock, setPendingLock] = useState(null);
-  const [threadsByRole, setThreadsByRole] = useState(SEED_THREADS);
+  const [threadsByRole, setThreadsByRole] = useState(() => getSponsorThreads() || SEED_THREADS);
+  // Keep chats when Sponsorship Connect closes
+  useEffect(() => {
+    saveSponsorThreads(threadsByRole);
+  }, [threadsByRole]);
   const [activeThreadId, setActiveThreadId] = useState(null);
   const pro = usePro();
   // Registered makers who sponsor as a brand can call organizers without Pro
@@ -682,7 +687,7 @@ export default function SponsorshipConnectModal({ onClose, photos, onPhotosChang
   // Calls work when either side is on Pro
   const startCall = (target) => {
     if (!canCall(viewerCanCall, target.pro)) {
-      pro.openPaywall('calls');
+      pro.openPaywall('calls', 'sponsorship');
       return;
     }
     setCall({ target, video: Boolean(target.video) });
@@ -833,7 +838,11 @@ export default function SponsorshipConnectModal({ onClose, photos, onPhotosChang
       ],
     })));
     toast('Files sent to the organizer');
-    replyLater(threadId, 'Got them, thank you! We will send the layout proofs here for your approval.');
+    const logo = entries.find((e) => e.typeId === 'logo')?.files[0]?.url || brand?.logo?.src || null;
+    const thread = threads.find((t) => t.id === threadId);
+    replyLater(threadId, 'Got them, thank you! Here is the placement proof. Please approve it or tell us what to change.', 2200, [
+      { type: 'proof', text: '', proof: { title: 'Logo on shirts and backdrop', logo, spots: (thread?.logoSpots || ['Event shirts', 'Backdrop / photo wall']).slice(0, 3), status: 'Waiting for approval' } },
+    ]);
   };
 
   // Organizer asks a brand for files; the demo brand answers with its logo and colors
@@ -863,6 +872,38 @@ export default function SponsorshipConnectModal({ onClose, photos, onPhotosChang
         })),
       }));
     }, 2200);
+  };
+
+  // Proof approval: the brand answers the organizer's proof
+  const answerProof = (threadId, msgId, approved) => {
+    updateThreads((list) => list.map((t) => (t.id !== threadId ? t : {
+      ...t,
+      messages: [
+        ...t.messages.map((m) => (m.id === msgId ? { ...m, proof: { ...m.proof, status: approved ? 'Approved' : 'Changes requested' } } : m)),
+        { id: `a${Date.now()}`, from: 'me', text: approved ? 'Approved! Looks great.' : 'Can we make the logo bigger on the backdrop?', time: chatTime() },
+      ],
+    })));
+    replyLater(threadId, approved ? 'Thank you! Sending to print. We will share event-day photos here.' : 'Noted, we will send a revised proof today.');
+  };
+
+  // Organizer sends a proof; the demo brand approves it
+  const sendProof = (threadId) => {
+    const proofId = `p${Date.now()}`;
+    const msg = { id: proofId, from: 'me', type: 'proof', text: 'Here is the placement proof for your approval.', proof: { title: 'Logo on shirts and backdrop', logo: null, spots: profile.logoSpots.slice(0, 3), status: 'Waiting for approval' }, time: chatTime() };
+    updateThreads((list) => list.map((t) => (t.id === threadId ? { ...t, messages: [...t.messages, msg] } : t)));
+    const currentRole = role;
+    setTimeout(() => {
+      setThreadsByRole((prev) => ({
+        ...prev,
+        [currentRole]: prev[currentRole].map((t) => (t.id !== threadId ? t : {
+          ...t,
+          messages: [
+            ...t.messages.map((m) => (m.id === proofId ? { ...m, proof: { ...m.proof, status: 'Approved' } } : m)),
+            { id: `r${Date.now()}`, from: 'them', text: 'Approved, looks great! Go ahead and print.', time: chatTime() },
+          ],
+        })),
+      }));
+    }, 2400);
   };
 
   // Organizer shares their packages in a brand chat
@@ -1005,6 +1046,8 @@ export default function SponsorshipConnectModal({ onClose, photos, onPhotosChang
               brandKit={brand}
               onBookCall={bookCall}
               onSendDocument={sendDocument}
+              onSendProof={role === 'organizer' ? sendProof : undefined}
+              onAnswerProof={role === 'brand' ? answerProof : undefined}
             />
           ) : role === 'brand' ? (
             brandDraft ? (
@@ -1023,6 +1066,20 @@ export default function SponsorshipConnectModal({ onClose, photos, onPhotosChang
             <OrganizerProfileView profile={profile} photos={photos} registrationLink={registrationLink} onEdit={() => setPublished(false)} onInquiry={startInquiry} onCall={startCall} viewerIsPro={viewerCanCall} />
           ) : (
             <OrganizerProfileForm profile={profile} setProfile={setProfile} photos={photos} onPhotosChange={onPhotosChange} registrationLink={registrationLink} onRegistrationLinkChange={onRegistrationLinkChange} />
+          )}
+
+          {activeTab === 'main' && !pro.isPro && (
+            <button
+              type="button"
+              onClick={() => pro.openPaywall(null, 'sponsorship')}
+              className="mt-6 w-full flex items-center gap-3 rounded-2xl bg-gradient-to-br from-blue-50 to-violet-50 p-3.5 text-left"
+            >
+              <span className="w-10 h-10 rounded-full bg-white text-violet-700 flex items-center justify-center shrink-0"><Crown className="w-5 h-5" /></span>
+              <span className="flex-1 min-w-0">
+                <span className="block text-[15px] font-semibold text-slate-900">Sponsorship Connect Pro</span>
+                <span className="block text-[13px] text-slate-600">₱{PRO_PLANS.sponsorship.firstMonth.toLocaleString('en-PH')} first month, then ₱{PRO_PLANS.sponsorship.monthly.toLocaleString('en-PH')}/month. Calls, priority matching, documents.</span>
+              </span>
+            </button>
           )}
 
           {call && (

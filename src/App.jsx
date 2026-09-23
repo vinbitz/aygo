@@ -7,6 +7,8 @@ import useMarketplace from './state/useMarketplace';
 import { usePro } from './state/pro';
 import { peso } from './lib/marketplace';
 import { EMPTY_EVENT_PHOTOS } from './lib/images';
+import { SUPPLIERS } from './data/mockData';
+import { organizerParty, unreadTotal } from './lib/chatStore';
 
 // Popups are loaded on first open so the home screen ships a smaller bundle
 const SupplierProfileModal = lazy(() => import('./components/SupplierProfileModal'));
@@ -40,8 +42,8 @@ export default function App() {
   const [isSponsorshipOpen, setIsSponsorshipOpen] = useState(false);
   const [isMessagesOpen, setIsMessagesOpen] = useState(false);
   const [chatSupplier, setChatSupplier] = useState(null);
-  // Package a maker sent from the portal, posted into the chat thread
-  const [chatPackage, setChatPackage] = useState(null);
+  // A message posted into the thread when the chat opens (a maker's package, a document)
+  const [chatIncoming, setChatIncoming] = useState(null);
   const [isSupplierSetupOpen, setIsSupplierSetupOpen] = useState(false);
   const [isSupplierMode, setIsSupplierMode] = useState(false);
   const [isBalanceOpen, setIsBalanceOpen] = useState(false);
@@ -76,7 +78,7 @@ export default function App() {
   // Pro tools: 3 free uses each on the Free plan, then the Aygo Pro paywall
   const pro = usePro();
   const openMockup = () => pro.gate('mockup', () => setIsMockupOpen(true));
-  const openDocs = () => pro.gate('documents', () => setIsDocsOpen(true));
+  const openDocs = () => pro.gate('documents', () => setIsDocsOpen(true), isSupplierMode ? 'maker' : 'organizer');
   const openWorkspace = () => pro.gate('workspace', () => setIsWorkspaceOpen(true));
   const openCompare = () => pro.gate('compare', () => setIsCompareOpen(true));
   const openTool = (feature) => {
@@ -93,6 +95,8 @@ export default function App() {
         toast(e.accepted
           ? `${e.bid.supplier.shortName} accepted your counter-offer of ${peso(e.pricePerUnit, 2)}/pc`
           : `${e.bid.supplier.shortName} met you halfway: ${peso(e.pricePerUnit, 2)}/pc`);
+      } else if (e.type === 'dispatched') {
+        toast('Your order is on the way. Confirm when it arrives to release the payment.');
       }
     },
   });
@@ -103,9 +107,48 @@ export default function App() {
     toast(`Order booked with ${bid.supplier.shortName} and now in proofing`);
   };
 
-  const openChat = (supplier) => {
+  const openChat = (supplier, incoming = null) => {
     setChatSupplier(supplier);
+    setChatIncoming(incoming);
     setIsMessagesOpen(true);
+  };
+
+  // One counter-offer path for chat, profile and the compare sheet
+  const counterWith = (supplier, price) => {
+    const r = market.activeRequest;
+    const bid = r?.bids.find((b) => b.supplierId === supplier?.id);
+    if (!bid || r.status !== 'bidding') {
+      toast(`There is no open offer from ${supplier?.shortName || supplier?.name || 'this maker'} to counter.`);
+      return false;
+    }
+    if (!(price > 0) || price >= bid.pricePerUnit) {
+      toast(`Your counter needs to be below their ${peso(bid.pricePerUnit, 2)}/pc offer.`);
+      return false;
+    }
+    market.counterBid(r, bid, price);
+    toast(`Counter-offer of ${peso(price, 2)}/pc sent to ${bid.supplier.shortName}`);
+    return true;
+  };
+
+  const closeChat = () => {
+    setIsMessagesOpen(false);
+    setChatIncoming(null);
+  };
+
+  // The maker the organizer is working with right now (booked maker, else the first offer)
+  const currentMaker = () => {
+    const r = market.activeRequest;
+    const bid = r?.bids.find((b) => b.id === r.acceptedBidId) || r?.bids[0];
+    return bid?.supplier || SUPPLIERS.find((x) => x.id === 's3');
+  };
+
+  // A generated document goes straight into the right chat
+  const attachDocument = (doc) => {
+    setIsDocsOpen(false);
+    const party = isSupplierMode
+      ? organizerParty({ organizer: 'BGC Tech Summit', item: 'Custom satin lanyards', qty: 300, budget: 15000, venue: 'Arthaland Century Pacific Tower, BGC', deadline: 'Oct 15' })
+      : currentMaker();
+    openChat(party, { id: `doc-${Date.now()}`, type: 'document', text: `Here is the ${doc.name.split(' — ')[0].toLowerCase()}.`, docData: doc });
   };
 
   // Customer / User Profile State (First Name, Last Name, Email, +63 Phone, City)
@@ -148,10 +191,20 @@ export default function App() {
   });
 
   // Accept from a supplier profile or chat: book that maker's offer on the active request
+  // Returns true when an offer was booked, so the chat only shows "accepted" when it really happened
   const handleAcceptBid = (supplier) => {
-    const bid = market.activeRequest?.bids.find((b) => b.supplierId === supplier?.id);
-    if (bid && market.activeRequest.status !== 'booked') acceptOffer(bid);
-    else toast(`Ask ${supplier?.name || 'this maker'} to send an offer on your request first.`);
+    const request = market.activeRequest;
+    const bid = request?.bids.find((b) => b.supplierId === supplier?.id);
+    if (request && request.status !== 'bidding') {
+      toast(request.acceptedBidId === bid?.id ? 'This maker is already booked for your request.' : 'You already booked a maker for this request.');
+      return false;
+    }
+    if (!bid) {
+      toast(`Ask ${supplier?.name || 'this maker'} to send an offer on your request first.`);
+      return false;
+    }
+    acceptOffer(bid);
+    return true;
   };
 
   return (
@@ -164,17 +217,15 @@ export default function App() {
         onClose={() => setIsDrawerOpen(false)}
         userProfile={userProfile}
         onOpenUserProfile={() => setIsUserProfileOpen(true)}
-        onOpenMessages={() => {
-          setChatSupplier(null);
-          setIsMessagesOpen(true);
-        }}
+        onOpenMessages={() => openChat(null)}
+        unreadMessages={unreadTotal(isSupplierMode ? 'maker' : 'organizer') ?? (isSupplierMode ? 1 : 2)}
         onOpenBalance={() => setIsBalanceOpen(true)}
         onOpenReferral={() => setIsReferralOpen(true)}
         onOpenOnboarding={() => setIsOnboardingOpen(true)}
         onOpenSuppliers={() => setIsSuppliersOpen(true)}
         onOpenHistory={() => setIsHistoryOpen(true)}
         onOpenAvailability={() => setIsAvailabilityOpen(true)}
-        onOpenPro={() => pro.openPaywall(null)}
+        onOpenPro={() => pro.openPaywall(null, isSupplierMode ? 'maker' : 'organizer')}
         isPro={pro.isPro}
         onOpenAppSettings={() => setIsAppSettingsOpen(true)}
         isSupplierMode={isSupplierMode}
@@ -189,11 +240,9 @@ export default function App() {
             <SupplierPortalView
               onOpenDrawer={() => setIsDrawerOpen(true)}
               onSwitchToCustomer={() => setIsSupplierMode(false)}
-              onOpenChatWithCustomer={(supplier, pkg = null) => {
-                setChatSupplier(supplier);
-                setChatPackage(pkg);
-                setIsMessagesOpen(true);
-              }}
+              onOpenChatWithCustomer={(party, incoming = null) => openChat(party, incoming)}
+              onOpenDocuments={openDocs}
+              onOpenPro={() => pro.openPaywall(null, 'maker')}
               onOpenMockupStudio={openMockup}
             />
           </Suspense>
@@ -204,15 +253,22 @@ export default function App() {
             onSelectVenue={(v) => setActiveVenue(v)}
             deliveryType={deliveryType}
             onSelectSupplier={(supplier) => setSelectedSupplier(supplier)}
-            onOpenChatWithSupplier={(supplier) => {
-              setChatSupplier(supplier);
-              setIsMessagesOpen(true);
-            }}
+            onOpenChatWithSupplier={(supplier) => openChat(supplier)}
+            onOpenMessages={() => openChat(null)}
+            unreadMessages={unreadTotal('organizer') ?? 2}
             onRequestNewJob={(mode = 'single', cat = 'apparel') => openCreate(mode, cat)}
             onOpenCatalog={(cat = null) => setCatalogCategory(cat)}
             request={market.activeRequest}
             onAcceptBid={acceptOffer}
             onCompareBids={openCompare}
+            onConfirmReceived={(requestId, bid) => {
+              market.confirmReceived(requestId);
+              toast(`Delivery confirmed. Payment released to ${bid.supplier.shortName || bid.supplier.name}.`);
+            }}
+            onRateOrder={(requestId, bid, stars, comment) => {
+              market.rateOrder(requestId, stars, comment);
+              toast(`Thanks! Your ${stars}-star review is on ${bid.supplier.shortName || bid.supplier.name}'s storefront.`);
+            }}
             onOpenSponsorship={() => setIsSponsorshipOpen(true)}
             onOpenWaitlist={() => setIsWaitlistOpen(true)}
             onOpenTools={() => setIsToolsOpen(true)}
@@ -233,9 +289,22 @@ export default function App() {
           })()}
           onClose={() => setSelectedSupplier(null)}
           onAcceptBid={handleAcceptBid}
-          onOpenChat={(supplier) => {
-            setChatSupplier(supplier);
-            setIsMessagesOpen(true);
+          onOpenChat={(supplier) => openChat(supplier)}
+          onCounter={counterWith}
+          onInvite={(supplier) => {
+            setSelectedSupplier(null);
+            const r = market.activeRequest;
+            openChat(supplier, {
+              id: `inv-${Date.now()}`,
+              type: 'text',
+              text: r
+                ? `Hi ${supplier.shortName || supplier.name}! We'd like you to bid on our request: ${r.quantity} ${r.unit || 'pcs'} ${r.title.replace(/^\d+\s*/, '')}, needed by ${new Date(r.deliveryDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}. Budget ${peso(r.targetBudget)}.`
+                : `Hi ${supplier.shortName || supplier.name}! We'd like you to bid on our next event order.`
+            });
+          }}
+          onCallBooked={(supplier, when) => {
+            setSelectedSupplier(null);
+            openChat(supplier, { id: `call-${Date.now()}`, type: 'text', text: `Booked a call with you: ${when}. See you then!` });
           }}
           onOpenSupplierSetup={(supplier) => {
             setSetupSupplier(supplier || selectedSupplier);
@@ -248,9 +317,13 @@ export default function App() {
       {isMessagesOpen && (
         <AygoMessagingModal
           isOpen={isMessagesOpen}
-          onClose={() => setIsMessagesOpen(false)}
+          onClose={closeChat}
           initialSupplier={chatSupplier}
-          incomingPackage={chatPackage}
+          incoming={chatIncoming}
+          viewer={isSupplierMode ? 'maker' : 'organizer'}
+          canAccept={market.activeRequest?.status === 'bidding'}
+          onCounter={counterWith}
+          onOpenMockup={openMockup}
           activeVenue={activeVenue}
           activeItem={activeItem}
           onAcceptBid={handleAcceptBid}
@@ -318,6 +391,7 @@ export default function App() {
       {isDocsOpen && (
         <DocumentGeneratorModal
           onClose={() => setIsDocsOpen(false)}
+          onAttach={attachDocument}
         />
       )}
 
@@ -383,8 +457,14 @@ export default function App() {
         <RequestHistoryModal
           isOpen={isHistoryOpen}
           onClose={() => setIsHistoryOpen(false)}
+          requests={market.requests}
+          onReorder={(req) => openCreate('single', 'apparel', { initialPrompt: req.title })}
           onSelectRequest={(req) => {
             setIsHistoryOpen(false);
+            if (req.marketId) {
+              market.selectRequest(req.marketId);
+              return;
+            }
             setActiveItem({
               title: req.title,
               qty: req.qty,
@@ -475,6 +555,10 @@ export default function App() {
         <CatalogSheet
           initialCategory={catalogCategory}
           onClose={() => setCatalogCategory(undefined)}
+          onViewMaker={(maker) => {
+            setCatalogCategory(undefined);
+            setSelectedSupplier(maker);
+          }}
           onDescribe={(text) => {
             setCatalogCategory(undefined);
             openCreate('single', 'apparel', text.trim() ? { initialPrompt: text.trim() } : {});

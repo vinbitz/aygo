@@ -35,7 +35,8 @@ import CallScreen from './CallScreen';
 import { callLength } from '../lib/calls';
 import { SchedulePanel, MeetingCard } from './ScheduleCall';
 import { ProChip, DocumentPicker } from './ChatTools';
-import { ORDER_DOCS } from '../lib/chatDocs';
+import { ORDER_DOCS, downloadDocument } from '../lib/chatDocs';
+import { getThreads, saveThreads } from '../lib/chatStore';
 import { Sheet, Button, Chip, VerifiedBadge, Badge, IconCircle, cx, inputClass } from './ui';
 
 const ME_NAME = 'Marvin (Organizer)';
@@ -202,8 +203,42 @@ const INITIAL_CONVERSATIONS = {
   }
 };
 
+// A maker's side: threads with organizers about their requests
+const MAKER_CONVERSATIONS = {
+  'org-bgc-tech-summit': {
+    supplier: { id: 'org-bgc-tech-summit', name: 'BGC Tech Summit', shortName: 'BGC Tech Summit', contactPerson: 'Event organizer', isOrganizer: true },
+    unreadCount: 1,
+    request: { item: 'Custom satin lanyards', qty: '300 pcs', budget: '₱15,000', venue: 'Arthaland Century Pacific Tower, BGC', date: 'Oct 15' },
+    messages: [
+      { id: 'om1', sender: 'customer', time: '10:15 AM', type: 'text', text: 'Hi! Can you do 2-sided full color on 20mm satin, and deliver to BGC by Oct 15?' }
+    ]
+  },
+  'org-devcon-manila': {
+    supplier: { id: 'org-devcon-manila', name: 'DevCon Manila', shortName: 'DevCon Manila', contactPerson: 'Event organizer', isOrganizer: true },
+    unreadCount: 0,
+    request: { item: 'Event polo shirts', qty: '150 pcs', budget: '₱42,000', venue: 'SMX Aura, BGC', date: 'Nov 14' },
+    messages: [
+      { id: 'dm1', sender: 'customer', time: 'Yesterday', type: 'counter_offer', text: 'Counter-offer: ₱260.00/pc', offerData: { price: '₱260.00/pc', note: 'We can confirm today at this price.' } }
+    ]
+  }
+};
+
+// Canned replies from the other side, so the demo chat feels alive
+const REPLIES = {
+  organizer: [
+    'Noted! We will check and get back to you within the hour.',
+    'Thanks, received. Our production team is on it.',
+    'Sounds good. We can also send a physical sample if you want.'
+  ],
+  maker: [
+    'Thanks! That works for us. Please send the package so we can pay here.',
+    'Got it. Can you share a mockup before we confirm?',
+    'Great, we will confirm with our team today.'
+  ]
+};
+
 const ATTACH_OPTIONS = [
-  { id: 'photo', label: 'Photo', icon: ImageIcon, tone: 'rose' },
+  { id: 'photo', label: 'Photo or file', icon: ImageIcon, tone: 'rose' },
   { id: 'mockup', label: 'Mockup', icon: Package, tone: 'violet' },
   { id: 'product', label: 'Product', icon: Tag, tone: 'amber' },
   { id: 'document', label: 'Quote or document', icon: FileText, tone: 'blue' },
@@ -259,12 +294,12 @@ function Avatar({ supplier, size = 'md' }) {
 
 // Friendly short name used in the composer and message meta
 const shortName = (s) =>
-  s.contactPerson && !/team|desk/i.test(s.contactPerson)
+  s.isOrganizer ? s.name : s.contactPerson && !/team|desk/i.test(s.contactPerson)
     ? s.contactPerson.split(' ')[0]
     : s.name.split(' ').slice(0, 2).join(' ');
 
 /** Rich attachment cards rendered inside the thread */
-function MessageCard({ m, isMine, onAccept, onCounter, onOpenStudio, onPay }) {
+function MessageCard({ m, isMine, onAccept, onCounter, onOpenStudio, onPay, onProof, request }) {
   const cardBase = 'w-[280px] max-w-full bg-white rounded-2xl border border-slate-200/80 overflow-hidden';
 
   switch (m.type) {
@@ -326,7 +361,7 @@ function MessageCard({ m, isMine, onAccept, onCounter, onOpenStudio, onPay }) {
             <div className="min-w-0">
               <p className="text-[15px] font-medium text-emerald-900">{peso(m.paymentData.amount)} paid via {m.paymentData.method}</p>
               <p className="text-[13px] text-emerald-800/80">
-                {m.paymentData.kind} for {m.paymentData.title}. Aygo holds it until you confirm delivery.
+                {m.paymentData.kind} for {m.paymentData.title}. {m.paymentData.forMaker ? 'Aygo releases it to you after the organizer confirms delivery.' : 'Aygo holds it until you confirm delivery.'}
               </p>
               <p className="mt-1 text-[11.5px] text-emerald-800/60">Ref {m.paymentData.ref}</p>
             </div>
@@ -378,17 +413,27 @@ function MessageCard({ m, isMine, onAccept, onCounter, onOpenStudio, onPay }) {
     case 'mockup_attachment':
       return (
         <div className={cardBase}>
-          <div className="h-28 bg-gradient-to-br from-blue-50 via-violet-50 to-rose-50 flex items-center justify-center">
-            <div className="w-40 h-6 rounded-full bg-[#003CF5]/80 shadow-sm flex items-center justify-center">
-              <span className="text-[11px] font-semibold text-white">DevCon Manila</span>
+          {m.mockupData.image ? (
+            <img src={m.mockupData.image} alt={m.mockupData.title} className="w-full h-36 object-contain bg-[#F4F3F0]" />
+          ) : (
+            <div className="h-28 bg-gradient-to-br from-blue-50 via-violet-50 to-rose-50 flex items-center justify-center">
+              <div className="w-40 h-6 rounded-full bg-[#003CF5]/80 shadow-sm flex items-center justify-center">
+                <span className="text-[11px] font-semibold text-white truncate px-2">{m.mockupData.title}</span>
+              </div>
             </div>
-          </div>
+          )}
           <div className="p-3.5">
             <p className="text-[13px] text-slate-500">Mockup</p>
             <p className="text-[15px] font-medium text-slate-900 leading-snug">{m.mockupData.title}</p>
             <p className="mt-0.5 text-[13px] text-slate-500">{m.mockupData.spec}</p>
+            {m.mockupData.status === 'Waiting for approval' && !isMine && (
+              <div className="mt-2.5 flex gap-2">
+                <Button size="sm" className="flex-1 h-10" onClick={() => onProof(m.id, true)}>Approve</Button>
+                <Button size="sm" variant="secondary" className="h-10" onClick={() => onProof(m.id, false)}>Request changes</Button>
+              </div>
+            )}
             <div className="mt-2.5 flex items-center justify-between">
-              <Badge tone="green">{m.mockupData.status}</Badge>
+              <Badge tone={m.mockupData.status === 'Waiting for approval' ? 'amber' : m.mockupData.status === 'Changes requested' ? 'rose' : 'green'}>{m.mockupData.status}</Badge>
               <a
                 href="#product-mockup-studio"
                 onClick={onOpenStudio}
@@ -433,7 +478,13 @@ function MessageCard({ m, isMine, onAccept, onCounter, onOpenStudio, onPay }) {
           </div>
           <button
             type="button"
-            onClick={() => toast(`Downloading ${m.docData.name}`)}
+            onClick={() => downloadDocument(m.docData, [
+              request && `Item: ${request.item}`,
+              request?.qty && `Quantity: ${request.qty}`,
+              request?.budget && `Budget: ${request.budget}`,
+              request?.venue && `Venue: ${request.venue}`,
+              request?.date && `Needed by: ${request.date}`
+            ])}
             aria-label="Download document"
             className="w-11 h-11 rounded-full hover:bg-[#F4F3F0] text-slate-600 flex items-center justify-center shrink-0"
           >
@@ -486,11 +537,21 @@ export default function AygoMessagingModal({
   activeItem = null,
   onAcceptBid = null,
   onViewSupplier = null,
-  incomingPackage = null
+  incoming = null,
+  viewer = 'organizer',
+  canAccept = true,
+  onOpenMockup = null,
+  onCounter = null
 }) {
   const pro = usePro();
-  const [conversations, setConversations] = useState(INITIAL_CONVERSATIONS);
-  const [activeSupplierId, setActiveSupplierId] = useState(initialSupplier?.id || 's3');
+  const isMaker = viewer === 'maker';
+  // Which side of the thread "I" am
+  const ME = isMaker ? 'supplier' : 'customer';
+  const THEM = isMaker ? 'customer' : 'supplier';
+  const SEED = isMaker ? MAKER_CONVERSATIONS : INITIAL_CONVERSATIONS;
+  const FALLBACK_ID = Object.keys(SEED)[0];
+  const [conversations, setConversations] = useState(() => getThreads(viewer) || SEED);
+  const [activeSupplierId, setActiveSupplierId] = useState(initialSupplier?.id || FALLBACK_ID);
   const [trackedInitialId, setTrackedInitialId] = useState(initialSupplier?.id);
   const [mobileView, setMobileView] = useState(initialSupplier ? 'thread' : 'list');
   const [messageInput, setMessageInput] = useState('');
@@ -507,10 +568,18 @@ export default function AygoMessagingModal({
   const [inCall, setInCall] = useState(null); // null, or { video }
   const [showSchedule, setShowSchedule] = useState(false);
   const [showDocs, setShowDocs] = useState(false);
-  // Package a maker just sent from their portal
-  const [trackedPackageId, setTrackedPackageId] = useState(null);
+  // Message pushed in from outside the chat (a package from the portal, a document, an invite)
+  const [trackedIncomingId, setTrackedIncomingId] = useState(null);
+  const [typingId, setTypingId] = useState(null);
+  const fileRef = useRef(null);
+  const replyIndex = useRef(0);
 
   const scrollRef = useRef(null);
+
+  // Keep threads when the chat closes
+  useEffect(() => {
+    saveThreads(viewer, conversations);
+  }, [viewer, conversations]);
 
   // Follow a new supplier passed in from outside (e.g. "Chat with maker")
   if (initialSupplier?.id && initialSupplier.id !== trackedInitialId) {
@@ -519,21 +588,19 @@ export default function AygoMessagingModal({
     setMobileView('thread');
   }
 
-  if (incomingPackage && incomingPackage.id !== trackedPackageId && initialSupplier?.id) {
-    setTrackedPackageId(incomingPackage.id);
+  if (incoming && incoming.id !== trackedIncomingId && initialSupplier?.id) {
+    setTrackedIncomingId(incoming.id);
     const sid = initialSupplier.id;
     const msg = {
-      id: incomingPackage.id,
-      sender: 'supplier',
+      sender: ME,
       time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      type: 'package',
-      text: incomingPackage.note || 'Here is our package for your request. You can pay right here.',
-      packageData: incomingPackage.packageData
+      ...incoming
     };
     setConversations((prev) => {
-      const base = prev[sid] || { supplier: initialSupplier, unreadCount: 0, request: null, messages: [] };
+      const base = prev[sid] || { supplier: initialSupplier, unreadCount: 0, request: initialSupplier.request || null, messages: [] };
       return { ...prev, [sid]: { ...base, messages: [...base.messages, msg] } };
     });
+    if (msg.type === 'package' && isMaker) organizerPaysLater(sid, msg);
   }
 
   useEffect(() => {
@@ -547,10 +614,10 @@ export default function AygoMessagingModal({
   const currentConvo =
     conversations[activeSupplierId] ||
     (initialSupplier?.id === activeSupplierId
-      ? { supplier: initialSupplier, unreadCount: 0, request: null, messages: [] }
-      : conversations.s3);
+      ? { supplier: initialSupplier, unreadCount: 0, request: initialSupplier.request || null, messages: [] }
+      : conversations[FALLBACK_ID]);
   const currentSupplier = currentConvo.supplier;
-  const convoKey = conversations[activeSupplierId] || initialSupplier?.id === activeSupplierId ? activeSupplierId : 's3';
+  const convoKey = conversations[activeSupplierId] || initialSupplier?.id === activeSupplierId ? activeSupplierId : FALLBACK_ID;
 
   const venueName = activeVenue?.name || 'Arthaland Century Pacific Tower';
   const venueAddress = activeVenue?.address || '4th Ave, 30th St, Taguig, Metro Manila';
@@ -588,8 +655,8 @@ export default function AygoMessagingModal({
 
     const newMsg = {
       id: 'msg-' + Date.now(),
-      sender: 'customer',
-      senderName: ME_NAME,
+      sender: ME,
+      senderName: isMaker ? currentSupplier.name : ME_NAME,
       time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       text,
       type: customType,
@@ -606,6 +673,61 @@ export default function AygoMessagingModal({
 
     setMessageInput('');
     setShowAttachMenu(false);
+    if (customType === 'text' || customType === 'image' || customType === 'document' || customType === 'counter_offer') replyLater(convoKey);
+  };
+
+  // The other side answers after a moment (typing indicator first)
+  const replyLater = (key, text) => {
+    const pool = REPLIES[viewer];
+    const reply = text || pool[replyIndex.current++ % pool.length];
+    setTypingId(key);
+    setTimeout(() => {
+      setTypingId(null);
+      setConversations((prev) => {
+        const base = prev[key];
+        if (!base) return prev;
+        const msg = { id: 'r-' + Date.now(), sender: THEM, time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }), type: 'text', text: reply };
+        return { ...prev, [key]: { ...base, messages: [...base.messages, msg] } };
+      });
+    }, 1700);
+  };
+
+  // Maker view: the organizer pays the package a few seconds after it arrives
+  function organizerPaysLater(key, pkgMsg) {
+    setTimeout(() => replyLater(key, 'Thanks! Paying the downpayment here now.'), 800);
+    setTimeout(() => {
+      const pkg = pkgMsg.packageData;
+      const amount = packageTotal(pkg) * (pkg.downpaymentPct / 100);
+      setConversations((prev) => {
+        const base = prev[key];
+        if (!base) return prev;
+        const messages = base.messages.map((x) => (x.id === pkgMsg.id ? { ...x, packageData: { ...pkg, status: 'paid', paidAmount: amount } } : x));
+        messages.push({
+          id: 'pay-' + Date.now(), sender: THEM, time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }), type: 'payment', text: '',
+          paymentData: { amount, method: 'GCash', kind: `${pkg.downpaymentPct}% downpayment`, title: pkg.title, ref: 'AYG-' + String(Date.now()).slice(-6), forMaker: true }
+        });
+        return { ...prev, [key]: { ...base, messages } };
+      });
+      toast(`Downpayment received: ${peso(amount)}. Aygo releases it to you after delivery.`);
+    }, 5200);
+  }
+
+  // Photos and files from the device
+  const handleFiles = (e) => {
+    const files = Array.from(e.target.files || []);
+    e.target.value = '';
+    files.forEach((f) => {
+      if (f.size > 25 * 1024 * 1024) {
+        toast(`${f.name} is over 25 MB. Please send a smaller file.`);
+        return;
+      }
+      const url = URL.createObjectURL(f);
+      if (f.type.startsWith('image/')) {
+        handleSendMessage(files.length > 1 ? '' : 'Photo', 'image', { imageData: { src: url, caption: f.name } });
+      } else {
+        handleSendMessage(`Sent ${f.name}`, 'document', { docData: { name: f.name, meta: `${Math.max(1, Math.round(f.size / 1024))} KB`, url } });
+      }
+    });
   };
 
   const handleKeyDown = (e) => {
@@ -620,7 +742,8 @@ export default function AygoMessagingModal({
       mockupData: {
         title: activeItem?.title || 'Satin event lanyard',
         spec: activeItem?.specs || 'Full-color sublimation · 2-sided · metal hook',
-        status: 'AI mockup'
+        status: 'AI mockup',
+        image: activeItem?.mockupImage || null
       }
     });
   };
@@ -628,6 +751,7 @@ export default function AygoMessagingModal({
   const handleSendCounterOffer = () => {
     if (!counterPriceInput) return;
     const price = `₱${Number(counterPriceInput).toFixed(2)}/pc`;
+    onCounter?.(currentSupplier, Number(counterPriceInput));
     handleSendMessage(`Counter-offer: ${price}`, 'counter_offer', {
       offerData: { price, note: 'Price adjustment based on our volume commitment.' }
     });
@@ -641,8 +765,32 @@ export default function AygoMessagingModal({
     });
   };
 
+  // Maker sends a proof; the organizer approves it or asks for changes
+  const sendProof = () =>
+    handleSendMessage('Here is the proof for your approval.', 'mockup_attachment', {
+      mockupData: {
+        title: request.item,
+        spec: activeItem?.specs && !isMaker ? activeItem.specs : 'Final layout, colors and placement',
+        status: 'Waiting for approval',
+        image: activeItem?.mockupImage || null
+      }
+    });
+
+  const answerProof = (msgId, approved) => {
+    setConversations((prev) => {
+      const base = prev[convoKey] || currentConvo;
+      const messages = base.messages.map((x) =>
+        x.id === msgId ? { ...x, mockupData: { ...x.mockupData, status: approved ? 'Approved' : 'Changes requested' } } : x
+      );
+      return { ...prev, [convoKey]: { ...base, messages } };
+    });
+    if (approved) handleSendMessage('Proof approved. Go ahead with production!');
+    else setMessageInput('Please change: ');
+  };
+
   // Pro tools: free users get 3 tries of each, then the Go Pro screen
-  const sendAiMockup = () => pro.gate('mockup', handleSendActiveMockup);
+  const planId = isMaker ? 'maker' : 'organizer';
+  const sendAiMockup = () => pro.gate('mockup', handleSendActiveMockup, planId);
 
   const sendDocument = (d) =>
     pro.gate('documents', () => {
@@ -650,15 +798,14 @@ export default function AygoMessagingModal({
         docData: { name: `${d.name} — ${request.item}.pdf`, meta: `${d.meta} · Made with Aygo` }
       });
       setShowDocs(false);
-    });
+    }, planId);
 
   const handleAttach = (id) => {
     if (id === 'mockup') return sendAiMockup();
     if (id === 'location') return handleSendDeliveryPlace();
     if (id === 'photo') {
-      return handleSendMessage('Reference photo for the print colors.', 'image', {
-        imageData: { src: currentSupplier.coverImage || SUPPLIERS[2].coverImage, caption: 'Reference photo' }
-      });
+      setShowAttachMenu(false);
+      return fileRef.current?.click();
     }
     if (id === 'product') {
       return handleSendMessage('Can you match this product?', 'product_ref', {
@@ -676,11 +823,13 @@ export default function AygoMessagingModal({
     }
   };
 
+  // Only show "accepted" in the chat when the offer was really booked
   const handleAcceptSupplierBid = () => {
+    const ok = onAcceptBid ? onAcceptBid(currentSupplier) : false;
+    if (!ok) return;
     handleSendMessage(`Bid accepted. Proceeding with ${currentSupplier.name}.`, 'accepted_bid', {
       bidData: { supplier: currentSupplier.name, confirmedBy: ME_NAME }
     });
-    if (onAcceptBid) onAcceptBid(currentSupplier);
   };
 
   const appendMessage = (msg) =>
@@ -708,7 +857,7 @@ export default function AygoMessagingModal({
       );
       messages.push({
         id: 'pay-' + Date.now(),
-        sender: 'customer',
+        sender: ME,
         time: nowTime(),
         type: 'payment',
         text: '',
@@ -723,26 +872,26 @@ export default function AygoMessagingModal({
       return { ...prev, [convoKey]: { ...base, messages } };
     });
     setCheckout(null);
-    if (onAcceptBid) onAcceptBid(currentSupplier);
-    else toast(`Paid ${peso(amount)}. Order confirmed.`);
+    toast(`Paid ${peso(amount)} to ${currentSupplier.shortName || currentSupplier.name}. Order confirmed.`);
+    replyLater(convoKey, 'Payment received, thank you! Production starts today. We will send the proof here.');
   };
 
   const supplierIsPro = Boolean(currentSupplier.proStorefront);
   const startCall = (video = false) => {
     if (!canCall(pro.isPro, supplierIsPro)) {
-      pro.openPaywall('calls');
+      pro.openPaywall('calls', isMaker ? 'maker' : 'organizer');
       return;
     }
     setInCall({ video });
   };
   const bookCall = (meeting) => {
     setShowSchedule(false);
-    appendMessage({ id: 'meet-' + Date.now(), sender: 'customer', time: nowTime(), type: 'meeting', text: 'Booked a call to go over the details.', meetingData: meeting });
+    appendMessage({ id: 'meet-' + Date.now(), sender: ME, time: nowTime(), type: 'meeting', text: 'Booked a call to go over the details.', meetingData: meeting });
     toast('Call booked. It is in the chat, and you can add it to your calendar.');
   };
   const endCall = (seconds) => {
     setInCall(null);
-    if (seconds > 0) appendMessage({ id: 'call-' + Date.now(), sender: 'customer', time: nowTime(), type: 'call', text: '', callData: { length: callLength(seconds) } });
+    if (seconds > 0) appendMessage({ id: 'call-' + Date.now(), sender: ME, time: nowTime(), type: 'call', text: '', callData: { length: callLength(seconds) } });
   };
 
   const unreadTotal = Object.values(conversations).reduce((n, c) => n + (c.unreadCount || 0), 0);
@@ -751,7 +900,9 @@ export default function AygoMessagingModal({
     <Sheet
       onClose={onClose}
       title="Aygo Chat"
-      subtitle={unreadTotal > 0 ? `${unreadTotal} unread · chats with your makers` : 'Chats with your makers, per request'}
+      subtitle={isMaker
+        ? (unreadTotal > 0 ? `${unreadTotal} unread · chats with organizers` : 'Chats with organizers, per request')
+        : (unreadTotal > 0 ? `${unreadTotal} unread · chats with your makers` : 'Chats with your makers, per request')}
       icon={MessageSquare}
       size="xl"
       bodyClassName="!px-0 !pb-0 !overflow-hidden flex"
@@ -771,7 +922,7 @@ export default function AygoMessagingModal({
                 type="search"
                 value={listQuery}
                 onChange={(e) => setListQuery(e.target.value)}
-                placeholder="Search makers or requests"
+                placeholder={isMaker ? 'Search organizers or requests' : 'Search makers or requests'}
                 className={cx(inputClass, 'pl-10 py-2.5')}
               />
             </div>
@@ -803,7 +954,7 @@ export default function AygoMessagingModal({
                     </span>
                     <span className="mt-0.5 flex items-center gap-2">
                       <span className={cx('flex-1 text-[13px] truncate', c.unreadCount ? 'text-slate-900 font-medium' : 'text-slate-500')}>
-                        {lastMsg ? `${lastMsg.sender === 'customer' ? 'You: ' : ''}${lastMessagePreview(lastMsg)}` : 'No messages yet'}
+                        {lastMsg ? `${lastMsg.sender === ME ? 'You: ' : ''}${lastMessagePreview(lastMsg)}` : 'No messages yet'}
                       </span>
                       {c.unreadCount > 0 && (
                         <span className="min-w-[20px] h-5 px-1.5 rounded-full bg-[#003CF5] text-white text-[11px] font-semibold flex items-center justify-center">
@@ -840,7 +991,7 @@ export default function AygoMessagingModal({
             </button>
             <button
               type="button"
-              onClick={() => setShowDetails((v) => !v)}
+              onClick={() => !currentSupplier.isOrganizer && setShowDetails((v) => !v)}
               aria-expanded={showDetails}
               aria-label={`${showDetails ? 'Hide' : 'Show'} details for ${currentSupplier.name}`}
               className="flex-1 min-w-0 flex items-center gap-2 text-left rounded-2xl -my-1 py-1 pr-2 hover:bg-[#F4F3F0] transition-colors"
@@ -849,14 +1000,14 @@ export default function AygoMessagingModal({
               <span className="flex-1 min-w-0">
                 <span className="flex items-center gap-1.5 min-w-0">
                   <span className="text-[15px] font-semibold text-slate-900 truncate">{currentSupplier.name}</span>
-                  <VerifiedBadge className="shrink-0" />
+                  {!currentSupplier.isOrganizer && <VerifiedBadge className="shrink-0" />}
                   {supplierIsPro && <Badge tone="violet" icon={Crown} className="shrink-0 hidden sm:inline-flex">Pro</Badge>}
                 </span>
                 <span className="block text-[13px] text-slate-500 truncate">
-                  {showDetails ? 'Tap to go back to chat' : <><span className="text-emerald-600">Online</span>{supplierIsPro && <span className="sm:hidden text-violet-700 font-medium"> · Pro</span>} · <span className="text-[#003CF5] font-medium">Details</span> · {currentSupplier.contactPerson}</>}
+                  {currentSupplier.isOrganizer ? <><span className="text-emerald-600">Online</span> · Event organizer</> : showDetails ? 'Tap to go back to chat' : <><span className="text-emerald-600">Online</span>{supplierIsPro && <span className="sm:hidden text-violet-700 font-medium"> · Pro</span>} · <span className="text-[#003CF5] font-medium">Details</span> · {currentSupplier.contactPerson}</>}
                 </span>
               </span>
-              <ChevronDown className={cx('w-4 h-4 text-slate-400 shrink-0 transition-transform', showDetails && 'rotate-180')} />
+              {!currentSupplier.isOrganizer && <ChevronDown className={cx('w-4 h-4 text-slate-400 shrink-0 transition-transform', showDetails && 'rotate-180')} />}
             </button>
             <button
               type="button"
@@ -890,9 +1041,11 @@ export default function AygoMessagingModal({
                   {[request.qty, request.budget, request.venue, request.date].filter(Boolean).join(' · ')}
                 </p>
               </div>
-              <Button size="sm" variant="outline" className="h-11 shrink-0" onClick={handleAcceptSupplierBid}>
-                Accept
-              </Button>
+              {!isMaker && canAccept && !currentConvo.request && (
+                <Button size="sm" variant="outline" className="h-11 shrink-0" onClick={handleAcceptSupplierBid}>
+                  Accept
+                </Button>
+              )}
             </div>
           </div>
 
@@ -905,7 +1058,7 @@ export default function AygoMessagingModal({
             </div>
 
             {currentConvo.messages.map((m) => {
-              const isMine = m.sender === 'customer';
+              const isMine = m.sender === ME;
               const hasCard = m.type !== 'text';
               return (
                 <div key={m.id} className={cx('flex flex-col gap-1', isMine ? 'items-end' : 'items-start')}>
@@ -933,8 +1086,10 @@ export default function AygoMessagingModal({
                       isMine={isMine}
                       onAccept={handleAcceptSupplierBid}
                       onCounter={() => setShowCounterBox(true)}
-                      onOpenStudio={onClose}
+                      onOpenStudio={() => { onClose(); onOpenMockup?.(); }}
                       onPay={openCheckout}
+                      onProof={answerProof}
+                      request={request}
                     />
                   )}
                   <span className="px-1 text-[11px] text-slate-400">
@@ -943,6 +1098,10 @@ export default function AygoMessagingModal({
                 </div>
               );
             })}
+
+            {typingId === convoKey && (
+              <p className="text-[12px] text-slate-500 px-1">{firstName} is typing…</p>
+            )}
 
             {currentConvo.messages.length === 0 && (
               <p className="py-10 text-center text-[13px] text-slate-500">
@@ -954,14 +1113,20 @@ export default function AygoMessagingModal({
           {/* Composer */}
           <div className="border-t border-slate-100 bg-white px-3 sm:px-4 pt-2.5 pb-[max(12px,env(safe-area-inset-bottom))] space-y-2.5">
             <div className={cx('gap-2 overflow-x-auto no-scrollbar -mx-1 px-1', showAttachMenu ? 'hidden' : 'flex')}>
-              <ProChip feature="documents" icon={FileText} gateOnClick={false} onClick={() => setShowDocs(true)}>Documents</ProChip>
-              <ProChip feature="mockup" icon={Sparkles} onClick={handleSendActiveMockup}>AI mockup</ProChip>
+              <ProChip feature="documents" plan={planId} icon={FileText} gateOnClick={false} onClick={() => setShowDocs(true)}>Documents</ProChip>
+              <ProChip feature="mockup" plan={planId} icon={Sparkles} onClick={handleSendActiveMockup}>AI mockup</ProChip>
               <Chip icon={CalendarClock} onClick={() => setShowSchedule(true)}>Book a call</Chip>
-              <Chip icon={Wallet} selected={showCounterBox} onClick={() => setShowCounterBox((v) => !v)}>Counter-offer</Chip>
-              <Chip icon={MapPin} onClick={handleSendDeliveryPlace}>Send venue</Chip>
-              <Chip onClick={() => handleSendMessage('Can you send a physical sample to our office before we confirm the final quantity?')}>
-                Request sample
-              </Chip>
+              {isMaker ? (
+                <Chip icon={CheckCheck} onClick={sendProof}>Send proof for approval</Chip>
+              ) : (
+                <>
+                  <Chip icon={Wallet} selected={showCounterBox} onClick={() => setShowCounterBox((v) => !v)}>Counter-offer</Chip>
+                  <Chip icon={MapPin} onClick={handleSendDeliveryPlace}>Send venue</Chip>
+                  <Chip onClick={() => handleSendMessage('Can you send a physical sample to our office before we confirm the final quantity?')}>
+                    Request sample
+                  </Chip>
+                </>
+              )}
             </div>
 
             {showCounterBox && (
@@ -1011,6 +1176,7 @@ export default function AygoMessagingModal({
               >
                 <Paperclip className="w-5 h-5" />
               </button>
+              <input ref={fileRef} type="file" accept="image/*,.pdf,.ai,.eps,.svg,.doc,.docx,.xls,.xlsx" multiple className="hidden" onChange={handleFiles} aria-label="Send photos or files" />
               <input
                 type="text"
                 placeholder={`Message ${firstName}`}

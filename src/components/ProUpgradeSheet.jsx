@@ -1,18 +1,15 @@
 import React, { useState } from 'react';
 import {
   Crown, Infinity as InfinityIcon, Sparkles, FileText, ArrowLeftRight, Bookmark, CalendarDays, Users, Zap, HardDrive, Check, Phone,
+  Rocket, BarChart3, Store, Wand2, Handshake, Target, BadgeCheck,
 } from 'lucide-react';
 import { Sheet, Button, Tabs, Logo, cx } from './ui';
-import { FREE_USES, PRO_FEATURES } from '../lib/pro';
+import { FREE_USES, PRO_FEATURES, PRO_PLANS } from '../lib/pro';
 
-// Example pricing; set the real numbers here
-const PRO_PRICING = {
-  monthly: { price: '₱299', per: '/month', note: 'Cancel anytime' },
-  yearly: { price: '₱2,990', per: '/year', note: '2 months free' },
-};
+const php = (n) => `₱${n.toLocaleString('en-PH')}`;
 
 // "Aygo Pro for Organizers" benefits from the master plan
-const BENEFITS = [
+const ORGANIZER_BENEFITS = [
   { icon: InfinityIcon, title: 'Unlimited requests & Aygo Assist', text: 'Higher request limits and AI request fills' },
   { icon: Sparkles, title: 'Advanced AI mockups', text: 'Every item, unlimited sessions' },
   { icon: FileText, title: 'Branded documents', text: 'RFQs, POs, invoices with your logo' },
@@ -25,16 +22,43 @@ const BENEFITS = [
   { icon: HardDrive, title: 'More document storage', text: 'Keep every quote and PO' },
 ];
 
+// "Aygo Pro for Suppliers": for the supplier portal
+const MAKER_BENEFITS = [
+  { icon: Rocket, title: 'Priority placement', text: 'Your bids and storefront show first to organizers nearby' },
+  { icon: Store, title: 'Unlimited listings', text: 'List every product, sample and package' },
+  { icon: BarChart3, title: 'Bid & storefront analytics', text: 'Winning prices, views and response benchmarks' },
+  { icon: Wand2, title: 'AI mockup credits', text: 'Send proofs that win the job' },
+  { icon: Phone, title: 'In-app calls', text: 'Call organizers and walk them through samples on video' },
+  { icon: FileText, title: 'Documents', text: 'Quotes, invoices and delivery receipts (free for registered makers)' },
+];
+
+// "Sponsorship Connect Pro": for brands and organizers closing sponsorships
+const SPONSORSHIP_BENEFITS = [
+  { icon: Target, title: 'Priority matching', text: 'Show first to the brands or events that fit you' },
+  { icon: Phone, title: 'Calls with brands and organizers', text: 'Voice or video, with booked times in the chat' },
+  { icon: FileText, title: 'Sponsorship documents', text: 'Proposals, agreements, billing and post-event reports' },
+  { icon: Handshake, title: 'Unlimited inquiries', text: 'Reach every event or brand you want' },
+  { icon: BarChart3, title: 'Reach reports', text: 'Likes, reels and attendance your sponsorship delivered' },
+  { icon: BadgeCheck, title: 'Pro badge', text: 'Stand out as a serious sponsor or organizer' },
+];
+
+const BENEFITS_BY_PLAN = { organizer: ORGANIZER_BENEFITS, maker: MAKER_BENEFITS, sponsorship: SPONSORSHIP_BENEFITS };
+
 /** Paywall shown after the free uses of a Pro feature run out, or from "Go Pro" entry points */
-export default function ProUpgradeSheet({ feature, isPro, onClose, onUpgrade, onDowngrade }) {
+export default function ProUpgradeSheet({ feature, plan: planId = 'organizer', isPro, onClose, onUpgrade, onDowngrade }) {
   const [billing, setBilling] = useState('monthly');
-  const plan = PRO_PRICING[billing];
+  const plan = PRO_PLANS[planId] || PRO_PLANS.organizer;
+  const benefits = BENEFITS_BY_PLAN[plan.id];
+  const yearly = billing === 'yearly' && plan.yearly;
   const info = feature ? PRO_FEATURES[feature] : null;
+  const price = yearly
+    ? { now: php(plan.yearly), per: '/year', note: '2 months free. Cancel anytime.' }
+    : { now: php(plan.firstMonth), per: ' first month', was: php(plan.monthly), note: `Then ${php(plan.monthly)}/month. Cancel anytime.` };
 
   return (
     <Sheet
-      title="Aygo Pro"
-      subtitle="Your event sourcing workspace."
+      title={plan.name}
+      subtitle={plan.tagline}
       icon={Crown}
       onClose={onClose}
       size="md"
@@ -47,7 +71,7 @@ export default function ProUpgradeSheet({ feature, isPro, onClose, onUpgrade, on
         ) : (
           <div>
             <Button size="lg" full icon={Crown} onClick={onUpgrade}>
-              Go Pro · {plan.price}{plan.per}
+              {yearly ? `Go Pro · ${price.now}/year` : `Start Pro · ${price.now} first month`}
             </Button>
             <p className="mt-2 text-center text-[12px] text-slate-500">Preview only: no payment is taken.</p>
           </div>
@@ -57,7 +81,7 @@ export default function ProUpgradeSheet({ feature, isPro, onClose, onUpgrade, on
       <div className="rounded-[22px] bg-[#003CF5] p-5 text-white relative overflow-hidden">
         <Logo tone="white" className="h-6" />
         <p className="mt-3 text-[19px] font-semibold leading-snug">
-          {info?.headline || (info ? `You've used your ${FREE_USES} free ${info.noun}.` : 'Plan every event in one place.')}
+          {info?.headline || (info ? `You've used your ${FREE_USES} free ${info.noun}.` : plan.headline)}
         </p>
         <p className="mt-1 text-[13px] text-blue-100">
           {info?.text || (info ? `Go Pro to keep using ${info.label} and every other tool without limits.` : `Free accounts get ${FREE_USES} tries of each Pro tool.`)}
@@ -65,7 +89,7 @@ export default function ProUpgradeSheet({ feature, isPro, onClose, onUpgrade, on
         <Logo variant="icon" className="absolute -right-4 -bottom-4 w-24 h-24 opacity-20 rotate-12" />
       </div>
 
-      {!isPro && (
+      {!isPro && plan.yearly && (
         <Tabs
           className="mt-4"
           value={billing}
@@ -77,13 +101,22 @@ export default function ProUpgradeSheet({ feature, isPro, onClose, onUpgrade, on
         />
       )}
       {!isPro && (
-        <p className="mt-2 text-center text-[13px] text-slate-500">
-          <span className="text-[17px] font-semibold text-slate-900">{plan.price}</span>{plan.per} · {plan.note}
-        </p>
+        <div className="mt-3 rounded-2xl bg-emerald-50 px-4 py-3 text-center">
+          <p className="text-[15px] text-emerald-900">
+            {price.was && <span className="mr-2 text-slate-400 line-through">{price.was}</span>}
+            <span className="text-[22px] font-semibold">{price.now}</span>{price.per}
+          </p>
+          <p className="text-[12.5px] text-emerald-800/80">{price.note}</p>
+          {!yearly && (
+            <span className="mt-1.5 inline-flex rounded-full bg-white px-2.5 py-0.5 text-[12px] font-semibold text-emerald-700">
+              First month {Math.round((1 - plan.firstMonth / plan.monthly) * 100)}% off
+            </span>
+          )}
+        </div>
       )}
 
       <ul className="mt-4 space-y-3">
-        {BENEFITS.map(({ icon: Icon, title, text }) => (
+        {benefits.map(({ icon: Icon, title, text }) => (
           <li key={title} className="flex items-start gap-3">
             <span className="w-9 h-9 rounded-full bg-blue-50 text-[#003CF5] flex items-center justify-center shrink-0">
               <Icon className="w-4 h-4" />
@@ -98,7 +131,11 @@ export default function ProUpgradeSheet({ feature, isPro, onClose, onUpgrade, on
       </ul>
 
       <p className="mt-5 text-[13px] text-slate-500">
-        Always free: posting requests, receiving offers, chat, accepting a maker and Sponsorship Connect.
+        {plan.id === 'maker'
+          ? 'Always free: bidding on requests, chat with organizers, sending packages and getting paid through Aygo.'
+          : plan.id === 'sponsorship'
+            ? 'Always free: browsing events and brands, sending inquiries, chat, packages and payments through Aygo.'
+            : 'Always free: posting requests, receiving offers, chat, accepting a maker and Sponsorship Connect.'}
       </p>
     </Sheet>
   );

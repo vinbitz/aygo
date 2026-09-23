@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { Handshake, MessageSquare, Star, Clock, Truck, Check, Loader2, ArrowLeftRight, Plus } from 'lucide-react';
+import { Handshake, MessageSquare, Star, Clock, Truck, Check, Loader2, ArrowLeftRight, Plus, PackageCheck, ShieldCheck } from 'lucide-react';
 import { Button, Badge, VerifiedBadge, cx } from './ui';
 import { peso, shortDate, rankBids, ORDER_STEPS } from '../lib/marketplace';
 
@@ -9,7 +9,7 @@ const TAG_TONE = { 'Best match': 'solidGreen', 'Lowest price': 'green', Fastest:
  * Home-sheet section for the active request: live offers from makers,
  * the selected offer's details, and the order tracker once booked.
  */
-export default function RequestOffers({ request, onAccept, onCompare, onChat, onViewSupplier, onNewRequest }) {
+export default function RequestOffers({ request, onAccept, onCompare, onChat, onViewSupplier, onNewRequest, onConfirmReceived, onRate }) {
   const ranked = useMemo(() => (request ? rankBids(request.bids, request) : []), [request]);
   const [selectedId, setSelectedId] = useState(null);
 
@@ -53,7 +53,13 @@ export default function RequestOffers({ request, onAccept, onCompare, onChat, on
       </div>
 
       {accepted ? (
-        <OrderTracker bid={accepted} request={request} onChat={() => onChat(accepted.supplier)} />
+        <OrderTracker
+          bid={accepted}
+          request={request}
+          onChat={() => onChat(accepted.supplier)}
+          onConfirmReceived={() => onConfirmReceived?.(request.id, accepted)}
+          onRate={(stars, comment) => onRate?.(request.id, accepted, stars, comment)}
+        />
       ) : (
         <>
           {waiting && (
@@ -166,7 +172,8 @@ function OfferDetails({ bid, request, onAccept, onChat, onViewSupplier }) {
   );
 }
 
-function OrderTracker({ bid, request, onChat }) {
+function OrderTracker({ bid, request, onChat, onConfirmReceived, onRate }) {
+  const dispatched = request.orderStep >= ORDER_STEPS.length - 1;
   return (
     <div className="mx-4 mt-4">
       <div className="rounded-2xl bg-[#F4F3F0] p-3.5 flex items-center justify-between gap-3">
@@ -174,7 +181,9 @@ function OrderTracker({ bid, request, onChat }) {
           <p className="text-[15px] font-semibold text-slate-900 truncate">{bid.supplier.name}</p>
           <p className="text-[13px] text-slate-500">{peso(bid.pricePerUnit, 2)}/pc · {peso(bid.total)} total</p>
         </div>
-        <Badge tone="blue">Ready {shortDate(bid.deliveryDate)}</Badge>
+        {request.received
+          ? <Badge tone="green">Received</Badge>
+          : <Badge tone="blue">Ready {shortDate(bid.deliveryDate)}</Badge>}
       </div>
 
       <ol className="mt-5 grid grid-cols-4">
@@ -191,9 +200,68 @@ function OrderTracker({ bid, request, onChat }) {
         })}
       </ol>
 
-      <Button className="mt-4" size="lg" full icon={MessageSquare} onClick={onChat}>
+      {!request.received && (
+        <p className="mt-4 flex items-start gap-2 rounded-2xl bg-[#F4F3F0] px-3.5 py-2.5 text-[13px] text-slate-600">
+          <ShieldCheck className="w-4 h-4 text-[#003CF5] shrink-0 mt-px" />
+          {dispatched
+            ? 'On the way to your venue. Count the items, then confirm to release the payment to the maker.'
+            : 'Aygo holds your payment. The maker gets it after you confirm delivery.'}
+        </p>
+      )}
+
+      {request.received ? (
+        request.rating ? (
+          <p className="mt-4 rounded-2xl bg-emerald-50 px-3.5 py-2.5 text-[13px] text-emerald-800">
+            Payment released to {bid.supplier.shortName || bid.supplier.name}. You rated {'★'.repeat(request.rating.stars)}.
+          </p>
+        ) : (
+          <RateMaker name={bid.supplier.shortName || bid.supplier.name} onRate={onRate} />
+        )
+      ) : dispatched ? (
+        <Button className="mt-3" size="lg" full icon={PackageCheck} onClick={onConfirmReceived}>
+          Confirm received
+        </Button>
+      ) : null}
+
+      <Button className="mt-3" size="lg" variant={dispatched && !request.received ? 'secondary' : 'primary'} full icon={MessageSquare} onClick={onChat}>
         Chat with maker
       </Button>
+    </div>
+  );
+}
+
+/** After delivery: rate the maker (shown on their storefront) */
+function RateMaker({ name, onRate }) {
+  const [stars, setStars] = useState(0);
+  const [comment, setComment] = useState('');
+  return (
+    <div className="mt-4 rounded-2xl border border-slate-200 p-3.5">
+      <p className="text-[15px] font-semibold text-slate-900">How was {name}?</p>
+      <p className="text-[12.5px] text-slate-500">Payment released. Your review helps other organizers choose.</p>
+      <div className="mt-2 flex gap-1" role="radiogroup" aria-label="Rating">
+        {[1, 2, 3, 4, 5].map((n) => (
+          <button
+            key={n}
+            type="button"
+            role="radio"
+            aria-checked={stars === n}
+            aria-label={`${n} star${n > 1 ? 's' : ''}`}
+            onClick={() => setStars(n)}
+            className="w-10 h-10 flex items-center justify-center"
+          >
+            <Star className={cx('w-7 h-7', n <= stars ? 'fill-amber-400 text-amber-400' : 'text-slate-300')} />
+          </button>
+        ))}
+      </div>
+      <textarea
+        value={comment}
+        onChange={(e) => setComment(e.target.value)}
+        rows={2}
+        placeholder="Quality, timing, packaging…"
+        aria-label="Review"
+        className="mt-2 w-full rounded-xl bg-[#F4F3F0] px-3 py-2 text-[14px] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#003CF5]/40"
+      />
+      <Button className="mt-2" full disabled={!stars} onClick={() => onRate(stars, comment.trim())}>Post review</Button>
     </div>
   );
 }

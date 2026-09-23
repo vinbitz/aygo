@@ -2,14 +2,14 @@ import React from 'react';
 import { X, FileText, Download, Crown } from 'lucide-react';
 import { Chip, Badge } from './ui';
 import { usePro } from '../state/pro';
-import { toast } from '../lib/toast';
+import { downloadDocument } from '../lib/chatDocs';
 
 /** Chat shortcut for a Pro tool, with the free tries left (3 on the Free plan) */
-export function ProChip({ feature, icon, children, onClick, gateOnClick = true }) {
+export function ProChip({ feature, icon, children, onClick, gateOnClick = true, plan = 'organizer' }) {
   const pro = usePro();
   const left = pro.remaining(feature);
   return (
-    <Chip icon={icon} onClick={() => (gateOnClick ? pro.gate(feature, onClick) : onClick())}>
+    <Chip icon={icon} onClick={() => (gateOnClick ? pro.gate(feature, onClick, plan) : onClick())}>
       <span className="inline-flex items-center gap-1.5">
         {children}
         {left !== Infinity && (
@@ -65,7 +65,7 @@ export function DocumentCard({ doc }) {
       </div>
       <button
         type="button"
-        onClick={() => toast(`Downloading ${doc.name}`)}
+        onClick={() => downloadDocument(doc, [doc.meta])}
         aria-label={`Download ${doc.name}`}
         className="w-10 h-10 rounded-full hover:bg-[#F4F3F0] text-slate-600 flex items-center justify-center shrink-0"
       >

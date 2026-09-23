@@ -197,3 +197,36 @@ export function BrandFilesCard({ m }) {
     </div>
   );
 }
+
+/** Placement proof the organizer sends; the brand approves it or asks for changes */
+export function ProofCard({ m, canAnswer, onAnswer }) {
+  const { title, logo, spots = [], status } = m.proof;
+  const waiting = status === 'Waiting for approval';
+  return (
+    <div className="w-[300px] max-w-full rounded-2xl bg-white border border-slate-200/80 overflow-hidden text-left">
+      <div className="h-36 bg-gradient-to-br from-slate-800 to-[#0A1A4A] flex items-center justify-center gap-3 px-4">
+        <div className="w-24 h-28 rounded-t-[28px] rounded-b-xl bg-white/95 flex items-center justify-center shadow-lg">
+          {logo ? <img src={logo} alt="Your logo on the shirt" className="w-12 h-12 object-contain" /> : <span className="text-[11px] font-semibold text-slate-500">LOGO</span>}
+        </div>
+        <div className="flex-1 h-20 rounded-lg bg-[#003CF5] flex items-center justify-center">
+          {logo ? <img src={logo} alt="Your logo on the backdrop" className="h-12 object-contain" /> : <span className="text-[11px] font-semibold text-white">LOGO</span>}
+        </div>
+      </div>
+      <div className="p-3.5">
+        <p className="text-[12px] text-slate-500">Placement proof</p>
+        <p className="text-[15px] font-semibold text-slate-900">{title}</p>
+        {spots.length > 0 && <p className="mt-0.5 text-[12.5px] text-slate-500">{spots.join(' · ')}</p>}
+        {waiting && canAnswer ? (
+          <div className="mt-3 flex gap-2">
+            <Button size="sm" className="flex-1 h-10" onClick={() => onAnswer(m.id, true)}>Approve</Button>
+            <Button size="sm" variant="secondary" className="h-10" onClick={() => onAnswer(m.id, false)}>Request changes</Button>
+          </div>
+        ) : (
+          <p className={cx('mt-2 text-[13px] font-medium', status === 'Approved' ? 'text-emerald-700' : status === 'Changes requested' ? 'text-rose-700' : 'text-amber-700')}>
+            {status}
+          </p>
+        )}
+      </div>
+    </div>
+  );
+}
