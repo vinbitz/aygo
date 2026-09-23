@@ -27,11 +27,12 @@ import {
   CornerDownRight,
   Users,
   Boxes,
+  Award,
   FileText,
   Crown
 } from 'lucide-react';
 import { SUPPLIERS } from '../data/mockData';
-import { MAKER_PRO_PRICE } from '../lib/pro';
+import { MAKER_PRO_PRICE, MAKER_PRO_PERKS, PRO_PLANS } from '../lib/pro';
 import { organizerParty } from '../lib/chatStore';
 import { toast } from '../lib/toast';
 import {
@@ -165,11 +166,16 @@ const INITIAL_REVIEWS = [
   { id: 'rev-3', author: 'Carlo Mendoza', event: 'Startup PH Founders Forum', rating: 4.8, date: 'Jul 12', comment: 'Crisp laser engraving on the matte black bottles. Our VIPs loved them.', reply: null }
 ];
 
-const PRO_PERKS = [
-  { icon: Rocket, tone: 'blue', title: 'Priority placement', text: 'Your bids show first to organizers nearby' },
-  { icon: BarChart3, tone: 'violet', title: 'Bid analytics', text: 'See winning prices and response benchmarks' },
-  { icon: Wand2, tone: 'amber', title: 'AI mockup credits', text: '50 mockups a month to win more bids' }
-];
+// Same list as registration and the Go Pro screen
+const PRO_PERK_STYLE = {
+  listings: { icon: Store, tone: 'green' },
+  placement: { icon: Rocket, tone: 'blue' },
+  analytics: { icon: BarChart3, tone: 'violet' },
+  mockups: { icon: Wand2, tone: 'amber' },
+  calls: { icon: PhoneCall, tone: 'rose' },
+  badge: { icon: Award, tone: 'slate' }
+};
+const PRO_PERKS = MAKER_PRO_PERKS.map((p) => ({ ...PRO_PERK_STYLE[p.id], title: p.title, text: p.text }));
 
 const TABS = [
   { id: 'requests', label: 'Requests', icon: Inbox },
@@ -708,7 +714,7 @@ export default function SupplierPortalView({
       <div className="flex items-center gap-3">
         <IconCircle icon={Sparkles} tone="blue" size="lg" />
         <div className="min-w-0">
-          <h2 className="text-[19px] font-semibold text-slate-900 tracking-tight leading-tight">Aygo Pro</h2>
+          <h2 className="text-[19px] font-semibold text-slate-900 tracking-tight leading-tight">{PRO_PLANS.maker.name}</h2>
           <p className="text-[13px] text-slate-500">Win more jobs</p>
         </div>
       </div>

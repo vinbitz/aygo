@@ -1,6 +1,6 @@
 import React from 'react';
 import { X, FileText, Download, Crown } from 'lucide-react';
-import { Chip, Badge } from './ui';
+import { Chip } from './ui';
 import { usePro } from '../state/pro';
 import { downloadDocument } from '../lib/chatDocs';
 
@@ -48,7 +48,7 @@ export function DocumentPicker({ docs, subtitle, onPick, onClose }) {
           </li>
         ))}
       </ul>
-      <p className="px-4 pb-4 text-[12px] text-slate-500">Filled in from this chat and branded for your event. Free plan: 3 documents, then Go Pro.</p>
+      <p className="px-4 pb-4 text-[12px] text-slate-500">Filled in from this chat, with your own name and contact. Free plan: 3 documents, then Go Pro.</p>
     </div>
   );
 }
@@ -61,7 +61,6 @@ export function DocumentCard({ doc }) {
       <div className="flex-1 min-w-0">
         <p className="text-[14px] font-medium text-slate-900 truncate">{doc.name}</p>
         <p className="text-[12px] text-slate-500 truncate">{doc.meta}</p>
-        <Badge tone="violet" className="mt-1">Made with Aygo</Badge>
       </div>
       <button
         type="button"
@@ -70,6 +69,27 @@ export function DocumentCard({ doc }) {
         className="w-10 h-10 rounded-full hover:bg-[#F4F3F0] text-slate-600 flex items-center justify-center shrink-0"
       >
         <Download className="w-4 h-4" />
+      </button>
+    </div>
+  );
+}
+
+/** Shown at the top of a Pro tool opened on the Free plan: look around freely, saving uses a free try */
+export function ProPreviewBanner({ feature, plan = 'organizer', action }) {
+  const pro = usePro();
+  const left = pro.remaining(feature);
+  if (left === Infinity) return null;
+  return (
+    <div className="mb-4 flex items-center gap-3 rounded-2xl bg-violet-50 px-4 py-3">
+      <Crown className="w-5 h-5 text-violet-700 shrink-0" />
+      <p className="flex-1 min-w-0 text-[13px] text-violet-900 leading-snug">
+        <span className="font-semibold">Preview.</span>{' '}
+        {left > 0
+          ? `Look around for free. ${action} uses 1 of your ${left} free ${left === 1 ? 'try' : 'tries'} left.`
+          : `You've used your free tries. Go Pro to ${action.toLowerCase()}.`}
+      </p>
+      <button type="button" onClick={() => pro.openPaywall(feature, plan)} className="h-9 px-3 rounded-full bg-white text-[13px] font-semibold text-violet-700 shrink-0">
+        Go Pro
       </button>
     </div>
   );

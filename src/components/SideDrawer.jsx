@@ -193,7 +193,7 @@ export default function SideDrawer({
               trailing={unreadMessages > 0 ? <CountBadge count={unreadMessages} /> : undefined}
             />
             <ListRow icon={Users} tone="green" title="Suppliers" subtitle="Browse verified makers" onClick={go(onOpenSuppliers)} />
-            <ListRow icon={CalendarClock} tone="violet" title="My availability" subtitle="When you're free for calls" onClick={go(onOpenAvailability)} />
+            <ListRow icon={CalendarClock} tone="violet" title="Calls & availability" subtitle="Who can call you, and when you're free" onClick={go(onOpenAvailability)} />
           </MenuGroup>
 
           {/* Supplier-only tools */}

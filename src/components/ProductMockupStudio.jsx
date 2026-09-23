@@ -20,6 +20,8 @@ import {
 import { AYGO_LOGO_DATA_URI } from '../assets/logoBase64';
 import { generateMockupConfig } from '../services/jevAiService';
 import { toast } from '../lib/toast';
+import { usePro } from '../state/pro';
+import { ProPreviewBanner } from './ChatTools';
 import { Sheet, Button, Chip, Tabs, Section, cx } from './ui';
 
 /* ------------------------------------------------------------------ */
@@ -218,8 +220,10 @@ export default function ProductMockupStudio({
   onClose,
   activeItemTitle = 'Custom Event Merch',
   onSaveMockup,
-  activeItemCategory = 'Apparel'
+  activeItemCategory = 'Apparel',
+  plan = 'organizer'
 }) {
+  const pro = usePro();
   const [product, setProduct] = useState(() => guessProduct(`${activeItemTitle} ${activeItemCategory}`));
   const [color, setColor] = useState(COLORS[0]);
   const [technique, setTechnique] = useState(() => product.technique);
@@ -332,7 +336,10 @@ export default function ProductMockupStudio({
     return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(markup)}`;
   };
 
-  const handleSave = () => {
+  // Free plan: designing is free, saving a mockup uses one of the 3 free tries
+  const handleSave = () => pro.gate('mockup', saveMockup, plan);
+
+  const saveMockup = () => {
     const name = `${product.label} mockup · ${color.name}`;
     onSaveMockup?.({
       name,
@@ -374,6 +381,7 @@ export default function ProductMockupStudio({
         </div>
       }
     >
+      <ProPreviewBanner feature="mockup" plan={plan} action="Saving a mockup" />
       <div className="md:grid md:grid-cols-[minmax(0,1fr)_300px] md:gap-5">
         {/* Canvas */}
         <div className="md:sticky md:top-0 md:self-start">

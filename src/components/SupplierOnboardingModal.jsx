@@ -25,7 +25,7 @@ import {
 } from 'lucide-react';
 import { toast } from '../lib/toast';
 import { Sheet, Button, Field, Input, Select, Badge, IconCircle, Panel, cx } from './ui';
-import { MAKER_PERKS, MAKER_PRO_PRICE } from '../lib/pro';
+import { MAKER_PERKS, MAKER_PRO_PRICE, MAKER_PRO_PERKS, PRO_PLANS } from '../lib/pro';
 
 const PERK_ICONS = { documents: FileText, calls: Phone };
 
@@ -143,18 +143,13 @@ const PLANS = [
   },
   {
     id: 'pro',
-    name: 'Aygo Pro',
+    name: PRO_PLANS.maker.name,
     price: `₱${MAKER_PRO_PRICE.firstMonth.toLocaleString('en-PH')}`,
     regular: `₱${MAKER_PRO_PRICE.monthly.toLocaleString('en-PH')}`,
     period: 'first month',
     terms: `Then ₱${MAKER_PRO_PRICE.monthly.toLocaleString('en-PH')}/month after your first month. Cancel anytime.`,
-    perks: [
-      'Unlimited listings',
-      'Priority placement in search and bids',
-      'Storefront analytics',
-      '20 AI mockup credits per month',
-      'Book a call button on your storefront'
-    ]
+    perks: MAKER_PRO_PERKS.map((p) => p.title),
+    note: 'Sponsoring events as a brand? Sponsorship Connect Pro is a separate plan with sponsor matching, sponsorship documents and reach reports.'
   }
 ];
 
@@ -580,6 +575,7 @@ export default function SupplierOnboardingModal({
                     </li>
                   ))}
                 </ul>
+                {p.note && <span className="block mt-3 text-[12px] text-slate-500 leading-snug">{p.note}</span>}
               </button>
             );
           })}

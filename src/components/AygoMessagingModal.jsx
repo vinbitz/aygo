@@ -33,6 +33,7 @@ import { usePro } from '../state/pro';
 import { canCall } from '../lib/pro';
 import CallScreen from './CallScreen';
 import { callLength } from '../lib/calls';
+import { chattedEnough } from '../lib/callPrefs';
 import { SchedulePanel, MeetingCard } from './ScheduleCall';
 import { ProChip, DocumentPicker } from './ChatTools';
 import { ORDER_DOCS, downloadDocument } from '../lib/chatDocs';
@@ -206,7 +207,7 @@ const INITIAL_CONVERSATIONS = {
 // A maker's side: threads with organizers about their requests
 const MAKER_CONVERSATIONS = {
   'org-bgc-tech-summit': {
-    supplier: { id: 'org-bgc-tech-summit', name: 'BGC Tech Summit', shortName: 'BGC Tech Summit', contactPerson: 'Event organizer', isOrganizer: true },
+    supplier: { id: 'org-bgc-tech-summit', name: 'BGC Tech Summit', shortName: 'BGC Tech Summit', contactPerson: 'Event organizer', isOrganizer: true, callPolicy: 'chat-first' },
     unreadCount: 1,
     request: { item: 'Custom satin lanyards', qty: '300 pcs', budget: '₱15,000', venue: 'Arthaland Century Pacific Tower, BGC', date: 'Oct 15' },
     messages: [
@@ -214,7 +215,7 @@ const MAKER_CONVERSATIONS = {
     ]
   },
   'org-devcon-manila': {
-    supplier: { id: 'org-devcon-manila', name: 'DevCon Manila', shortName: 'DevCon Manila', contactPerson: 'Event organizer', isOrganizer: true },
+    supplier: { id: 'org-devcon-manila', name: 'DevCon Manila', shortName: 'DevCon Manila', contactPerson: 'Event organizer', isOrganizer: true, callPolicy: 'chat-first' },
     unreadCount: 0,
     request: { item: 'Event polo shirts', qty: '150 pcs', budget: '₱42,000', venue: 'SMX Aura, BGC', date: 'Nov 14' },
     messages: [
@@ -795,7 +796,7 @@ export default function AygoMessagingModal({
   const sendDocument = (d) =>
     pro.gate('documents', () => {
       handleSendMessage(`Here is the ${d.name.toLowerCase()}.`, 'document', {
-        docData: { name: `${d.name} — ${request.item}.pdf`, meta: `${d.meta} · Made with Aygo` }
+        docData: { name: `${d.name} — ${request.item}.pdf`, meta: d.meta }
       });
       setShowDocs(false);
     }, planId);
@@ -877,9 +878,15 @@ export default function AygoMessagingModal({
   };
 
   const supplierIsPro = Boolean(currentSupplier.proStorefront);
-  const startCall = (video = false) => {
+  // booked: joining a call both sides already agreed on in the chat
+  const startCall = (video = false, booked = false) => {
     if (!canCall(pro.isPro, supplierIsPro)) {
       pro.openPaywall('calls', isMaker ? 'maker' : 'organizer');
+      return;
+    }
+    const policy = currentSupplier.callPolicy || SUPPLIERS.find((x) => x.id === currentSupplier.id)?.callPolicy;
+    if (!booked && policy === 'chat-first' && !chattedEnough(currentConvo.messages, (m) => m.sender === ME)) {
+      toast(`${firstName} takes calls after you've chatted. Send a message first, or book a call in their free times.`);
       return;
     }
     setInCall({ video });
@@ -1077,7 +1084,7 @@ export default function AygoMessagingModal({
                       meeting={m.meetingData}
                       name={currentSupplier.name}
                       canJoin={canCall(pro.isPro, supplierIsPro)}
-                      onJoin={() => startCall(m.meetingData.video)}
+                      onJoin={() => startCall(m.meetingData.video, true)}
                     />
                   )}
                   {hasCard && m.type !== 'meeting' && (

@@ -3,6 +3,7 @@ import { Building2, Save, Check, ArrowLeft, ArrowRight, Store, MapPin, Wrench, T
 import { SUPPLIERS } from '../data/mockData';
 import { toast } from '../lib/toast';
 import { Sheet, Button, Field, Input, Textarea, Select, Chip, Tabs, Panel, cx } from './ui';
+import CallPolicyToggle from './CallPolicyToggle';
 
 const STEPS = [
   { id: 'identity', label: 'Business', icon: Store, tip: 'Organizers trust makers with a clear story, real workshop photos and a named contact.' },
@@ -344,6 +345,8 @@ export default function SupplierProfileSetupModal({
             </Field>
           </>
         )}
+
+        <CallPolicyToggle />
       </form>
     </Sheet>
   );

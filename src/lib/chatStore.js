@@ -20,6 +20,7 @@ export function organizerParty({ organizer, item, qty, budget, venue, deadline }
     shortName: organizer,
     contactPerson: 'Event organizer',
     isOrganizer: true,
+    callPolicy: 'chat-first',
     request: {
       item: item || 'Event supplies',
       qty: qty ? `${Number(qty).toLocaleString('en-PH')} pcs` : '',

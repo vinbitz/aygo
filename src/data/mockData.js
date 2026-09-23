@@ -123,7 +123,8 @@ export const SUPPLIERS = [
     supportedBlanks: ['200-240 GSM Combed Cotton', 'CVC Cotton Blend', 'Interlock Poly-DriFit', 'French Terry Hoodies'],
     dispatchOptions: ['Lalamove MPV / Van ready', 'Borzo dispatch', 'In-house delivery van (Metro Manila)', 'LBC / 2GO for provincial'],
     pickupHours: 'Monday - Saturday: 8:00 AM - 7:00 PM',
-    proStorefront: true
+    proStorefront: true,
+    callPolicy: 'chat-first' // takes calls only after chatting
   },
   {
     id: 's2',
@@ -158,7 +159,8 @@ export const SUPPLIERS = [
     supportedBlanks: ['Unbleached Off-white Canvas', 'Black / Navy Heavy Twill', 'Ripstop Nylon', 'Recycled PET Fabric'],
     dispatchOptions: ['Pickup counter', 'Lalamove Courier', 'Grab Express', 'Freight forwarder'],
     pickupHours: 'Monday - Friday: 8:30 AM - 6:00 PM',
-    proStorefront: true
+    proStorefront: true,
+    callPolicy: 'chat-first' // takes calls only after chatting
   },
   {
     id: 's3',

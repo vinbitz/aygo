@@ -4,7 +4,7 @@ import {
   Rocket, BarChart3, Store, Wand2, Handshake, Target, BadgeCheck,
 } from 'lucide-react';
 import { Sheet, Button, Tabs, Logo, cx } from './ui';
-import { FREE_USES, PRO_FEATURES, PRO_PLANS } from '../lib/pro';
+import { FREE_USES, PRO_FEATURES, PRO_PLANS, MAKER_PRO_PERKS } from '../lib/pro';
 
 const php = (n) => `₱${n.toLocaleString('en-PH')}`;
 
@@ -23,14 +23,8 @@ const ORGANIZER_BENEFITS = [
 ];
 
 // "Aygo Pro for Suppliers": for the supplier portal
-const MAKER_BENEFITS = [
-  { icon: Rocket, title: 'Priority placement', text: 'Your bids and storefront show first to organizers nearby' },
-  { icon: Store, title: 'Unlimited listings', text: 'List every product, sample and package' },
-  { icon: BarChart3, title: 'Bid & storefront analytics', text: 'Winning prices, views and response benchmarks' },
-  { icon: Wand2, title: 'AI mockup credits', text: 'Send proofs that win the job' },
-  { icon: Phone, title: 'In-app calls', text: 'Call organizers and walk them through samples on video' },
-  { icon: FileText, title: 'Documents', text: 'Quotes, invoices and delivery receipts (free for registered makers)' },
-];
+const MAKER_ICONS = { listings: Store, placement: Rocket, analytics: BarChart3, mockups: Wand2, calls: Phone, badge: BadgeCheck };
+const MAKER_BENEFITS = MAKER_PRO_PERKS.map((p) => ({ icon: MAKER_ICONS[p.id], title: p.title, text: p.text }));
 
 // "Sponsorship Connect Pro": for brands and organizers closing sponsorships
 const SPONSORSHIP_BENEFITS = [
@@ -39,7 +33,7 @@ const SPONSORSHIP_BENEFITS = [
   { icon: FileText, title: 'Sponsorship documents', text: 'Proposals, agreements, billing and post-event reports' },
   { icon: Handshake, title: 'Unlimited inquiries', text: 'Reach every event or brand you want' },
   { icon: BarChart3, title: 'Reach reports', text: 'Likes, reels and attendance your sponsorship delivered' },
-  { icon: BadgeCheck, title: 'Pro badge', text: 'Stand out as a serious sponsor or organizer' },
+  { icon: BadgeCheck, title: 'Sponsor Pro badge', text: 'Stand out as a serious sponsor or organizer' },
 ];
 
 const BENEFITS_BY_PLAN = { organizer: ORGANIZER_BENEFITS, maker: MAKER_BENEFITS, sponsorship: SPONSORSHIP_BENEFITS };

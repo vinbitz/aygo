@@ -17,8 +17,10 @@ import {
 } from 'lucide-react';
 import { toast } from '../lib/toast';
 import { downloadDocument } from '../lib/chatDocs';
+import { usePro } from '../state/pro';
+import { ProPreviewBanner } from './ChatTools';
 import { INITIAL_REQUESTS } from '../data/mockData';
-import { Sheet, Button, Field, Input, Tabs, Chip, cx, Logo } from './ui';
+import { Sheet, Button, Field, Input, Tabs, Chip, cx } from './ui';
 
 const REQUEST = INITIAL_REQUESTS[0];
 const peso = (n) => '₱' + Number(n).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -278,14 +280,22 @@ function DocumentPreview({ doc, brand, logo }) {
       )}
 
       <footer className="mt-6 pt-3 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-400">
-        <span className="inline-flex items-center gap-1.5"><Logo variant="icon" className="w-4 h-4" />Generated with Aygo</span>
+        {/* The issuer's own logo and contact, not Aygo's */}
+        <span className="inline-flex items-center gap-1.5 min-w-0">
+          {logo
+            ? <img src={logo} alt="" className="w-4 h-4 object-contain shrink-0" />
+            : <span className="w-4 h-4 rounded bg-slate-200 text-[9px] font-semibold text-slate-600 flex items-center justify-center shrink-0">{(brand.name || '?').slice(0, 1)}</span>}
+          <span className="truncate">{[brand.name, brand.contact].filter(Boolean).join(' · ')}</span>
+        </span>
         <span>{number}</span>
       </footer>
     </article>
   );
 }
 
-export default function DocumentGeneratorModal({ onClose, onAttach }) {
+export default function DocumentGeneratorModal({ onClose, onAttach, plan = 'organizer' }) {
+  const pro = usePro();
+  const isPreview = pro.remaining('documents') !== Infinity;
   const [selectedDoc, setSelectedDoc] = useState(DOC_TYPES[0]);
   const [brand, setBrand] = useState({
     name: REQUEST.client,
@@ -323,25 +333,26 @@ export default function DocumentGeneratorModal({ onClose, onAttach }) {
             variant="secondary"
             icon={MessageSquare}
             className="flex-1 sm:flex-none"
-            onClick={() => onAttach?.({ name: `${selectedDoc.name} — ${REQUEST.title}.pdf`, meta: `${selectedDoc.desc} · Made with Aygo` })}
+            onClick={() => pro.gate('documents', () => onAttach?.({ name: `${selectedDoc.name} — ${REQUEST.title}.pdf`, meta: `${selectedDoc.desc} · from ${brand.name}` }), plan)}
           >
             Attach to chat
           </Button>
           <Button
             icon={Download}
             className="flex-1 sm:flex-none"
-            onClick={() => downloadDocument({ name: `${selectedDoc.name} — ${REQUEST.title}.pdf`, meta: selectedDoc.desc }, [
+            onClick={() => pro.gate('documents', () => downloadDocument({ name: `${selectedDoc.name} — ${REQUEST.title}.pdf`, meta: selectedDoc.desc }, [
               `Issued by: ${brand.name}`,
               ...LINE_ITEMS.map((i) => `${i.qty} × ${i.desc}: ${peso(i.qty * i.unit)}`),
               `Total: ${peso(subtotal)}`,
               `Date: ${DATE}`
-            ])}
+            ], { issuer: brand.name, contact: [brand.address, brand.contact].filter(Boolean).join(' · '), logo }), plan)}
           >
-            Download PDF
+            Download
           </Button>
         </div>
       }
     >
+      <ProPreviewBanner feature="documents" plan={plan} action="Downloading or sending a document" />
       <Tabs
         className="md:hidden mb-4"
         value={mobileTab}
@@ -436,7 +447,14 @@ export default function DocumentGeneratorModal({ onClose, onAttach }) {
             <Chip className="pointer-events-none">{selectedDoc.short}</Chip>
           </div>
           <div className="rounded-[28px] bg-[#F4F3F0] p-3 sm:p-5">
-            <DocumentPreview doc={selectedDoc} brand={brand} logo={logo} />
+            <div className="relative">
+              <DocumentPreview doc={selectedDoc} brand={brand} logo={logo} />
+              {isPreview && (
+                <div aria-hidden className="pointer-events-none absolute inset-0 flex items-center justify-center overflow-hidden rounded-xl">
+                  <span className="-rotate-[24deg] text-[64px] font-bold tracking-[0.2em] text-slate-900/[0.07] select-none">PREVIEW</span>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>

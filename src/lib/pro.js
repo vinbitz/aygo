@@ -43,9 +43,9 @@ export const PRO_PLANS = {
     name: 'Aygo Pro for Organizers',
     tagline: 'Your event sourcing workspace.',
     headline: 'Plan every event in one place.',
-    firstMonth: 149,
-    monthly: 299,
-    yearly: 2990,
+    firstMonth: 199,
+    monthly: 499,
+    yearly: 4990,
   },
   maker: {
     id: 'maker',
@@ -64,5 +64,16 @@ export const PRO_PLANS = {
     monthly: 1500,
   },
 };
+
+// Aygo Pro for Suppliers: what the plan includes (registration and the Go Pro screen use this list).
+// Kept separate from Sponsorship Connect Pro, which covers sponsor matching, sponsorship documents and reach reports.
+export const MAKER_PRO_PERKS = [
+  { id: 'listings', title: 'Unlimited listings', text: 'List every product, sample and package' },
+  { id: 'placement', title: 'Priority placement in search and bids', text: 'Show first to organizers near their venue' },
+  { id: 'analytics', title: 'Storefront and bid analytics', text: 'Views, winning prices and response benchmarks' },
+  { id: 'mockups', title: '20 AI mockup credits per month', text: 'Send proofs that win the job' },
+  { id: 'calls', title: 'Book a call button on your storefront', text: 'Organizers book voice or video calls in your free times' },
+  { id: 'badge', title: 'Pro badge on your storefront and bids', text: 'Stand out to organizers comparing offers' },
+];
 
 export const MAKER_PRO_PRICE = { firstMonth: PRO_PLANS.maker.firstMonth, monthly: PRO_PLANS.maker.monthly };

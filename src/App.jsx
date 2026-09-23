@@ -77,8 +77,9 @@ export default function App() {
 
   // Pro tools: 3 free uses each on the Free plan, then the Aygo Pro paywall
   const pro = usePro();
-  const openMockup = () => pro.gate('mockup', () => setIsMockupOpen(true));
-  const openDocs = () => pro.gate('documents', () => setIsDocsOpen(true), isSupplierMode ? 'maker' : 'organizer');
+  // Mockups and documents open as a free preview; saving, downloading or sending uses a free try
+  const openMockup = () => setIsMockupOpen(true);
+  const openDocs = () => setIsDocsOpen(true);
   const openWorkspace = () => pro.gate('workspace', () => setIsWorkspaceOpen(true));
   const openCompare = () => pro.gate('compare', () => setIsCompareOpen(true));
   const openTool = (feature) => {
@@ -375,6 +376,7 @@ export default function App() {
       {/* Mockup Studio: Contextual modal, only shown when needed */}
       {isMockupOpen && (
         <ProductMockupStudio
+          plan={isSupplierMode ? 'maker' : 'organizer'}
           activeItemTitle={activeItem.title}
           onClose={() => setIsMockupOpen(false)}
           onSaveMockup={(mockupData) => {
@@ -390,6 +392,7 @@ export default function App() {
 
       {isDocsOpen && (
         <DocumentGeneratorModal
+          plan={isSupplierMode ? 'maker' : 'organizer'}
           onClose={() => setIsDocsOpen(false)}
           onAttach={attachDocument}
         />

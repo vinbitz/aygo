@@ -5,6 +5,7 @@ import { SPONSOR_PERKS, perkLabel } from '../lib/sponsorPerks';
 import { loadImageFile } from '../lib/images';
 import { toast } from '../lib/toast';
 import { BRAND_GIVES, BRAND_EVENT_TYPES } from '../lib/brands';
+import CallPolicyToggle from './CallPolicyToggle';
 
 const toggle = (list, value) => (list.includes(value) ? list.filter((v) => v !== value) : [...list, value]);
 
@@ -119,6 +120,8 @@ export function BrandProfileForm({ brand, onChange }) {
           <Input value={brand.socialPages || ''} onChange={set('socialPages')} placeholder="e.g. facebook.com/yourbrand, @yourbrand on IG & TikTok" />
         </Field>
       </div>
+
+      <CallPolicyToggle />
 
       <div>
         <p className="text-[13px] font-medium text-slate-700">What you want in return</p>

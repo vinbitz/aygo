@@ -35,6 +35,7 @@ import { canCall, PRO_PLANS } from '../lib/pro';
 import { packageAmount } from '../lib/sponsorDeals';
 import { filesForPackage } from '../lib/brandFiles';
 import { getSponsorThreads, saveSponsorThreads } from '../lib/chatStore';
+import { chattedEnough } from '../lib/callPrefs';
 import { peso } from '../lib/marketplace';
 import { Sheet, Button, Field, Input, Textarea, Tabs, Chip, Badge, Panel, IconCircle } from './ui';
 
@@ -80,7 +81,7 @@ const EMPTY_PROFILE = {
 // pro: the brand is on Aygo Pro, so anyone can call them
 const BRANDS = [
   {
-    id: 'b1', name: 'Kape Tayo Coffee', industry: 'Food & beverage', pro: false, logo: null,
+    id: 'b1', name: 'Kape Tayo Coffee', industry: 'Food & beverage', pro: false, logo: null, callPolicy: 'chat-first',
     about: 'Local roaster serving campus and office crowds. We love events where people stay and talk.',
     supports: ['Campus fairs', 'Hackathons', 'Org anniversaries'], offer: 'Free coffee for up to 500 guests',
     gives: ['Food & drinks', 'Prizes'], wants: ['sampling', 'booth', 'posts'], budget: 'In-kind', audience: 'Students and young professionals',
@@ -98,7 +99,7 @@ const BRANDS = [
     gives: ['Event shirts', 'Lanyards & IDs'], wants: ['logo', 'reels', 'coverage'], budget: 'In-kind', audience: 'Runners, orgs and families',
   },
   {
-    id: 'b4', name: 'Ulap Cloud PH', industry: 'Cloud & software', pro: true, logo: null,
+    id: 'b4', name: 'Ulap Cloud PH', industry: 'Cloud & software', pro: true, logo: null, callPolicy: 'chat-first',
     about: 'Cloud hosting for Filipino startups. We back builders with credits and mentors.',
     supports: ['Hackathons', 'Tech conferences'], offer: 'Cloud credits + mentors',
     gives: ['Cloud credits', 'Prizes'], wants: ['speaking', 'leads', 'logo'], budget: '₱10,000–₱40,000 + credits', audience: 'Developers and CS students',
@@ -120,6 +121,7 @@ const OPPORTUNITIES = [
     eventDate: 'December 5, 2026',
     venue: 'PUP Sta. Mesa Gym, Manila',
     kind: 'Campus',
+    callPolicy: 'chat-first',
     audience: 'College students, alumni and families',
     socialReach: '32k followers',
     seeking: ['Food & drinks', 'Event shirts', 'Media partner'],
@@ -688,6 +690,13 @@ export default function SponsorshipConnectModal({ onClose, photos, onPhotosChang
   const startCall = (target) => {
     if (!canCall(viewerCanCall, target.pro)) {
       pro.openPaywall('calls', 'sponsorship');
+      return;
+    }
+    // Some brands and organizers only take calls after chatting
+    const policy = target.callPolicy || BRANDS.find((b) => b.id === target.id)?.callPolicy || OPPORTUNITIES.find((o) => o.id === target.id)?.callPolicy;
+    const thread = threads.find((t) => t.id === target.id);
+    if (!target.booked && policy === 'chat-first' && !chattedEnough(thread?.messages, (m) => m.from === 'me')) {
+      toast(`${target.name} takes calls after you've chatted. Send an inquiry or message first.`);
       return;
     }
     setCall({ target, video: Boolean(target.video) });

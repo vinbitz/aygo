@@ -216,7 +216,7 @@ export default function SponsorChat({ threads, activeId, onOpen, onBack, onSend,
                 meeting={m.meeting}
                 name={active.name}
                 canJoin={canCall(viewerIsPro, active.pro)}
-                onJoin={() => onCall({ ...active, video: m.meeting.video })}
+                onJoin={() => onCall({ ...active, video: m.meeting.video, booked: true })}
               />
             )}
             {m.type === 'selection' && (
