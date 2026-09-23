@@ -120,7 +120,7 @@ export default function SideDrawer({
         role="dialog"
         aria-modal="true"
         aria-label="Main menu"
-        className="relative z-10 w-[340px] max-w-[88vw] h-full bg-[#F2F1ED] shadow-2xl flex flex-col overflow-y-auto overscroll-contain no-scrollbar rounded-r-[28px]"
+        className="desk-zoom relative z-10 w-[340px] max-w-[88vw] h-full lg:h-[calc(100vh/var(--dz))] bg-[#F2F1ED] shadow-2xl flex flex-col overflow-y-auto overscroll-contain no-scrollbar rounded-r-[28px]"
       >
         {/* Profile header */}
         <div className="bg-white rounded-b-[28px] px-4 pt-[max(16px,env(safe-area-inset-top))] pb-4">

@@ -328,7 +328,7 @@ export default function AygoGoogleMap({
   return (
     <div className="relative w-full h-full min-h-[360px] overflow-hidden rounded-2xl flex flex-col">
       {/* Top Floating Header Row (Hamburger & Location Pill) */}
-      <div className="absolute top-3 left-3 right-3 sm:top-4 sm:left-4 sm:right-4 z-20 pointer-events-none flex items-center justify-between gap-2">
+      <div className="desk-zoom absolute top-3 left-3 right-3 sm:top-4 sm:left-4 sm:right-4 z-20 pointer-events-none flex items-center justify-between gap-2">
         {onOpenDrawer ? (
           <button
             type="button"
@@ -369,7 +369,7 @@ export default function AygoGoogleMap({
       </div>
 
       {/* Floating Re-center Target Button (Matching inspo Navigation Arrow) */}
-      <div className="absolute bottom-[calc(58vh+16px)] right-4 sm:right-6 lg:bottom-6 z-20 pointer-events-auto">
+      <div className="desk-zoom absolute bottom-[calc(58vh+16px)] right-4 sm:right-6 lg:bottom-6 z-20 pointer-events-auto">
         <button
           type="button"
           onClick={focusVenue}

@@ -37,3 +37,10 @@
   .animate-fade-in, .animate-sheet-up, .sm\:animate-pop-in { animation: none; }
 }
 .animate-pop-in { animation: pop-in 200ms ease-out; }
+
+/* Desktop: scale the whole interface up so it isn't tiny on laptops and monitors.
+   Phones are untouched. --dz is used to keep viewport-based heights inside the screen. */
+:root { --dz: 1; }
+@media (min-width: 1024px) { :root { --dz: 1.15; } }
+@media (min-width: 1536px) { :root { --dz: 1.3; } }
+.desk-zoom { zoom: var(--dz); }

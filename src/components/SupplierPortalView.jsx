@@ -840,7 +840,7 @@ export default function SupplierPortalView({
     <div className="min-h-screen bg-[#F2F1ED] font-sans text-slate-900 selection:bg-[#003CF5] selection:text-white">
       {/* Header */}
       <header className="sticky top-0 z-30 bg-white/95 backdrop-blur border-b border-slate-100">
-        <div className="max-w-6xl mx-auto h-16 px-4 sm:px-6 flex items-center gap-3">
+        <div className="desk-zoom max-w-6xl mx-auto h-16 px-4 sm:px-6 flex items-center gap-3">
           <button
             type="button"
             onClick={onOpenDrawer}
@@ -862,7 +862,7 @@ export default function SupplierPortalView({
         </div>
       </header>
 
-      <div className="max-w-6xl mx-auto lg:px-6 lg:py-6 lg:grid lg:grid-cols-[280px_minmax(0,1fr)] lg:gap-6">
+      <div className="desk-zoom max-w-6xl mx-auto lg:px-6 lg:py-6 lg:grid lg:grid-cols-[280px_minmax(0,1fr)] lg:gap-6">
         {/* Desktop sidebar */}
         <aside className="hidden lg:block">
           <div className="sticky top-[88px] space-y-2">
@@ -903,7 +903,7 @@ export default function SupplierPortalView({
         </aside>
 
         {/* Main content */}
-        <main className="pt-2 pb-28 lg:py-0 max-w-2xl w-full mx-auto lg:mx-0">{content}</main>
+        <main className="pt-2 pb-28 lg:py-0 max-w-2xl lg:max-w-none w-full mx-auto lg:mx-0">{content}</main>
       </div>
 
       {/* Mobile bottom tab bar */}

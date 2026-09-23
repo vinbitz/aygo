@@ -43,7 +43,7 @@ export default function Sheet({
         aria-modal="true"
         aria-label={typeof title === 'string' ? title : undefined}
         className={cx(
-          'relative w-full bg-white flex flex-col max-h-[92vh] sm:max-h-[88vh]',
+          'desk-zoom relative w-full bg-white flex flex-col max-h-[92vh] sm:max-h-[calc(88vh/var(--dz))]',
           'rounded-t-[28px] sm:rounded-[28px] shadow-2xl animate-sheet-up sm:animate-pop-in',
           WIDTHS[size] || WIDTHS.md
         )}

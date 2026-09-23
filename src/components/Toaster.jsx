@@ -19,7 +19,7 @@ export default function Toaster() {
   return (
     <div
       aria-live="polite"
-      className="fixed z-[100] top-4 left-1/2 -translate-x-1/2 w-[calc(100%-32px)] max-w-sm flex flex-col gap-2 pointer-events-none"
+      className="desk-zoom fixed z-[100] top-4 left-1/2 -translate-x-1/2 w-[calc(100%-32px)] max-w-sm flex flex-col gap-2 pointer-events-none"
     >
       {toasts.map((t) => (
         <div
