@@ -1,54 +1,7 @@
 import React, { useState } from 'react';
 import { X, Sparkles, Send, MapPin, Calendar, DollarSign, Package, Layers, Check, Tag, Upload, Clock, Image as ImageIcon } from 'lucide-react';
 import { CATEGORIES } from '../data/mockData';
-
-const PACKAGE_TEMPLATES = [
-  {
-    id: 'conference',
-    name: 'Conference Starter Pack',
-    categories: ['apparel', 'event-print', 'bags'],
-    title: 'Complete Conference Kit (Tees, Lanyards, Badges, Totes)',
-    breakdown: '300x 220 GSM Cotton Tees, 300x Satin Lanyards + PVC IDs, 300x Canvas Tote Bags',
-    budget: '105000',
-    quantity: '300',
-    specs: 'Navy blue shirts with 1-color chest print, full-color double-sided lanyards, 12oz natural canvas tote with silkscreen.',
-    items: [
-      { name: '220 GSM Combed Cotton Event Tees', qty: '300 pcs', category: 'Apparel & Uniforms', specs: 'Navy blue combed cotton, 1-color chest silkscreen' },
-      { name: 'Satin Sublimation Lanyards + RFID PVC Badges', qty: '300 pcs', category: 'Event Print & Lanyards', specs: '20mm smooth satin, full-color 2-sided sublimation, trigger hook' },
-      { name: '12oz Heavy Canvas Tote Bags', qty: '300 pcs', category: 'Bags & Totes', specs: 'Natural off-white canvas, 1-color silkscreen logo' }
-    ]
-  },
-  {
-    id: 'campus',
-    name: 'Campus / Festival Pack',
-    categories: ['apparel', 'event-print'],
-    title: 'Student Festival Kit (Dri-Fit Shirts + Tyvek Wristbands + Stickers)',
-    breakdown: '500x Dri-Fit Event Shirts, 1000x Waterproof Tyvek Wristbands, 500x Die-cut Vinyl Sticker Packs',
-    budget: '75000',
-    quantity: '500',
-    specs: 'Breathable honeycomb dri-fit with sublimation, sequentially numbered wristbands, waterproof holographic stickers.',
-    items: [
-      { name: 'Dri-Fit Honeycomb Event Shirts', qty: '500 pcs', category: 'Apparel & Uniforms', specs: 'Sublimation printing, lightweight athletic blend' },
-      { name: 'Waterproof Tyvek Wristbands', qty: '1000 pcs', category: 'Event Print & Lanyards', specs: 'Sequentially numbered with tamper-evident adhesive' },
-      { name: 'Die-Cut Matte Vinyl Sticker Packs', qty: '500 packs', category: 'Event Print & Lanyards', specs: 'Weatherproof vinyl, 5 stickers per pack' }
-    ]
-  },
-  {
-    id: 'corporate_vip',
-    name: 'Corporate Gala & VIP Pack',
-    categories: ['apparel', 'drinkware', 'event-print'],
-    title: 'Executive VIP Gift Box (Polo, Thermal Tumbler, Leather Badge)',
-    breakdown: '100x Embroidered CVC Pique Polos, 100x Laser-Engraved Matte Tumblers, 100x PU Leather Badge Holders',
-    budget: '85000',
-    quantity: '100',
-    specs: 'Tipped collar polo shirts with left-chest embroidery, 500ml double-wall SUS304 insulated tumblers with individual kraft boxes.',
-    items: [
-      { name: 'Embroidered CVC Pique Polo Shirts', qty: '100 pcs', category: 'Apparel & Uniforms', specs: 'Tipped collar, left chest computerized embroidery' },
-      { name: 'Laser-Engraved Matte Thermal Tumblers (500ml)', qty: '100 pcs', category: 'Drinkware & Vessels', specs: 'SUS304 double-wall steel, permanent rotary laser mark' },
-      { name: 'PU Leather RFID Event Badges', qty: '100 pcs', category: 'Event Print & Lanyards', specs: 'Executive debossed leatherette with lanyard' }
-    ]
-  }
-];
+import { analyzeSourcingRequest } from '../services/jevAiService';
 
 export default function CreateRequestModal({ 
   onClose, 
@@ -64,12 +17,61 @@ export default function CreateRequestModal({
   const [title, setTitle] = useState('');
   const [singleCategory, setSingleCategory] = useState(initialCategory || CATEGORIES[0].id);
   const [packageBreakdown, setPackageBreakdown] = useState('');
-  const [packageItems, setPackageItems] = useState(PACKAGE_TEMPLATES[0].items);
+  const [packageItems, setPackageItems] = useState([]);
   const [quantity, setQuantity] = useState('300');
   const [targetBudget, setTargetBudget] = useState('105000');
   const [location, setLocation] = useState(initialLocation);
   const [deliveryDate, setDeliveryDate] = useState(initialDeliveryDate);
   const [specs, setSpecs] = useState('');
+
+  // Aygo Assist AI State
+  const [isAiAnalyzing, setIsAiAnalyzing] = useState(false);
+  const [aiTagSuggestion, setAiTagSuggestion] = useState(null);
+
+  const handleRunAiAnalyze = async () => {
+    const text = (title || specs || '').trim();
+    if (!text) return;
+    
+    setIsAiAnalyzing(true);
+    try {
+      const result = await analyzeSourcingRequest(text);
+      setIsAiAnalyzing(false);
+      
+      if (result && result.success) {
+        if (result.isPackage && result.detectedCategories && result.detectedCategories.length > 1) {
+          setRequestMode('package');
+          setSelectedCategories(result.detectedCategories);
+        } else if (result.category) {
+          setRequestMode('single');
+          setSingleCategory(result.category);
+        }
+
+        if (result.quantity) {
+          setQuantity(result.quantity.toString());
+        }
+
+        if (result.estimatedBudget) {
+          setTargetBudget(result.estimatedBudget.toString());
+        }
+
+        if (result.specsSummary && !specs) {
+          setSpecs(result.specsSummary);
+        }
+
+        setAiTagSuggestion({
+          category: result.category,
+          printingMethod: result.printingMethod,
+          urgency: result.urgency,
+          confidence: Math.round((result.confidence || 0.98) * 100),
+          quantity: result.quantity,
+          budget: result.estimatedBudget
+        });
+      }
+    } catch (err) {
+      setIsAiAnalyzing(false);
+      console.error('Error with Aygo Assist analysis:', err);
+    }
+  };
 
   // Mockup Attachment State
   const [mockupOption, setMockupOption] = useState('upload'); // 'upload' | 'later'
@@ -96,17 +98,6 @@ export default function CreateRequestModal({
     } else {
       setSelectedCategories([...selectedCategories, catId]);
     }
-  };
-
-  const handleApplyTemplate = (tmpl) => {
-    setRequestMode('package');
-    setSelectedCategories(tmpl.categories);
-    setTitle(tmpl.title);
-    setPackageBreakdown(tmpl.breakdown);
-    setPackageItems(tmpl.items || []);
-    setTargetBudget(tmpl.budget);
-    setQuantity(tmpl.quantity);
-    setSpecs(tmpl.specs);
   };
 
   const handleSubmit = (e) => {
@@ -183,6 +174,7 @@ export default function CreateRequestModal({
             </div>
           </div>
 
+
           {/* Active Requirement Type Indicator (Already chosen on main screen) */}
           <div className="flex items-center justify-between p-3 rounded-2xl bg-slate-50 border border-slate-200">
             <div className="flex items-center gap-2.5">
@@ -244,27 +236,8 @@ export default function CreateRequestModal({
                 })}
               </div>
 
-              {/* Quick Preset Packages */}
-              <div className="pt-2 border-t border-slate-200">
-                <p className="text-[10px] font-black uppercase tracking-wider text-slate-500 mb-1.5">
-                  Quick Package Presets
-                </p>
-                <div className="flex flex-wrap gap-1.5">
-                  {PACKAGE_TEMPLATES.map((tmpl) => (
-                    <button
-                      key={tmpl.id}
-                      type="button"
-                      onClick={() => handleApplyTemplate(tmpl)}
-                      className="px-2.5 py-1 rounded-lg border border-slate-200 bg-white hover:border-[#003CF5] text-[11px] font-bold text-slate-700 hover:text-[#003CF5] transition-all"
-                    >
-                      {tmpl.name}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
               {/* Package Breakdown */}
-              <div>
+              <div className="pt-2 border-t border-slate-200">
                 <label className="block text-[11px] font-bold text-slate-700 uppercase mb-1">
                   Package Items Breakdown
                 </label>
@@ -287,17 +260,17 @@ export default function CreateRequestModal({
                 <span className="text-[10px] font-bold text-slate-400">One item or service</span>
               </div>
 
-              {/* 4 Recommended Categories */}
+              {/* Recommended Categories */}
               <div>
                 <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 block mb-1.5">
-                  Recommended:
+                  Popular Categories:
                 </span>
                 <div className="flex flex-wrap gap-1.5">
                   {[
                     { id: 'apparel', label: 'Apparel & Shirts' },
-                    { id: 'event-print', label: 'Event Print', isNew: true },
-                    { id: 'drinkware', label: 'Drinkware', isNew: true },
-                    { id: 'bags', label: 'Couriers & Swag' }
+                    { id: 'event-print', label: 'Event Print & Lanyards' },
+                    { id: 'drinkware', label: 'Drinkware & Vessels' },
+                    { id: 'bags', label: 'Bags & Totes' }
                   ].map((rec) => (
                     <button
                       key={rec.id}
@@ -310,11 +283,6 @@ export default function CreateRequestModal({
                       }`}
                     >
                       <span>{rec.label}</span>
-                      {rec.isNew && (
-                        <span className={`text-[8px] font-black px-1 rounded-full ${
-                          singleCategory === rec.id ? 'bg-white text-[#003CF5]' : 'bg-red-500 text-white'
-                        }`}>NEW</span>
-                      )}
                     </button>
                   ))}
                 </div>
@@ -336,21 +304,53 @@ export default function CreateRequestModal({
 
           {/* Title & Basic Specs */}
           <div>
-            <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
-              {requestMode === 'package' ? 'Event Package Title' : 'Item / Service Title'}
-            </label>
-            <input
-              type="text"
-              required
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder={
-                requestMode === 'package'
-                  ? 'e.g. Annual Tech Summit Event Package (Shirts, Lanyards & Totes)'
-                  : 'e.g. 300 Customized Satin Lanyards'
-              }
-              className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2.5 text-xs font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#003CF5]"
-            />
+            <div className="flex items-center justify-between mb-1">
+              <label className="block text-xs font-bold text-slate-700 uppercase">
+                {requestMode === 'package' ? 'Event Package Title' : 'Item / Service Title'}
+              </label>
+
+              {/* Simple subtle circular Aygo Assist button */}
+              <button
+                type="button"
+                onClick={() => handleRunAiAnalyze(title || specs)}
+                disabled={isAiAnalyzing}
+                className="w-6 h-6 rounded-full bg-slate-100 hover:bg-blue-50 text-slate-500 hover:text-[#003CF5] border border-slate-200 hover:border-blue-300 flex items-center justify-center transition-all cursor-pointer text-xs"
+                title="Aygo Assist: Auto-detect category & specs"
+              >
+                <Sparkles className="w-3.5 h-3.5" />
+              </button>
+            </div>
+
+            <div className="relative">
+              <input
+                type="text"
+                required
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                placeholder={requestMode === 'package' ? 'e.g. Annual Tech Summit Event Package' : 'e.g. 500 Dri-Fit Event Shirts for BGC marathon'}
+                className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2.5 text-xs font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#003CF5]"
+              />
+            </div>
+
+            {/* Simple compact dismissible Aygo Assist Result Tag */}
+            {aiTagSuggestion && (
+              <div className="mt-1.5 px-2.5 py-1 rounded-lg bg-blue-50/80 border border-blue-200 flex items-center justify-between text-[11px] text-slate-700">
+                <div className="flex items-center gap-1.5">
+                  <Sparkles className="w-3 h-3 text-[#003CF5]" />
+                  <span>
+                    Aygo Assist: <strong className="capitalize text-slate-900">{aiTagSuggestion.category}</strong> ({aiTagSuggestion.printingMethod})
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setAiTagSuggestion(null)}
+                  className="text-slate-400 hover:text-slate-600 cursor-pointer ml-2"
+                  title="Dismiss"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              </div>
+            )}
           </div>
 
           <div className="grid grid-cols-2 gap-4">

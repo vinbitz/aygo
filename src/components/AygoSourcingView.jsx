@@ -160,7 +160,7 @@ export default function AygoSourcingView({
           onSelectSupplier={onSelectSupplier}
           focusedSupplierId={focusedSupplierId}
           onOpenDrawer={onOpenDrawer}
-          onOpenLocationPicker={() => setIsLocationModalOpen(true)}
+          onOpenLocationPicker={() => onRequestNewJob && onRequestNewJob()}
         />
       </div>
 
@@ -314,32 +314,31 @@ export default function AygoSourcingView({
 
             </div>
 
-            {/* Recommended Row (The 4 Categories moved here) */}
+            {/* Quick Category Sourcing Chips */}
             <div className="pt-2 border-t border-slate-100 flex items-center justify-between gap-2">
               <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 shrink-0">
-                Recommended:
+                Categories:
               </span>
               <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5">
                 {[
-                  { id: 'apparel', label: 'Apparel & Shirts' },
-                  { id: 'event-print', label: 'Event Print', isNew: true },
-                  { id: 'drinkware', label: 'Drinkware', isNew: true },
-                  { id: 'bags', label: 'Couriers & Swag' }
-                ].map((item) => (
-                  <button
-                    key={item.id}
-                    type="button"
-                    onClick={() => onRequestNewJob && onRequestNewJob('single', item.id)}
-                    className="shrink-0 px-2.5 py-1 rounded-xl bg-[#F5F4F0] hover:bg-blue-50 text-slate-700 hover:text-[#003CF5] border border-transparent hover:border-blue-200 text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer active:scale-95"
-                  >
-                    <span>{item.label}</span>
-                    {item.isNew && (
-                      <span className="text-[8px] font-black text-white bg-[#FF3B30] px-1 py-0.2 rounded-full leading-none">
-                        NEW
-                      </span>
-                    )}
-                  </button>
-                ))}
+                  { id: 'apparel', label: 'Apparel & Shirts', icon: Shirt },
+                  { id: 'event-print', label: 'Event Print & Lanyards', icon: Printer },
+                  { id: 'drinkware', label: 'Drinkware & Vessels', icon: Coffee },
+                  { id: 'bags', label: 'Bags & Totes', icon: ShoppingBag }
+                ].map((item) => {
+                  const Icon = item.icon;
+                  return (
+                    <button
+                      key={item.id}
+                      type="button"
+                      onClick={() => onRequestNewJob && onRequestNewJob('single', item.id)}
+                      className="shrink-0 px-2.5 py-1 rounded-xl bg-[#F5F4F0] hover:bg-blue-50 text-slate-700 hover:text-[#003CF5] border border-transparent hover:border-blue-200 text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer active:scale-95"
+                    >
+                      <Icon className="w-3.5 h-3.5 text-slate-500" />
+                      <span>{item.label}</span>
+                    </button>
+                  );
+                })}
               </div>
             </div>
           </div>
