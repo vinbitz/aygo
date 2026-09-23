@@ -21,8 +21,8 @@ import AygoGoogleMap from './AygoGoogleMap';
 
 const CATEGORY_TILES = [
   { id: 'apparel', label: 'Apparel', Icon: Shirt, tint: { bg: 'bg-blue-100', fg: 'text-[#003CF5]' } },
-  { id: 'event-print', label: 'Event Print', Icon: Printer, tint: { bg: 'bg-amber-100', fg: 'text-amber-600' }, isNew: true },
-  { id: 'drinkware', label: 'Drinkware', Icon: Coffee, tint: { bg: 'bg-emerald-100', fg: 'text-emerald-600' }, isNew: true },
+  { id: 'event-print', label: 'Event Print', Icon: Printer, tint: { bg: 'bg-amber-100', fg: 'text-amber-600' } },
+  { id: 'drinkware', label: 'Drinkware', Icon: Coffee, tint: { bg: 'bg-emerald-100', fg: 'text-emerald-600' } },
   { id: 'bags', label: 'Bags & Swag', Icon: ShoppingBag, tint: { bg: 'bg-rose-100', fg: 'text-rose-500' } }
 ];
 
@@ -249,7 +249,7 @@ export default function AygoSourcingView({
           {/* SECTION 2: Categories */}
           <section className="bg-white rounded-[28px] p-3">
             <div className="grid grid-cols-2 gap-2">
-              {CATEGORY_TILES.map(({ id, label, Icon, tint, isNew }) => (
+              {CATEGORY_TILES.map(({ id, label, Icon, tint }) => (
                 <button
                   key={id}
                   type="button"
@@ -257,11 +257,6 @@ export default function AygoSourcingView({
                   className="relative h-[92px] flex items-start rounded-2xl bg-[#F4F3F0] hover:bg-[#ECEAE5] p-3.5 text-left overflow-hidden transition-colors active:scale-[0.98]"
                 >
                   <span className="relative z-10 text-[15px] font-medium text-slate-900">{label}</span>
-                  {isNew && (
-                    <span className="absolute top-3 right-3 z-10 text-[10px] font-bold text-white bg-[#FF3B30] px-1.5 py-0.5 rounded-full leading-none">
-                      NEW
-                    </span>
-                  )}
                   <span className={`absolute -bottom-4 -right-3 w-20 h-20 rounded-full flex items-center justify-center ${tint.bg}`}>
                     <Icon className={`w-9 h-9 -translate-x-1 -translate-y-1.5 ${tint.fg}`} strokeWidth={1.75} />
                   </span>
