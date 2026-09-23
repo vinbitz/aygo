@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import {
-  CalendarDays, ClipboardCheck, Wallet, Package, FileText, Sparkles, Megaphone, Check, Plus, Crown,
+  CalendarDays, ClipboardCheck, Wallet, Package, FileText, Sparkles, Megaphone, Check, Plus, Crown, CalendarClock,
 } from 'lucide-react';
 import { Sheet, Button, Badge, Section, ListRow, cx } from './ui';
 import { peso, shortDate } from '../lib/marketplace';
@@ -36,6 +36,7 @@ export default function EventWorkspace({
   onOpenDocs,
   onOpenMockup,
   onOpenSponsorship,
+  onOpenAvailability,
   photos,
   onPhotosChange,
   registrationLink,
@@ -149,6 +150,7 @@ export default function EventWorkspace({
         <ListRow icon={FileText} tone="amber" title="Quotes & documents" subtitle="RFQs, POs, comparison sheet, delivery checklist" onClick={onOpenDocs} />
         <ListRow icon={Sparkles} tone="violet" title="Mockups" subtitle="Designs attached to your requests" onClick={onOpenMockup} />
         <ListRow icon={Megaphone} tone="rose" title="Sponsorships" subtitle="Brands supporting this event" onClick={onOpenSponsorship} />
+        <ListRow icon={CalendarClock} tone="violet" title="Setup calls" subtitle="Set when you're free so makers and brands can book a video walkthrough" onClick={onOpenAvailability} />
         <ListRow icon={Wallet} tone="green" title="Budget" subtitle={`${peso(Math.max(0, planned - committed))} left to allocate`} trailing={null} />
         <ListRow icon={Package} tone="blue" title="Deliveries" subtitle={`${booked} order${booked === 1 ? '' : 's'} in production`} trailing={null} />
         <ListRow icon={ClipboardCheck} tone="slate" title="Checklist progress" subtitle={`${Math.round((doneCount / checklist.length) * 100)}% done`} trailing={null} />

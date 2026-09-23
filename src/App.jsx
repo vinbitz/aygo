@@ -17,6 +17,7 @@ const SponsorshipConnectModal = lazy(() => import('./components/SponsorshipConne
 const AygoMessagingModal = lazy(() => import('./components/AygoMessagingModal'));
 const SupplierProfileSetupModal = lazy(() => import('./components/SupplierProfileSetupModal'));
 const BalancePaymentModal = lazy(() => import('./components/BalancePaymentModal'));
+const AvailabilitySheet = lazy(() => import('./components/AvailabilitySheet'));
 const ReferralRewardsModal = lazy(() => import('./components/ReferralRewardsModal'));
 const SupplierOnboardingModal = lazy(() => import('./components/SupplierOnboardingModal'));
 const VerifiedSuppliersModal = lazy(() => import('./components/VerifiedSuppliersModal'));
@@ -44,6 +45,7 @@ export default function App() {
   const [isSupplierSetupOpen, setIsSupplierSetupOpen] = useState(false);
   const [isSupplierMode, setIsSupplierMode] = useState(false);
   const [isBalanceOpen, setIsBalanceOpen] = useState(false);
+  const [isAvailabilityOpen, setIsAvailabilityOpen] = useState(false);
   const [isReferralOpen, setIsReferralOpen] = useState(false);
   const [isOnboardingOpen, setIsOnboardingOpen] = useState(false);
   const [isSuppliersOpen, setIsSuppliersOpen] = useState(false);
@@ -171,6 +173,7 @@ export default function App() {
         onOpenOnboarding={() => setIsOnboardingOpen(true)}
         onOpenSuppliers={() => setIsSuppliersOpen(true)}
         onOpenHistory={() => setIsHistoryOpen(true)}
+        onOpenAvailability={() => setIsAvailabilityOpen(true)}
         onOpenPro={() => pro.openPaywall(null)}
         isPro={pro.isPro}
         onOpenAppSettings={() => setIsAppSettingsOpen(true)}
@@ -435,6 +438,8 @@ export default function App() {
         />
       )}
 
+      {isAvailabilityOpen && <AvailabilitySheet onClose={() => setIsAvailabilityOpen(false)} />}
+
       {isWaitlistOpen && (
         <InternationalWaitlistModal isOpen onClose={() => setIsWaitlistOpen(false)} />
       )}
@@ -455,6 +460,7 @@ export default function App() {
           onOpenDocs={openDocs}
           onOpenMockup={openMockup}
           onOpenSponsorship={() => setIsSponsorshipOpen(true)}
+          onOpenAvailability={() => setIsAvailabilityOpen(true)}
           photos={eventPhotos}
           onPhotosChange={setEventPhotos}
           registrationLink={registrationLink}

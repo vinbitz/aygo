@@ -1,11 +1,12 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { ChevronLeft, Send, Building2, GraduationCap, MessagesSquare, ShieldCheck, Phone, Crown, Gift, CreditCard, CheckCheck, FolderUp } from 'lucide-react';
+import { ChevronLeft, Send, Building2, GraduationCap, MessagesSquare, ShieldCheck, Phone, Crown, Gift, CreditCard, CheckCheck, FolderUp, CalendarClock } from 'lucide-react';
 import { Input, EmptyState, Button, Chip, cx } from './ui';
 import { maskContactInfo } from '../lib/contactGuard';
 import { toast } from '../lib/toast';
 import { canCall } from '../lib/pro';
 import { packageAmount, SPONSOR_PAY_METHODS } from '../lib/sponsorDeals';
 import { FileRequestCard, BrandFilesCard } from './BrandFiles';
+import { SchedulePanel, MeetingCard } from './ScheduleCall';
 import { peso } from '../lib/marketplace';
 
 /**
@@ -76,9 +77,10 @@ function SelectionCard({ m, canPay, onPay }) {
   );
 }
 
-export default function SponsorChat({ threads, activeId, onOpen, onBack, onSend, onCall, viewerIsPro, onChoosePackage, onPayPackage, onSendPackages, onRequestFiles, onSendFiles, brandKit }) {
+export default function SponsorChat({ threads, activeId, onOpen, onBack, onSend, onCall, viewerIsPro, onChoosePackage, onPayPackage, onSendPackages, onRequestFiles, onSendFiles, brandKit, onBookCall }) {
   const active = threads.find((t) => t.id === activeId);
   const [draft, setDraft] = useState('');
+  const [scheduling, setScheduling] = useState(false);
   const endRef = useRef(null);
 
   useEffect(() => {
@@ -141,7 +143,7 @@ export default function SponsorChat({ threads, activeId, onOpen, onBack, onSend,
   };
 
   return (
-    <div className="flex flex-col h-[60vh] sm:h-[480px] -mx-5">
+    <div className="relative flex flex-col h-[60vh] sm:h-[480px] -mx-5">
       <div className="flex items-center gap-2 px-3 pb-2 border-b border-slate-100">
         <button type="button" onClick={onBack} aria-label="Back to chats" className="w-10 h-10 rounded-full hover:bg-[#F4F3F0] flex items-center justify-center">
           <ChevronLeft className="w-5 h-5" />
@@ -200,6 +202,14 @@ export default function SponsorChat({ threads, activeId, onOpen, onBack, onSend,
               />
             )}
             {m.type === 'brand_files' && <BrandFilesCard m={m} />}
+            {m.type === 'meeting' && (
+              <MeetingCard
+                meeting={m.meeting}
+                name={active.name}
+                canJoin={canCall(viewerIsPro, active.pro)}
+                onJoin={() => onCall({ ...active, video: m.meeting.video })}
+              />
+            )}
             {m.type === 'selection' && (
               <SelectionCard m={m} canPay={m.from === 'me'} onPay={(msgId, method) => onPayPackage(active.id, msgId, method)} />
             )}
@@ -209,8 +219,9 @@ export default function SponsorChat({ threads, activeId, onOpen, onBack, onSend,
         <div ref={endRef} />
       </div>
 
-      {(onSendPackages || onRequestFiles) && (
+      {(onSendPackages || onRequestFiles || onBookCall) && (
         <div className="px-3 pt-2 flex gap-2 overflow-x-auto no-scrollbar">
+          {onBookCall && <Chip icon={CalendarClock} onClick={() => setScheduling(true)}>Book a call</Chip>}
           {onSendPackages && <Chip icon={Gift} onClick={() => onSendPackages(active.id)}>Send our packages</Chip>}
           {onRequestFiles && <Chip icon={FolderUp} onClick={() => onRequestFiles(active.id)}>Request brand files</Chip>}
         </div>
@@ -234,6 +245,17 @@ export default function SponsorChat({ threads, activeId, onOpen, onBack, onSend,
           <Send className="w-4 h-4" />
         </button>
       </div>
+
+      {scheduling && (
+        <SchedulePanel
+          name={active.name}
+          onClose={() => setScheduling(false)}
+          onBook={(meeting) => {
+            setScheduling(false);
+            onBookCall(active.id, meeting);
+          }}
+        />
+      )}
     </div>
   );
 }

@@ -20,7 +20,8 @@ import {
   ShieldCheck,
   PhoneCall,
   Crown,
-  X
+  X,
+  CalendarClock
 } from 'lucide-react';
 import { SUPPLIERS } from '../data/mockData';
 import { toast } from '../lib/toast';
@@ -31,6 +32,7 @@ import { usePro } from '../state/pro';
 import { canCall } from '../lib/pro';
 import CallScreen from './CallScreen';
 import { callLength } from '../lib/calls';
+import { SchedulePanel, MeetingCard } from './ScheduleCall';
 import { Sheet, Button, Chip, VerifiedBadge, Badge, IconCircle, cx, inputClass } from './ui';
 
 const ME_NAME = 'Marvin (Organizer)';
@@ -217,6 +219,7 @@ const packageTotal = (pkg) => pkg.items.reduce((sum, i) => sum + i.qty * i.unitP
 const lastMessagePreview = (m) => {
   switch (m.type) {
     case 'package': return 'Sent a package';
+    case 'meeting': return 'Booked a call';
     case 'payment': return 'Payment sent';
     case 'call': return `Call · ${m.callData.length}`;
     case 'bid_card': return 'Sent a quotation';
@@ -498,7 +501,8 @@ export default function AygoMessagingModal({
   const [checkout, setCheckout] = useState(null);
   const [payMethod, setPayMethod] = useState('gcash');
   const [payFull, setPayFull] = useState(false);
-  const [inCall, setInCall] = useState(false);
+  const [inCall, setInCall] = useState(null); // null, or { video }
+  const [showSchedule, setShowSchedule] = useState(false);
   // Package a maker just sent from their portal
   const [trackedPackageId, setTrackedPackageId] = useState(null);
 
@@ -710,15 +714,20 @@ export default function AygoMessagingModal({
   };
 
   const supplierIsPro = Boolean(currentSupplier.proStorefront);
-  const startCall = () => {
+  const startCall = (video = false) => {
     if (!canCall(pro.isPro, supplierIsPro)) {
       pro.openPaywall('calls');
       return;
     }
-    setInCall(true);
+    setInCall({ video });
+  };
+  const bookCall = (meeting) => {
+    setShowSchedule(false);
+    appendMessage({ id: 'meet-' + Date.now(), sender: 'customer', time: nowTime(), type: 'meeting', text: 'Booked a call to go over the details.', meetingData: meeting });
+    toast('Call booked. It is in the chat, and you can add it to your calendar.');
   };
   const endCall = (seconds) => {
-    setInCall(false);
+    setInCall(null);
     if (seconds > 0) appendMessage({ id: 'call-' + Date.now(), sender: 'customer', time: nowTime(), type: 'call', text: '', callData: { length: callLength(seconds) } });
   };
 
@@ -837,7 +846,7 @@ export default function AygoMessagingModal({
             </button>
             <button
               type="button"
-              onClick={startCall}
+              onClick={() => startCall(false)}
               aria-label={canCall(pro.isPro, supplierIsPro) ? `Call ${currentSupplier.name}` : 'Calls need Pro'}
               title={canCall(pro.isPro, supplierIsPro) ? 'Aygo call' : 'Calls need Pro on either side'}
               className="relative w-11 h-11 rounded-full bg-[#F4F3F0] hover:bg-[#ECEAE5] text-slate-700 flex items-center justify-center shrink-0"
@@ -896,7 +905,15 @@ export default function AygoMessagingModal({
                       {m.text}
                     </div>
                   )}
-                  {hasCard && (
+                  {m.type === 'meeting' && (
+                    <MeetingCard
+                      meeting={m.meetingData}
+                      name={currentSupplier.name}
+                      canJoin={canCall(pro.isPro, supplierIsPro)}
+                      onJoin={() => startCall(m.meetingData.video)}
+                    />
+                  )}
+                  {hasCard && m.type !== 'meeting' && (
                     <MessageCard
                       m={m}
                       isMine={isMine}
@@ -924,6 +941,7 @@ export default function AygoMessagingModal({
           <div className="border-t border-slate-100 bg-white px-3 sm:px-4 pt-2.5 pb-[max(12px,env(safe-area-inset-bottom))] space-y-2.5">
             <div className={cx('gap-2 overflow-x-auto no-scrollbar -mx-1 px-1', showAttachMenu ? 'hidden' : 'flex')}>
               <Chip icon={Package} onClick={handleSendActiveMockup}>Share mockup</Chip>
+              <Chip icon={CalendarClock} onClick={() => setShowSchedule(true)}>Book a call</Chip>
               <Chip icon={Wallet} selected={showCounterBox} onClick={() => setShowCounterBox((v) => !v)}>Counter-offer</Chip>
               <Chip icon={MapPin} onClick={handleSendDeliveryPlace}>Send venue</Chip>
               <Chip onClick={() => handleSendMessage('Can you send a physical sample to our office before we confirm the final quantity?')}>
@@ -1000,6 +1018,9 @@ export default function AygoMessagingModal({
           </>
           )}
 
+          {showSchedule && (
+            <SchedulePanel name={currentSupplier.name} onClose={() => setShowSchedule(false)} onBook={bookCall} />
+          )}
           {checkout && (
             <CheckoutPanel
               pkg={checkout.pkg}
@@ -1020,6 +1041,7 @@ export default function AygoMessagingModal({
             initial={currentSupplier.name.slice(0, 1)}
             proNote={pro.isPro ? 'You have Pro' : `${currentSupplier.shortName || currentSupplier.name} has Pro`}
             onEnd={endCall}
+            video={inCall.video}
           />
         )}
       </div>

@@ -671,7 +671,14 @@ export default function SponsorshipConnectModal({ onClose, photos, onPhotosChang
       pro.openPaywall('calls');
       return;
     }
-    setCall({ target });
+    setCall({ target, video: Boolean(target.video) });
+  };
+
+  const bookCall = (threadId, meeting) => {
+    const msg = { id: `k${Date.now()}`, from: 'me', type: 'meeting', text: 'Booked a call so we can go over the setup.', meeting, time: chatTime() };
+    updateThreads((list) => list.map((t) => (t.id === threadId ? { ...t, messages: [...t.messages, msg] } : t)));
+    toast('Call booked. It is in the chat, and you can add it to your calendar.');
+    replyLater(threadId, meeting.video ? 'See you then! We will show you the venue on camera.' : 'See you then!');
   };
 
   const endCall = (seconds) => {
@@ -976,6 +983,7 @@ export default function SponsorshipConnectModal({ onClose, photos, onPhotosChang
               onRequestFiles={role === 'organizer' ? requestFiles : undefined}
               onSendFiles={role === 'brand' ? sendFiles : undefined}
               brandKit={brand}
+              onBookCall={bookCall}
             />
           ) : role === 'brand' ? (
             brandDraft ? (
@@ -1002,6 +1010,7 @@ export default function SponsorshipConnectModal({ onClose, photos, onPhotosChang
               initial={call.target.name.slice(0, 1)}
               proNote={pro.isPro ? 'You have Pro' : `${call.target.name} has Pro`}
               onEnd={endCall}
+              video={call.video}
             />
           )}
         </>

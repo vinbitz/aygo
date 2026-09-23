@@ -1,6 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import {
   X,
+  CalendarClock,
   Map as MapIcon,
   Clock,
   Users,
@@ -59,6 +60,7 @@ export default function SideDrawer({
   onOpenBalance,
   onOpenSuppliers,
   onOpenHistory,
+  onOpenAvailability,
   onOpenPro,
   isPro = false,
   onOpenReferral,
@@ -190,6 +192,7 @@ export default function SideDrawer({
               trailing={<CountBadge count={2} />}
             />
             <ListRow icon={Users} tone="green" title="Suppliers" subtitle="Browse verified makers" onClick={go(onOpenSuppliers)} />
+            <ListRow icon={CalendarClock} tone="violet" title="My availability" subtitle="When you're free for calls" onClick={go(onOpenAvailability)} />
           </MenuGroup>
 
           {/* Supplier-only tools */}
