@@ -1,582 +1,277 @@
 import React, { useState } from 'react';
-import {
-  X,
-  Sparkles,
-  Send,
-  MapPin,
-  Package,
-  Layers,
-  Check,
-  Tag,
-  Upload,
-  Clock
-} from 'lucide-react';
+import { Sparkles, Send, MapPin, Upload, Check, Loader2, X, Tag, Package } from 'lucide-react';
 import { CATEGORIES } from '../data/mockData';
 import { analyzeSourcingRequest } from '../services/jevAiService';
+import { Sheet, Button, Field, Input, Textarea, Chip, Tabs, Section, cx } from './ui';
+import { peso } from '../lib/marketplace';
 
-export default function CreateRequestModal({ 
-  onClose, 
+const MODES = [
+  { id: 'single', label: 'Single category', icon: Tag },
+  { id: 'package', label: 'Event package', icon: Package },
+];
+
+// Accepts "2026-10-15" or "Oct 15, 2026" and returns yyyy-mm-dd for <input type="date">
+function toDateInput(value) {
+  if (/^\d{4}-\d{2}-\d{2}$/.test(value || '')) return value;
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return '';
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+// Pulls a peso amount like "₱15,000", "P15k" or "budget 15000" out of free text
+function parseBudget(text) {
+  const m = text.match(/(?:₱|\bphp\s*|\bp(?=\d)|\bbudget(?: is| of)?\s*₱?)\s*([\d,.]*\d)\s*(k\b)?/i);
+  if (!m) return null;
+  const n = parseFloat(m[1].replace(/,/g, ''));
+  if (!n) return null;
+  return m[2] ? n * 1000 : n;
+}
+
+export default function CreateRequestModal({
+  onClose,
   onCreateRequest,
   onOpenMockupStudio,
   initialLocation = 'Arthaland Century Pacific Tower, 4th Ave, 30th St, Taguig, Metro Manila',
   initialDeliveryDate = '2026-10-15',
   initialMode = 'single',
-  initialCategory = 'apparel'
+  initialCategory = 'apparel',
 }) {
   const [requestMode, setRequestMode] = useState(initialMode);
-  const [selectedCategories, setSelectedCategories] = useState(['apparel', 'event-print', 'bags']);
+  const [prompt, setPrompt] = useState('');
   const [title, setTitle] = useState('');
   const [singleCategory, setSingleCategory] = useState(initialCategory || CATEGORIES[0].id);
+  const [selectedCategories, setSelectedCategories] = useState(['apparel', 'event-print', 'bags']);
   const [packageBreakdown, setPackageBreakdown] = useState('');
-  const [packageItems, setPackageItems] = useState([]);
   const [quantity, setQuantity] = useState('300');
-  const [targetBudget, setTargetBudget] = useState('105000');
+  const [targetBudget, setTargetBudget] = useState('15000');
   const [location, setLocation] = useState(initialLocation);
-  const [deliveryDate, setDeliveryDate] = useState(initialDeliveryDate);
+  const [deliveryDate, setDeliveryDate] = useState(toDateInput(initialDeliveryDate));
   const [specs, setSpecs] = useState('');
+  const [mockupImg, setMockupImg] = useState(null);
+  const [mockupName, setMockupName] = useState('');
 
-  // Aygo Assist AI State
   const [isAiAnalyzing, setIsAiAnalyzing] = useState(false);
-  const [aiTagSuggestion, setAiTagSuggestion] = useState(null);
+  const [aiResult, setAiResult] = useState(null);
 
-  const handleRunAiAnalyze = async () => {
-    const text = (title || specs || '').trim();
+  const isPackage = requestMode === 'package';
+  const unitPrice = Number(targetBudget) / (Number(quantity) || 1);
+
+  const handleAssist = async () => {
+    const text = (prompt || title || specs).trim();
     if (!text) return;
-    
     setIsAiAnalyzing(true);
     try {
       const result = await analyzeSourcingRequest(text);
-      setIsAiAnalyzing(false);
-      
-      if (result && result.success) {
-        if (result.isPackage && result.detectedCategories && result.detectedCategories.length > 1) {
+      if (result?.success) {
+        if (result.isPackage && result.detectedCategories?.length > 1) {
           setRequestMode('package');
           setSelectedCategories(result.detectedCategories);
         } else if (result.category) {
           setRequestMode('single');
           setSingleCategory(result.category);
         }
-
-        if (result.quantity) {
-          setQuantity(result.quantity.toString());
-        }
-
-        if (result.estimatedBudget) {
-          setTargetBudget(result.estimatedBudget.toString());
-        }
-
-        if (result.specsSummary && !specs) {
-          setSpecs(result.specsSummary);
-        }
-
-        setAiTagSuggestion({
-          category: result.category,
-          printingMethod: result.printingMethod,
-          urgency: result.urgency,
-          confidence: Math.round((result.confidence || 0.98) * 100),
-          quantity: result.quantity,
-          budget: result.estimatedBudget
-        });
+        if (result.quantity) setQuantity(String(result.quantity));
+        const budget = parseBudget(text) || result.estimatedBudget;
+        if (budget) setTargetBudget(String(Math.round(budget)));
+        if (!title) setTitle(text.length > 70 ? `${text.slice(0, 67)}…` : text);
+        if (!specs && result.specsSummary) setSpecs(result.specsSummary);
+        setAiResult({ category: result.category, method: result.printingMethod, budgetFromText: Boolean(parseBudget(text)) });
       }
-    } catch (err) {
+    } finally {
       setIsAiAnalyzing(false);
-      console.error('Error with Aygo Assist analysis:', err);
     }
   };
 
-  // Mockup Attachment State
-  const [mockupOption, setMockupOption] = useState('upload'); // 'upload' | 'later'
-  const [uploadedMockupImg, setUploadedMockupImg] = useState(null);
-  const [uploadedMockupName, setUploadedMockupName] = useState('');
+  const toggleCategory = (id) =>
+    setSelectedCategories((prev) =>
+      prev.includes(id) ? (prev.length > 1 ? prev.filter((c) => c !== id) : prev) : [...prev, id]
+    );
 
-  const handleMockupFileChange = (e) => {
+  const handleFile = (e) => {
     const file = e.target.files?.[0];
-    if (file) {
-      setUploadedMockupName(file.name);
-      const reader = new FileReader();
-      reader.onload = (evt) => {
-        setUploadedMockupImg(evt.target?.result);
-      };
-      reader.readAsDataURL(file);
-    }
-  };
-
-  const handleToggleCategory = (catId) => {
-    if (selectedCategories.includes(catId)) {
-      if (selectedCategories.length > 1) {
-        setSelectedCategories(selectedCategories.filter((c) => c !== catId));
-      }
-    } else {
-      setSelectedCategories([...selectedCategories, catId]);
-    }
+    if (!file) return;
+    setMockupName(file.name);
+    const reader = new FileReader();
+    reader.onload = (evt) => setMockupImg(evt.target?.result);
+    reader.readAsDataURL(file);
   };
 
   const handleSubmit = (e) => {
-    e.preventDefault();
-    
-    const isPkg = requestMode === 'package';
-    const finalCategories = isPkg ? selectedCategories : [singleCategory];
-    const categoryNames = finalCategories
-      .map((catId) => CATEGORIES.find((c) => c.id === catId)?.name || catId)
-      .join(', ');
-
+    e?.preventDefault();
+    const categories = isPackage ? selectedCategories : [singleCategory];
     onCreateRequest({
-      id: `req-${Date.now()}`,
-      title: title || (isPkg ? `Event Package (${finalCategories.length} Categories)` : 'Custom Event Supplies'),
-      client: 'Self-Organized Event',
-      organizer: 'Current User',
+      title: title.trim() || (isPackage ? 'Event package' : CATEGORIES.find((c) => c.id === singleCategory)?.name || 'Event supplies'),
+      quantity: Number(quantity),
+      unit: isPackage ? 'sets' : 'pcs',
+      targetBudget: Number(targetBudget),
+      category: isPackage ? 'package' : singleCategory,
+      categories,
+      isPackage,
+      packageBreakdown: isPackage ? packageBreakdown : null,
       location,
       deliveryDate,
-      targetBudget: Number(targetBudget),
-      targetPricePerUnit: Math.round(Number(targetBudget) / (Number(quantity) || 1)),
-      quantity: Number(quantity),
-      category: isPkg ? 'package' : singleCategory,
-      categories: finalCategories,
-      categorySummary: isPkg ? `Multi-Category Package: ${categoryNames}` : categoryNames,
-      packageBreakdown: isPkg ? packageBreakdown : null,
-      packageItems: isPkg ? packageItems : null,
-      specs: specs || (isPkg ? `Multi-item bundle covering: ${categoryNames}` : 'Custom event specifications.'),
-      mockupImage: uploadedMockupImg,
-      mockupName: uploadedMockupName,
-      status: 'Bidding in Progress',
-      bidsCount: 0,
-      bids: []
+      specs,
+      mockupImage: mockupImg,
+      mockupName,
     });
     onClose();
   };
 
+  const canSubmit = Number(quantity) > 0 && Number(targetBudget) > 0 && location.trim() && deliveryDate;
+
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-sm flex justify-center items-center p-3 sm:p-6">
-      <div className="relative w-full max-w-2xl bg-white rounded-3xl shadow-2xl overflow-hidden border border-slate-200 flex flex-col max-h-[92vh]">
-        {/* Header: Pure 'Tell Aygo what you need' without 'Smart Event Sourcing' */}
-        <div className="flex items-center justify-between p-5 sm:p-6 border-b border-slate-100 bg-white">
-          <div>
-            <h2 className="text-xl font-extrabold text-slate-950 tracking-tight">
-              Tell Aygo what you need
-            </h2>
-            <p className="text-xs text-slate-500 mt-0.5 font-medium">
-              Post single supplies or complete multi-category event packages. Verified craft suppliers send bids directly.
-            </p>
+    <Sheet
+      title="Tell Aygo what you need"
+      subtitle="Verified makers near your venue will send their best offers."
+      icon={Send}
+      onClose={onClose}
+      size="lg"
+      footer={
+        <div className="flex items-center gap-3">
+          <div className="flex-1 min-w-0 text-[13px] text-slate-500">
+            <span className="font-semibold text-slate-900">{peso(targetBudget)}</span> · {quantity || 0} {isPackage ? 'sets' : 'pcs'}
+            <span className="hidden sm:inline"> · {peso(unitPrice, 2)} each</span>
           </div>
-          <button
-            onClick={onClose}
-            className="w-9 h-9 bg-slate-100 hover:bg-slate-200 rounded-full flex items-center justify-center text-slate-700 transition-colors"
-          >
-            <X className="w-5 h-5" />
-          </button>
+          <Button size="lg" icon={Send} onClick={handleSubmit} disabled={!canSubmit}>
+            Get offers
+          </Button>
         </div>
-
-        <form onSubmit={handleSubmit} className="p-5 sm:p-6 overflow-y-auto space-y-5">
-          {/* Synchronized Location from Top Bar */}
-          <div className="p-3.5 rounded-2xl bg-blue-50/80 border border-blue-200 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-xl bg-[#003CF5] text-white flex items-center justify-center flex-shrink-0">
-                <MapPin className="w-4 h-4" />
-              </div>
-              <div>
-                <span className="text-[10px] font-black uppercase tracking-wider text-[#003CF5]">
-                  Venue / Location
-                </span>
-                <p className="text-xs font-black text-slate-900 leading-tight mt-0.5">{location}</p>
-                <p className="text-[10px] text-slate-500 font-medium mt-0.5">
-                  Required Date: <span className="font-bold text-slate-700">{deliveryDate}</span>
-                </p>
-              </div>
-            </div>
-          </div>
-
-
-          {/* Active Requirement Type Indicator (Already chosen on main screen) */}
-          <div className="flex items-center justify-between p-3 rounded-2xl bg-slate-50 border border-slate-200">
-            <div className="flex items-center gap-2.5">
-              <div className={`w-7 h-7 rounded-xl flex items-center justify-center text-white ${
-                requestMode === 'package' ? 'bg-[#003CF5]' : 'bg-slate-900'
-              }`}>
-                {requestMode === 'package' ? <Package className="w-4 h-4" /> : <Tag className="w-4 h-4" />}
-              </div>
-              <div>
-                <span className="font-extrabold text-xs text-slate-900 block leading-tight">
-                  {requestMode === 'package' ? 'Event Package' : 'Single Category'}
-                </span>
-                <span className="text-[10px] text-slate-500 font-medium">
-                  {requestMode === 'package' ? 'Multi-category bundle' : 'One item or service type'}
-                </span>
-              </div>
-            </div>
-            <span className="text-[10px] font-black uppercase tracking-wider text-[#003CF5] bg-blue-50 px-2.5 py-0.5 rounded-full border border-blue-200">
-              Selected
-            </span>
-          </div>
-
-          {/* If Event Package is Active: Multi-Category Selector & Presets */}
-          {requestMode === 'package' ? (
-            <div className="space-y-3.5 p-4 rounded-2xl bg-[#F7F8FA] border border-slate-200">
-              <div className="flex items-center justify-between">
-                <span className="text-[11px] font-black uppercase tracking-wider text-slate-800 flex items-center gap-1.5">
-                  <Layers className="w-3.5 h-3.5 text-[#003CF5]" />
-                  <span>Choose Categories Included in This Package</span>
-                </span>
-                <span className="text-[10px] font-bold text-[#003CF5] bg-blue-50 px-2 py-0.5 rounded-full">
-                  {selectedCategories.length} selected
-                </span>
-              </div>
-
-              {/* Multi-Category Checkbox Badges */}
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                {CATEGORIES.map((c) => {
-                  const isChecked = selectedCategories.includes(c.id);
-                  return (
-                    <button
-                      key={c.id}
-                      type="button"
-                      onClick={() => handleToggleCategory(c.id)}
-                      className={`p-2.5 rounded-xl border text-left text-xs font-bold transition-all flex items-center justify-between ${
-                        isChecked
-                          ? 'border-[#003CF5] bg-white text-[#003CF5] shadow-sm'
-                          : 'border-slate-200 bg-white/70 text-slate-600 hover:border-slate-300'
-                      }`}
-                    >
-                      <span className="truncate pr-1">{c.name}</span>
-                      <div className={`w-4 h-4 rounded flex items-center justify-center flex-shrink-0 ${
-                        isChecked ? 'bg-[#003CF5] text-white' : 'border border-slate-300'
-                      }`}>
-                        {isChecked && <Check className="w-3 h-3 stroke-[3]" />}
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
-
-              {/* Package Breakdown */}
-              <div className="pt-2 border-t border-slate-200">
-                <label className="block text-[11px] font-bold text-slate-700 uppercase mb-1">
-                  Package Items Breakdown
-                </label>
-                <textarea
-                  rows={2}
-                  value={packageBreakdown}
-                  onChange={(e) => setPackageBreakdown(e.target.value)}
-                  placeholder="e.g. 300 Cotton Shirts, 300 Sublimation Lanyards, 300 Canvas Totes, 50 VIP Tumblers"
-                  className="w-full bg-white border border-slate-300 rounded-xl p-2.5 text-xs font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#003CF5]"
-                />
-              </div>
-            </div>
-          ) : (
-            /* Single Category Select with Recommended 4 Categories */
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <label className="block text-xs font-bold text-slate-700 uppercase">
-                  Category
-                </label>
-                <span className="text-[10px] font-bold text-slate-400">One item or service</span>
-              </div>
-
-              {/* Recommended Categories */}
-              <div>
-                <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 block mb-1.5">
-                  Popular Categories:
-                </span>
-                <div className="flex flex-wrap gap-1.5">
-                  {[
-                    { id: 'apparel', label: 'Apparel & Shirts' },
-                    { id: 'event-print', label: 'Event Print & Lanyards' },
-                    { id: 'drinkware', label: 'Drinkware & Vessels' },
-                    { id: 'bags', label: 'Bags & Totes' }
-                  ].map((rec) => (
-                    <button
-                      key={rec.id}
-                      type="button"
-                      onClick={() => setSingleCategory(rec.id)}
-                      className={`px-2.5 py-1 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
-                        singleCategory === rec.id
-                          ? 'bg-[#003CF5] text-white shadow-xs'
-                          : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
-                      }`}
-                    >
-                      <span>{rec.label}</span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <select
-                value={singleCategory}
-                onChange={(e) => setSingleCategory(e.target.value)}
-                className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2.5 text-xs font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#003CF5]"
-              >
-                {CATEGORIES.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-          )}
-
-          {/* Title & Basic Specs */}
-          <div>
-            <div className="flex items-center justify-between mb-1">
-              <label className="block text-xs font-bold text-slate-700 uppercase">
-                {requestMode === 'package' ? 'Event Package Title' : 'Item / Service Title'}
-              </label>
-
-              {/* Simple subtle circular Aygo Assist button */}
-              <button
-                type="button"
-                onClick={() => handleRunAiAnalyze(title || specs)}
-                disabled={isAiAnalyzing}
-                className="w-6 h-6 rounded-full bg-slate-100 hover:bg-blue-50 text-slate-500 hover:text-[#003CF5] border border-slate-200 hover:border-blue-300 flex items-center justify-center transition-all cursor-pointer text-xs"
-                title="Aygo Assist: Auto-detect category & specs"
-              >
-                <Sparkles className="w-3.5 h-3.5" />
-              </button>
-            </div>
-
-            <div className="relative">
-              <input
-                type="text"
-                required
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                placeholder={requestMode === 'package' ? 'e.g. Annual Tech Summit Event Package' : 'e.g. 500 Dri-Fit Event Shirts for BGC marathon'}
-                className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2.5 text-xs font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#003CF5]"
-              />
-            </div>
-
-            {/* Simple compact dismissible Aygo Assist Result Tag */}
-            {aiTagSuggestion && (
-              <div className="mt-1.5 px-2.5 py-1 rounded-lg bg-blue-50/80 border border-blue-200 flex items-center justify-between text-[11px] text-slate-700">
-                <div className="flex items-center gap-1.5">
-                  <Sparkles className="w-3 h-3 text-[#003CF5]" />
-                  <span>
-                    Aygo Assist: <strong className="capitalize text-slate-900">{aiTagSuggestion.category}</strong> ({aiTagSuggestion.printingMethod})
-                  </span>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setAiTagSuggestion(null)}
-                  className="text-slate-400 hover:text-slate-600 cursor-pointer ml-2"
-                  title="Dismiss"
-                >
-                  <X className="w-3 h-3" />
-                </button>
-              </div>
-            )}
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
-                {requestMode === 'package' ? 'Event Attendees / Sets' : 'Quantity Needed'}
-              </label>
-              <input
-                type="number"
-                min="1"
-                required
-                value={quantity}
-                onChange={(e) => setQuantity(e.target.value)}
-                className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2.5 text-xs font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#003CF5]"
-              />
-            </div>
-
-            <div>
-              <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
-                Target Total Budget (PHP)
-              </label>
-              <input
-                type="number"
-                min="1"
-                required
-                value={targetBudget}
-                onChange={(e) => setTargetBudget(e.target.value)}
-                className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2.5 text-xs font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#003CF5]"
-              />
-              <p className="text-[10px] text-slate-500 mt-1">
-                Target approx: PHP {(Number(targetBudget) / (Number(quantity) || 1)).toFixed(2)} per attendee set
-              </p>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
-                Delivery Venue / Location
-              </label>
-              <input
-                type="text"
-                required
-                value={location}
-                onChange={(e) => setLocation(e.target.value)}
-                placeholder="e.g. SMX Convention Center / BGC, Taguig"
-                className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2.5 text-xs font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#003CF5]"
-              />
-            </div>
-
-            <div>
-              <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
-                Required Delivery Date
-              </label>
-              <input
-                type="date"
-                required
-                value={deliveryDate}
-                onChange={(e) => setDeliveryDate(e.target.value)}
-                className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2.5 text-xs font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#003CF5]"
-              />
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
-              Customization Requirements & Technical Specs
-            </label>
-            <textarea
-              rows={3}
-              value={specs}
-              onChange={(e) => setSpecs(e.target.value)}
-              placeholder="Specify fabric GSM, print technique (Silkscreen, DTF, Sublimation), color pantones, or packaging instructions..."
-              className="w-full bg-slate-50 border border-slate-300 rounded-xl p-3 text-xs font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#003CF5]"
+      }
+    >
+      <form onSubmit={handleSubmit} className="space-y-5">
+        {/* Plain-language request, filled out by Aygo Assist */}
+        <div className="rounded-[22px] bg-gradient-to-br from-blue-50 to-violet-50 p-3.5">
+          <label htmlFor="assist" className="flex items-center gap-1.5 text-[13px] font-medium text-slate-700">
+            <Sparkles className="w-4 h-4 text-[#003CF5]" /> Describe it in your own words
+          </label>
+          <div className="mt-2 flex gap-2">
+            <Textarea
+              id="assist"
+              rows={2}
+              value={prompt}
+              onChange={(e) => setPrompt(e.target.value)}
+              placeholder="I need 300 customized lanyards for an event in Quezon City next month. Budget is ₱15,000."
+              className="bg-white"
             />
           </div>
-
-          {/* PRODUCT MOCKUP / DESIGN ATTACHMENT SECTION (User Requested) */}
-          <div className="p-4 rounded-2xl bg-blue-50/50 border border-blue-200 space-y-3">
-            <div className="flex items-center justify-between">
-              <div>
-                <label className="block text-xs font-black uppercase tracking-wider text-slate-900">
-                  Product Mockup & Visuals for Suppliers
-                </label>
-                <p className="text-[11px] text-slate-500 mt-0.5">
-                  Upload your mockup now so suppliers can see your artwork, or choose to generate/upload it later in the studio.
-                </p>
-              </div>
-              <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-white text-[#003CF5] border border-blue-200">
-                Supplier Preview
+          <div className="mt-2 flex items-center justify-between gap-2">
+            {aiResult ? (
+              <span className="text-[12px] text-slate-600 flex items-center gap-1">
+                <Check className="w-3.5 h-3.5 text-emerald-600" /> Filled in below. Check and adjust.
               </span>
-            </div>
-
-            {/* Radio / Tab choice: Design in Studio vs Upload Mockup vs Do Later */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-              <button
-                type="button"
-                onClick={() => {
-                  setMockupOption('create');
-                  if (onOpenMockupStudio) onOpenMockupStudio();
-                }}
-                className={`py-2 px-2.5 rounded-xl text-xs font-bold transition-all text-left flex items-center gap-2 border ${
-                  mockupOption === 'create'
-                    ? 'border-[#003CF5] bg-white text-[#003CF5] shadow-xs ring-1 ring-blue-300'
-                    : 'border-slate-200 bg-white/70 text-slate-600 hover:border-slate-300'
-                }`}
-              >
-                <Sparkles className="w-3.5 h-3.5 flex-shrink-0 text-[#003CF5]" />
-                <div>
-                  <p className="leading-tight">Design in Studio</p>
-                  <p className="text-[10px] font-normal text-slate-400">Launch Mockup Editor</p>
-                </div>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setMockupOption('upload')}
-                className={`py-2 px-2.5 rounded-xl text-xs font-bold transition-all text-left flex items-center gap-2 border ${
-                  mockupOption === 'upload'
-                    ? 'border-[#003CF5] bg-white text-[#003CF5] shadow-xs ring-1 ring-blue-300'
-                    : 'border-slate-200 bg-white/70 text-slate-600 hover:border-slate-300'
-                }`}
-              >
-                <Upload className="w-3.5 h-3.5 flex-shrink-0" />
-                <div>
-                  <p className="leading-tight">Upload Mockup</p>
-                  <p className="text-[10px] font-normal text-slate-400">Attach PNG, JPG, PDF</p>
-                </div>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setMockupOption('later')}
-                className={`py-2 px-2.5 rounded-xl text-xs font-bold transition-all text-left flex items-center gap-2 border ${
-                  mockupOption === 'later'
-                    ? 'border-[#003CF5] bg-white text-[#003CF5] shadow-xs ring-1 ring-blue-300'
-                    : 'border-slate-200 bg-white/70 text-slate-600 hover:border-slate-300'
-                }`}
-              >
-                <Clock className="w-3.5 h-3.5 flex-shrink-0" />
-                <div>
-                  <p className="leading-tight">Do this later</p>
-                  <p className="text-[10px] font-normal text-slate-400">Add mockup anytime</p>
-                </div>
-              </button>
-            </div>
-
-            {/* Design in Studio Action Banner */}
-            {mockupOption === 'create' && (
-              <div className="p-3 bg-blue-50 border border-blue-200 rounded-xl flex items-center justify-between text-xs">
-                <div className="flex items-center gap-2">
-                  <Sparkles className="w-4 h-4 text-[#003CF5]" />
-                  <span className="font-bold text-slate-800">
-                    {uploadedMockupImg ? 'Mockup design attached from Studio!' : 'Design your custom merchandise mockup in the studio:'}
-                  </span>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => onOpenMockupStudio && onOpenMockupStudio()}
-                  className="px-3 py-1 rounded-lg bg-[#003CF5] hover:bg-blue-700 text-white font-bold text-[11px] shadow-sm"
-                >
-                  {uploadedMockupImg ? 'Edit in Studio' : 'Launch Mockup Studio'}
-                </button>
-              </div>
+            ) : (
+              <span className="text-[12px] text-slate-500">Aygo Assist fills in the form for you.</span>
             )}
-
-            {/* Upload Dropzone if 'upload' selected */}
-            {mockupOption === 'upload' && (
-              <div className="pt-1 space-y-2">
-                {uploadedMockupImg ? (
-                  <div className="relative h-28 rounded-xl overflow-hidden bg-slate-900 flex items-center justify-center border border-slate-200">
-                    <img src={uploadedMockupImg} alt="Uploaded Mockup" className="h-full object-contain" />
-                    <div className="absolute bottom-2 left-2 right-2 bg-white/95 backdrop-blur-md p-1.5 rounded-lg flex items-center justify-between text-xs">
-                      <span className="font-bold text-slate-900 truncate max-w-xs">{uploadedMockupName || 'mockup.png'}</span>
-                      <button
-                        type="button"
-                        onClick={() => { setUploadedMockupImg(null); setUploadedMockupName(''); }}
-                        className="text-[10px] font-bold text-red-600 hover:underline"
-                      >
-                        Remove
-                      </button>
-                    </div>
-                  </div>
-                ) : (
-                  <label className="flex flex-col items-center justify-center p-3.5 border-2 border-dashed border-blue-300 hover:border-[#003CF5] bg-white rounded-xl cursor-pointer transition-colors text-center">
-                    <Upload className="w-5 h-5 text-[#003CF5] mb-1" />
-                    <span className="text-xs font-bold text-slate-800">Click or drag mockup image for suppliers</span>
-                    <span className="text-[10px] text-slate-500 mt-0.5">PNG, JPG, PDF up to 50MB</span>
-                    <input type="file" accept="image/*,application/pdf" onChange={handleMockupFileChange} className="hidden" />
-                  </label>
-                )}
-              </div>
-            )}
+            <Button size="sm" variant="primary" onClick={handleAssist} disabled={isAiAnalyzing || !(prompt || title).trim()} icon={isAiAnalyzing ? Loader2 : Sparkles} className={isAiAnalyzing ? '[&>svg]:animate-spin' : ''}>
+              {isAiAnalyzing ? 'Reading…' : 'Fill for me'}
+            </Button>
           </div>
+        </div>
 
-          <div className="flex justify-end gap-3 pt-3 border-t border-slate-200">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-4 py-2.5 rounded-xl border border-slate-300 text-xs font-bold text-slate-700 hover:bg-slate-50 transition-colors"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              className="px-5 py-2.5 rounded-xl bg-[#003CF5] hover:bg-blue-700 text-white text-xs font-bold shadow-md shadow-blue-500/20 transition-all flex items-center gap-1.5"
-            >
-              <Send className="w-3.5 h-3.5" />
-              <span>
-                {requestMode === 'package' ? 'Broadcast Event Package to Suppliers' : 'Broadcast Request to Suppliers'}
-              </span>
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
+        <Tabs tabs={MODES} value={requestMode} onChange={setRequestMode} />
+
+        {isPackage ? (
+          <Section title="What's in the package?" className="py-0">
+            <div className="flex flex-wrap gap-2">
+              {CATEGORIES.map((c) => (
+                <Chip key={c.id} selected={selectedCategories.includes(c.id)} onClick={() => toggleCategory(c.id)} icon={selectedCategories.includes(c.id) ? Check : undefined}>
+                  {c.name}
+                </Chip>
+              ))}
+            </div>
+            <Field label="Items and quantities" className="mt-3">
+              <Textarea
+                value={packageBreakdown}
+                onChange={(e) => setPackageBreakdown(e.target.value)}
+                placeholder="300 cotton shirts, 300 lanyards, 300 canvas totes, 50 VIP tumblers"
+              />
+            </Field>
+          </Section>
+        ) : (
+          <Section title="Category" className="py-0">
+            <div className="flex gap-2 overflow-x-auto no-scrollbar -mx-5 px-5">
+              {CATEGORIES.map((c) => (
+                <Chip key={c.id} selected={singleCategory === c.id} onClick={() => setSingleCategory(c.id)}>
+                  {c.name}
+                </Chip>
+              ))}
+            </div>
+          </Section>
+        )}
+
+        <Field label={isPackage ? 'Package name' : 'What do you need?'}>
+          <Input
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            placeholder={isPackage ? 'Tech Summit 2026 attendee kit' : '300 customized satin lanyards'}
+          />
+        </Field>
+
+        <div className="grid grid-cols-2 gap-3">
+          <Field label={isPackage ? 'Attendee sets' : 'Quantity'}>
+            <Input type="number" inputMode="numeric" min="1" value={quantity} onChange={(e) => setQuantity(e.target.value)} />
+          </Field>
+          <Field label="Total budget (₱)" hint={`${peso(unitPrice, 2)} per ${isPackage ? 'set' : 'piece'}`}>
+            <Input type="number" inputMode="numeric" min="1" value={targetBudget} onChange={(e) => setTargetBudget(e.target.value)} />
+          </Field>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <Field label="Deliver to">
+            <div className="relative">
+              <MapPin className="w-4 h-4 text-slate-400 absolute left-4 top-1/2 -translate-y-1/2" />
+              <Input value={location} onChange={(e) => setLocation(e.target.value)} className="pl-10" placeholder="Venue or address" />
+            </div>
+          </Field>
+          <Field label="Needed by">
+            <Input type="date" value={deliveryDate} onChange={(e) => setDeliveryDate(e.target.value)} />
+          </Field>
+        </div>
+
+        <Field label="Customization details" hint="Material, print method, colors, sizes, packaging.">
+          <Textarea
+            rows={3}
+            value={specs}
+            onChange={(e) => setSpecs(e.target.value)}
+            placeholder="2cm satin, full-color sublimation both sides, trigger hook, individual packaging"
+          />
+        </Field>
+
+        <Section title="Design or reference image" className="py-0">
+          {mockupImg ? (
+            <div className="relative rounded-2xl overflow-hidden bg-[#F4F3F0] h-36 flex items-center justify-center">
+              <img src={mockupImg} alt="Attached design" className="h-full object-contain" />
+              <button
+                type="button"
+                onClick={() => { setMockupImg(null); setMockupName(''); }}
+                className="absolute top-2 right-2 w-8 h-8 rounded-full bg-white/90 text-slate-700 flex items-center justify-center"
+                aria-label="Remove image"
+              >
+                <X className="w-4 h-4" />
+              </button>
+              <span className="absolute bottom-2 left-2 max-w-[70%] truncate rounded-full bg-white/90 px-2.5 py-1 text-[12px] text-slate-700">{mockupName}</span>
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 gap-2">
+              <label className={cx('rounded-2xl border-2 border-dashed border-slate-200 hover:border-[#003CF5] p-4 text-center cursor-pointer transition-colors')}>
+                <Upload className="w-5 h-5 mx-auto text-slate-500" />
+                <span className="block mt-1.5 text-[13px] font-medium text-slate-800">Upload image</span>
+                <span className="block text-[12px] text-slate-500">Logo, artwork or reference</span>
+                <input type="file" accept="image/*" onChange={handleFile} className="sr-only" />
+              </label>
+              <button
+                type="button"
+                onClick={() => onOpenMockupStudio && onOpenMockupStudio()}
+                className="rounded-2xl bg-violet-50 hover:bg-violet-100 p-4 text-center transition-colors"
+              >
+                <Sparkles className="w-5 h-5 mx-auto text-violet-600" />
+                <span className="block mt-1.5 text-[13px] font-medium text-slate-800">Make a mockup</span>
+                <span className="block text-[12px] text-slate-500">Open the mockup studio</span>
+              </button>
+            </div>
+          )}
+        </Section>
+      </form>
+    </Sheet>
   );
 }

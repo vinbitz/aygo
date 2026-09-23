@@ -36,3 +36,4 @@
 @media (prefers-reduced-motion: reduce) {
   .animate-fade-in, .animate-sheet-up, .sm\:animate-pop-in { animation: none; }
 }
+.animate-pop-in { animation: pop-in 200ms ease-out; }

@@ -3,18 +3,23 @@ import {
   MapPin,
   Search,
   Check,
-  X,
   Package,
   Shirt,
   Printer,
   Coffee,
   ShoppingBag,
-  Handshake,
   Tag,
-  MessageSquare
+  Sparkles,
+  FileText,
+  Megaphone,
+  Download,
+  Globe,
+  CalendarDays
 } from 'lucide-react';
-import { SUPPLIERS, PRESET_VENUES } from '../data/mockData';
+import { PRESET_VENUES } from '../data/mockData';
 import AygoGoogleMap from './AygoGoogleMap';
+import RequestOffers from './RequestOffers';
+import { Sheet, Button, Input, ListRow, Section } from './ui';
 
 const CATEGORY_TILES = [
   { id: 'apparel', label: 'Apparel', Icon: Shirt, tint: { bg: 'bg-blue-100', fg: 'text-[#003CF5]' } },
@@ -28,16 +33,6 @@ const REQUEST_TYPES = [
   { mode: 'package', label: 'Event Package', hint: 'Multi-category bundle', Icon: Package, tint: { bg: 'bg-violet-100', fg: 'text-violet-600' } }
 ];
 
-const MAKER_BIDS = [
-  { id: 's3', name: 'JJT Digital (Parañaque City)', shortName: 'JJT Digital', area: 'Parañaque · 11.8 km', loc: 'Parañaque · 11.8 km from venue', price: '₱46.00/pc', days: '4 Business Days', shortDays: '4 days', readyDate: 'Ready Oct 8', tag: 'Lowest bid' },
-  { id: 's1', name: 'Thread & Co. (Taytay)', shortName: 'Thread & Co.', area: 'Taytay · 14.2 km', loc: 'Taytay · 14.2 km from venue', price: '₱49.50/pc', days: '6 Business Days', shortDays: '6 days', readyDate: 'Ready Oct 12', tag: 'Verified' },
-  { id: 's2', name: 'Manila Bag Works (Marikina)', shortName: 'Manila Bag Works', area: 'Marikina City', loc: 'Marikina City', price: '₱55.00/pc', days: '7 Business Days', shortDays: '7 days', readyDate: 'Ready Oct 14', tag: 'Verified' },
-  { id: 's4', name: 'Everyday Drinkware (Valenzuela)', shortName: 'Everyday Drinkware', area: 'Valenzuela City', loc: 'Valenzuela City', price: '₱340.00/pc', days: '5 Business Days', shortDays: '5 days', readyDate: 'Ready Oct 10', tag: 'Verified' }
-];
-
-const ORDER_STEPS = ['Proofing', 'Printing', 'Pack', 'Dispatch'];
-const ACTIVE_STEP = 0;
-
 export default function AygoSourcingView({
   onOpenDrawer,
   activeVenue,
@@ -45,13 +40,20 @@ export default function AygoSourcingView({
   deliveryType = 'venue',
   onSelectSupplier,
   onOpenChatWithSupplier,
-  onRequestNewJob
+  onRequestNewJob,
+  request,
+  onAcceptBid,
+  onCompareBids,
+  onOpenMockupStudio,
+  onOpenDocs,
+  onOpenSponsorship,
+  onOpenWaitlist,
+  onOpenWorkspace
 }) {
   const [localVenue, setLocalVenue] = useState(PRESET_VENUES[0]);
   const [isLocationModalOpen, setIsLocationModalOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [customAddressInput, setCustomAddressInput] = useState('');
-  const [selectedMaker, setSelectedMaker] = useState(MAKER_BIDS[0]);
 
   const currentVenue = activeVenue || localVenue;
   const currentType = deliveryType;
@@ -160,193 +162,87 @@ export default function AygoSourcingView({
             </div>
           </section>
 
-          {/* SECTION 3: Maker bids */}
-          <section className="bg-white rounded-[28px] py-4">
-            <div className="px-4 flex items-center gap-3">
-              <span className="w-11 h-11 rounded-full bg-blue-50 flex items-center justify-center text-[#003CF5] shrink-0">
-                <Handshake className="w-5 h-5" />
-              </span>
-              <div className="flex-1 min-w-0">
-                <h4 className="text-[19px] font-semibold text-slate-900 tracking-tight leading-tight">Choose a maker</h4>
-                <p className="text-[13px] text-slate-500">{MAKER_BIDS.length} verified bids for your request</p>
-              </div>
+          {/* SECTION 3: Live offers for the active request */}
+          <RequestOffers
+            request={request}
+            onAccept={onAcceptBid}
+            onCompare={onCompareBids}
+            onChat={onOpenChatWithSupplier}
+            onViewSupplier={onSelectSupplier}
+            onNewRequest={() => onRequestNewJob && onRequestNewJob()}
+          />
+
+          {/* SECTION 4: Tools */}
+          <section className="bg-white rounded-[28px] px-4 py-2">
+            <ListRow icon={CalendarDays} tone="blue" title="Event workspace" subtitle="All supplies, budget and checklist in one place" onClick={onOpenWorkspace} />
+            <ListRow icon={Sparkles} tone="violet" title="Mockup studio" subtitle="Put your logo on shirts, totes, tumblers" onClick={onOpenMockupStudio} />
+            <ListRow icon={FileText} tone="amber" title="Quotes & documents" subtitle="RFQ, purchase order, comparison sheet" onClick={onOpenDocs} />
+            <ListRow icon={Megaphone} tone="rose" title="Sponsorship Connect" subtitle="Find brands to back your event" onClick={onOpenSponsorship} />
+          </section>
+
+          {/* SECTION 5: Get the app + international waitlist */}
+          <section className="rounded-[28px] p-4 bg-[#003CF5] text-white">
+            <p className="text-[17px] font-semibold">Make It Aygo.</p>
+            <p className="text-[13px] text-blue-100 mt-0.5">Get offers on the go with the Aygo app.</p>
+            <div className="mt-3 flex flex-wrap gap-2">
+              <a href="https://aygo.store" target="_blank" rel="noreferrer" className="h-10 px-4 rounded-2xl bg-white text-[#003CF5] text-[14px] font-semibold inline-flex items-center gap-2">
+                <Download className="w-4 h-4" /> Download Aygo
+              </a>
+              <button type="button" onClick={onOpenWaitlist} className="h-10 px-4 rounded-2xl bg-white/15 hover:bg-white/25 text-white text-[14px] font-medium inline-flex items-center gap-2">
+                <Globe className="w-4 h-4" /> Outside the Philippines?
+              </button>
             </div>
-
-            <div className="mt-2 px-4 py-1 scroll-px-4 flex gap-2 overflow-x-auto no-scrollbar snap-x">
-              {MAKER_BIDS.map((bid) => {
-                const isSelected = selectedMaker?.id === bid.id;
-                return (
-                  <button
-                    key={bid.id}
-                    type="button"
-                    onClick={() => setSelectedMaker(bid)}
-                    className={`snap-start shrink-0 w-[168px] rounded-2xl p-3 text-left transition-all ${
-                      isSelected ? 'bg-blue-50 ring-2 ring-inset ring-[#003CF5]' : 'bg-[#F4F3F0] hover:bg-[#ECEAE5]'
-                    }`}
-                  >
-                    <span className={`inline-block text-[10px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded-md ${
-                      bid.tag === 'Lowest bid' ? 'bg-emerald-600 text-white' : 'bg-white text-slate-600'
-                    }`}>
-                      {bid.tag}
-                    </span>
-                    <div className="mt-2 text-[15px] font-medium text-slate-900 truncate">{bid.shortName}</div>
-                    <div className="text-[12px] text-slate-500 truncate">{bid.area}</div>
-                    <div className="mt-2 flex items-baseline justify-between gap-1">
-                      <span className="text-[17px] font-semibold text-slate-900">{bid.price}</span>
-                      <span className="text-[12px] text-slate-500">{bid.shortDays}</span>
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
-
-            {/* Active order tracker for the selected maker */}
-            {selectedMaker && (
-              <div className="mx-4 mt-4 pt-4 border-t border-slate-100">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <p className="text-[13px] text-slate-500">In production with</p>
-                    <p className="text-[15px] font-semibold text-slate-900 truncate">{selectedMaker.name}</p>
-                  </div>
-                  <span className="shrink-0 text-[12px] font-semibold text-[#003CF5] bg-blue-50 px-2.5 py-1 rounded-full">
-                    {selectedMaker.readyDate}
-                  </span>
-                </div>
-
-                <ol className="mt-4 grid grid-cols-4">
-                  {ORDER_STEPS.map((step, i) => {
-                    const done = i <= ACTIVE_STEP;
-                    return (
-                      <li key={step} className="relative flex flex-col items-center text-center">
-                        {i > 0 && (
-                          <span className={`absolute top-[5px] right-1/2 w-full h-0.5 ${done ? 'bg-[#003CF5]' : 'bg-slate-200'}`} />
-                        )}
-                        <span className={`relative z-10 w-3 h-3 rounded-full ${
-                          i === ACTIVE_STEP ? 'bg-[#003CF5] ring-4 ring-blue-100' : done ? 'bg-[#003CF5]' : 'bg-slate-200'
-                        }`} />
-                        <span className={`mt-2 text-[12px] ${i === ACTIVE_STEP ? 'font-semibold text-slate-900' : 'text-slate-500'}`}>
-                          {step}
-                        </span>
-                      </li>
-                    );
-                  })}
-                </ol>
-
-                <button
-                  type="button"
-                  onClick={() => {
-                    const s = SUPPLIERS.find(x => x.id === selectedMaker.id) || SUPPLIERS[0];
-                    if (onOpenChatWithSupplier) onOpenChatWithSupplier(s);
-                  }}
-                  className="mt-4 w-full py-3.5 rounded-2xl bg-[#003CF5] hover:bg-blue-700 text-white text-[15px] font-semibold transition-colors flex items-center justify-center gap-2 active:scale-[0.99]"
-                >
-                  <MessageSquare className="w-4 h-4" />
-                  Chat with maker
-                </button>
-              </div>
-            )}
           </section>
 
         </div>
       </div>
 
-      {/* INTERACTIVE LOCATION PICKER MODAL */}
       {isLocationModalOpen && (
-        <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-3 sm:p-5">
-          <div className="bg-white rounded-3xl max-w-lg w-full border border-slate-200 p-5 space-y-4 shadow-2xl max-h-[90vh] overflow-y-auto font-sans">
-            <div className="flex justify-between items-center border-b border-slate-100 pb-3">
-              <div>
-                <h3 className="text-base font-black text-slate-950">Change Delivery Venue</h3>
-                <p className="text-xs text-slate-500 font-medium">Select an event venue or enter your custom delivery address.</p>
-              </div>
-              <button 
-                onClick={() => setIsLocationModalOpen(false)}
-                className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-700 flex items-center justify-center text-sm font-bold"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-
-            {/* Custom Search & Input */}
-            <div className="space-y-2">
-              <label className="block text-[11px] font-black uppercase text-slate-700">
-                Search or Enter Custom Address
-              </label>
-              <div className="relative">
-                <Search className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
-                <input
-                  type="text"
-                  value={searchQuery}
-                  onChange={(e) => {
-                    setSearchQuery(e.target.value);
-                    setCustomAddressInput(e.target.value);
-                  }}
-                  placeholder="e.g. Arthaland Tower, SMX Manila, or street address..."
-                  className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-slate-300 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-[#003CF5]"
-                />
-              </div>
-
-              {customAddressInput.trim() && (
-                <button
-                  type="button"
-                  onClick={handleApplyCustomLocation}
-                  className="w-full py-2 px-3 rounded-xl bg-[#003CF5] text-white text-xs font-bold shadow transition-all flex items-center justify-center gap-1.5"
-                >
-                  <Check className="w-3.5 h-3.5" />
-                  <span>Use address: "{customAddressInput}"</span>
-                </button>
-              )}
-            </div>
-
-            {/* Popular Event Venues */}
-            <div className="space-y-2">
-              <p className="text-[11px] font-black uppercase tracking-wider text-slate-500">
-                Popular Venues
-              </p>
-              <div className="space-y-1.5">
-                {filteredVenues.map((venue) => {
-                  const isSelected = currentVenue.id === venue.id || currentVenue.name === venue.name;
-                  return (
-                    <div
-                      key={venue.id}
-                      onClick={() => handleUpdateVenue(venue)}
-                      className={`p-3 rounded-2xl border cursor-pointer text-xs transition-all flex items-center justify-between ${
-                        isSelected 
-                          ? 'border-[#003CF5] bg-blue-50/70 shadow-sm' 
-                          : 'border-slate-200 hover:border-slate-300 bg-white'
-                      }`}
-                    >
-                      <div className="flex items-start gap-2.5">
-                        <MapPin className={`w-4 h-4 mt-0.5 flex-shrink-0 ${isSelected ? 'text-[#003CF5]' : 'text-slate-400'}`} />
-                        <div>
-                          <p className="font-bold text-slate-900">{venue.name}</p>
-                          <p className="text-[11px] text-slate-500">{venue.address}</p>
-                        </div>
-                      </div>
-                      {isSelected && (
-                        <span className="text-[10px] font-bold text-[#003CF5] bg-blue-100 px-2 py-0.5 rounded-full">
-                          Active
-                        </span>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-
-            <div className="flex justify-end pt-2 border-t border-slate-100">
-              <button
-                onClick={() => setIsLocationModalOpen(false)}
-                className="px-4 py-2 rounded-xl border border-slate-300 text-xs font-bold text-slate-700 hover:bg-slate-50"
-              >
-                Close
-              </button>
-            </div>
+        <Sheet
+          title="Delivery venue"
+          subtitle="Makers near this place will see your requests first."
+          icon={MapPin}
+          onClose={() => setIsLocationModalOpen(false)}
+        >
+          <div className="relative">
+            <Search className="w-4 h-4 text-slate-400 absolute left-4 top-1/2 -translate-y-1/2" />
+            <Input
+              value={searchQuery}
+              onChange={(e) => {
+                setSearchQuery(e.target.value);
+                setCustomAddressInput(e.target.value);
+              }}
+              placeholder="Search a venue or type an address"
+              className="pl-10"
+              autoFocus
+            />
           </div>
-        </div>
+
+          {customAddressInput.trim() && (
+            <Button variant="secondary" full className="mt-2" icon={Check} onClick={handleApplyCustomLocation}>
+              Use “{customAddressInput.trim()}”
+            </Button>
+          )}
+
+          <Section title="Popular venues" className="pt-4">
+            {filteredVenues.map((venue) => {
+              const isSelected = currentVenue.id === venue.id || currentVenue.name === venue.name;
+              return (
+                <ListRow
+                  key={venue.id}
+                  icon={MapPin}
+                  tone={isSelected ? 'solid' : 'slate'}
+                  title={venue.name}
+                  subtitle={venue.address}
+                  onClick={() => handleUpdateVenue(venue)}
+                  trailing={isSelected ? <Check className="w-5 h-5 text-[#003CF5]" /> : undefined}
+                />
+              );
+            })}
+            {filteredVenues.length === 0 && <p className="text-[13px] text-slate-500 py-3">No saved venue matches. Use the address above.</p>}
+          </Section>
+        </Sheet>
       )}
-
-
     </div>
   );
 }

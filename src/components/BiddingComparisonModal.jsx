@@ -1,183 +1,135 @@
-import React from 'react';
-import {
-  X,
-  Sparkles
-} from 'lucide-react';
-import { SUPPLIERS } from '../data/mockData';
+import React, { useMemo, useState } from 'react';
+import { ArrowLeftRight, Star, MessageSquare, Check, BadgeCheck } from 'lucide-react';
+import { Sheet, Button, Badge, Input, Tabs, cx } from './ui';
+import { peso, shortDate, rankBids } from '../lib/marketplace';
 
-export default function BiddingComparisonModal({ onClose, onSelectSupplier }) {
-  const comparisonData = [
-    {
-      supplier: SUPPLIERS[2], // JJT Digital
-      bidPrice: 46.00,
-      totalPrice: 13800,
-      leadTime: '4 business days',
-      deliveryDate: 'October 8, 2026',
-      location: 'Parañaque City (11.8 km)',
-      rating: '4.9 (215 reviews)',
-      inclusions: 'Free digital mockup, individual polybagging, safety breakaway buckle, free Metro Manila delivery',
-      terms: '50% downpayment, balance upon pickup/delivery',
-      isBestValue: true,
-      aiScore: {
-        score: '98%',
-        summary: 'Excellent Budget Fit · Fastest Turnaround (4 days) · Feasible Metro Logistics',
-        badge: 'Top Recommendation'
-      }
-    },
-    {
-      supplier: SUPPLIERS[0], // Thread & Co.
-      bidPrice: 49.50,
-      totalPrice: 14850,
-      leadTime: '5 business days',
-      deliveryDate: 'October 9, 2026',
-      location: 'Taytay, Rizal (12.4 km)',
-      rating: '4.9 (142 reviews)',
-      inclusions: 'Satin lanyard + heavy-duty trigger snap hook + clear PVC badge holder included in bundle',
-      terms: '50% downpayment, balance upon delivery',
-      isBestValue: false,
-      aiScore: {
-        score: '93%',
-        summary: 'High Quality Craftsmanship · Includes Complete Bundle Accessories',
-        badge: 'Verified Match'
-      }
-    }
-  ];
+const SORTS = [
+  { id: 'best', label: 'Best match' },
+  { id: 'price', label: 'Lowest price' },
+  { id: 'fast', label: 'Fastest' },
+  { id: 'rating', label: 'Top rated' },
+];
+
+const sorters = {
+  best: () => 0,
+  price: (a, b) => a.total - b.total,
+  fast: (a, b) => a.leadDays - b.leadDays,
+  rating: (a, b) => b.supplier.rating - a.supplier.rating,
+};
+
+/** Side-by-side comparison of every offer on a request, with accept and counter-offer */
+export default function BiddingComparisonModal({ request, onClose, onAccept, onCounter, onChat }) {
+  const [sort, setSort] = useState('best');
+  const [counterFor, setCounterFor] = useState(null);
+  const [counterPrice, setCounterPrice] = useState('');
+
+  const bids = useMemo(() => [...rankBids(request.bids, request)].sort(sorters[sort]), [request, sort]);
+  const targetUnit = request.targetBudget / (request.quantity || 1);
+
+  const submitCounter = (bid) => {
+    const price = Number(counterPrice);
+    if (!price) return;
+    onCounter(bid, price);
+    setCounterFor(null);
+    setCounterPrice('');
+  };
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-sm flex justify-center items-center p-3 sm:p-6">
-      <div className="relative w-full max-w-4xl bg-white rounded-3xl shadow-2xl overflow-hidden border border-slate-200 flex flex-col max-h-[90vh]">
-        <div className="flex items-center justify-between p-6 border-b border-slate-200 bg-white">
-          <div>
-            <span className="text-xs font-bold uppercase tracking-wider text-brand-700 bg-brand-50 px-2.5 py-1 rounded-md border border-brand-200">
-              Aygo Bid Comparison
-            </span>
-            <h2 className="text-lg font-bold text-ink-950 mt-1">Side-by-Side Supplier Evaluation</h2>
-            <p className="text-xs text-slate-500">Compare price, lead time, location, supplier rating, inclusions, and terms.</p>
-          </div>
-          <button
-            onClick={onClose}
-            className="w-9 h-9 bg-slate-100 hover:bg-slate-200 rounded-full flex items-center justify-center text-slate-700 transition-colors"
-          >
-            <X className="w-5 h-5" />
-          </button>
-        </div>
+    <Sheet
+      title="Compare offers"
+      subtitle={`${request.title} · ${request.quantity} ${request.unit || 'pcs'} · budget ${peso(request.targetBudget)} (${peso(targetUnit, 2)}/pc)`}
+      icon={ArrowLeftRight}
+      onClose={onClose}
+      size="xl"
+    >
+      <Tabs tabs={SORTS} value={sort} onChange={setSort} className="mb-4" />
 
-        <div className="p-6 overflow-y-auto space-y-6 text-xs text-slate-700">
-          <div className="overflow-x-auto">
-            <table className="w-full border-collapse">
-              <thead>
-                <tr className="border-b border-slate-200 text-left">
-                  <th className="p-3 bg-slate-50 font-bold text-slate-700 w-1/4">Evaluation Metric</th>
-                  {comparisonData.map((col, idx) => (
-                    <th key={idx} className="p-3 bg-white font-bold text-slate-900 border-l border-slate-200">
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm font-bold text-ink-950">{col.supplier.name}</span>
-                        {col.isBestValue && (
-                          <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-800">
-                            Lowest Bid
-                          </span>
-                        )}
-                      </div>
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                <tr className="bg-blue-50/50">
-                  <td className="p-3 bg-blue-50/80 font-bold text-[#003CF5] flex items-center gap-1.5">
-                    <Sparkles className="w-3.5 h-3.5 text-[#003CF5] animate-pulse" />
-                    <span>Aygo Assist Fit Score</span>
-                  </td>
-                  {comparisonData.map((c, i) => (
-                    <td key={i} className="p-3 border-l border-blue-100 bg-blue-50/30">
-                      <div className="flex items-center justify-between gap-2">
-                        <span className="text-sm font-black text-[#003CF5]">{c.aiScore.score} Match</span>
-                        <span className="text-[9px] font-bold text-blue-700 bg-white border border-blue-200 px-2 py-0.5 rounded-full">
-                          {c.aiScore.badge}
-                        </span>
-                      </div>
-                      <p className="text-[10px] text-slate-600 font-medium mt-1">{c.aiScore.summary}</p>
-                    </td>
-                  ))}
-                </tr>
+      <div className="space-y-3">
+        {bids.map((bid) => {
+          const over = bid.total - request.targetBudget;
+          return (
+            <article key={bid.id} className="rounded-[22px] border border-slate-200 p-4">
+              <div className="flex items-start gap-3">
+                <img
+                  src={bid.supplier.avatar}
+                  alt=""
+                  className="w-11 h-11 rounded-full object-cover bg-[#F4F3F0] shrink-0"
+                />
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <span className="text-[15px] font-semibold text-slate-900">{bid.supplier.shortName}</span>
+                    {bid.supplier.verified && <BadgeCheck className="w-4 h-4 text-[#003CF5]" aria-label="Verified" />}
+                    {bid.tags.map((t) => (
+                      <Badge key={t} tone={t === 'Best match' ? 'solidGreen' : t === 'Lowest price' ? 'green' : 'blue'}>{t}</Badge>
+                    ))}
+                  </div>
+                  <p className="text-[13px] text-slate-500 flex items-center gap-1">
+                    <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
+                    {bid.supplier.rating} ({bid.supplier.reviewsCount}) · {bid.supplier.city} · {bid.supplier.km} km
+                  </p>
+                </div>
+                <div className="text-right shrink-0">
+                  <p className="text-[17px] font-semibold text-slate-900">{peso(bid.pricePerUnit, 2)}<span className="text-[12px] font-normal text-slate-500">/pc</span></p>
+                  <p className={cx('text-[12px]', over > 0 ? 'text-amber-700' : 'text-emerald-700')}>
+                    {peso(bid.total)} {over > 0 ? `· ${peso(over)} over` : '· in budget'}
+                  </p>
+                </div>
+              </div>
 
-                <tr>
-                  <td className="p-3 bg-slate-50 font-bold text-slate-600">Unit Price & Total</td>
-                  {comparisonData.map((c, i) => (
-                    <td key={i} className="p-3 border-l border-slate-200">
-                      <p className="text-base font-black text-brand-700">PHP {c.bidPrice.toFixed(2)} / pc</p>
-                      <p className="text-[11px] text-slate-500">Total: PHP {c.totalPrice.toLocaleString()}</p>
-                    </td>
-                  ))}
-                </tr>
+              <dl className="mt-3 grid grid-cols-3 gap-2 text-[12px]">
+                <div className="rounded-xl bg-[#F4F3F0] px-2.5 py-2">
+                  <dt className="text-slate-500">Production</dt>
+                  <dd className="font-medium text-slate-900">{bid.leadDays} days</dd>
+                </div>
+                <div className="rounded-xl bg-[#F4F3F0] px-2.5 py-2">
+                  <dt className="text-slate-500">Delivery</dt>
+                  <dd className="font-medium text-slate-900">{shortDate(bid.deliveryDate)}</dd>
+                </div>
+                <div className="rounded-xl bg-[#F4F3F0] px-2.5 py-2">
+                  <dt className="text-slate-500">On time</dt>
+                  <dd className="font-medium text-slate-900">{bid.supplier.onTimeRate}</dd>
+                </div>
+              </dl>
 
-                <tr>
-                  <td className="p-3 bg-slate-50 font-bold text-slate-600">Turnaround & Delivery</td>
-                  {comparisonData.map((c, i) => (
-                    <td key={i} className="p-3 border-l border-slate-200">
-                      <p className="font-bold text-slate-900">{c.leadTime}</p>
-                      <p className="text-[11px] text-slate-500">Delivery: {c.deliveryDate}</p>
-                    </td>
-                  ))}
-                </tr>
+              <p className="mt-3 text-[13px] text-slate-700">
+                <span className="text-slate-500">Includes: </span>{bid.inclusions.join(' · ')}
+              </p>
+              <p className="mt-1 text-[13px] text-slate-500">Terms: {bid.supplier.terms}</p>
 
-                <tr>
-                  <td className="p-3 bg-slate-50 font-bold text-slate-600">Facility Location & Distance</td>
-                  {comparisonData.map((c, i) => (
-                    <td key={i} className="p-3 border-l border-slate-200">
-                      <p className="font-semibold text-slate-800">{c.location}</p>
-                    </td>
-                  ))}
-                </tr>
-
-                <tr>
-                  <td className="p-3 bg-slate-50 font-bold text-slate-600">Supplier Rating & Jobs</td>
-                  {comparisonData.map((c, i) => (
-                    <td key={i} className="p-3 border-l border-slate-200">
-                      <p className="font-semibold text-slate-800">{c.rating}</p>
-                    </td>
-                  ))}
-                </tr>
-
-                <tr>
-                  <td className="p-3 bg-slate-50 font-bold text-slate-600">Package Inclusions</td>
-                  {comparisonData.map((c, i) => (
-                    <td key={i} className="p-3 border-l border-slate-200 text-slate-600">
-                      {c.inclusions}
-                    </td>
-                  ))}
-                </tr>
-
-                <tr>
-                  <td className="p-3 bg-slate-50 font-bold text-slate-600">Payment Terms</td>
-                  {comparisonData.map((c, i) => (
-                    <td key={i} className="p-3 border-l border-slate-200 text-slate-600">
-                      {c.terms}
-                    </td>
-                  ))}
-                </tr>
-
-                <tr>
-                  <td className="p-3 bg-slate-50 font-bold text-slate-600">Decision</td>
-                  {comparisonData.map((c, i) => (
-                    <td key={i} className="p-3 border-l border-slate-200">
-                      <button
-                        onClick={() => {
-                          onSelectSupplier(c.supplier);
-                          onClose();
-                        }}
-                        className="w-full py-2 px-3 rounded-xl bg-brand-600 hover:bg-brand-700 text-white font-bold text-xs shadow-sm transition-colors text-center"
-                      >
-                        Inspect & Accept This Bid
-                      </button>
-                    </td>
-                  ))}
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
+              {bid.status === 'countered' ? (
+                <p className="mt-3 rounded-xl bg-amber-50 px-3 py-2 text-[13px] text-amber-800">
+                  Counter-offer of {peso(bid.counterPrice, 2)}/pc sent. Waiting for {bid.supplier.shortName}…
+                </p>
+              ) : counterFor === bid.id ? (
+                <div className="mt-3 flex gap-2">
+                  <Input
+                    type="number"
+                    inputMode="decimal"
+                    min="1"
+                    step="0.5"
+                    autoFocus
+                    value={counterPrice}
+                    onChange={(e) => setCounterPrice(e.target.value)}
+                    placeholder={`Your price per pc (e.g. ${Math.round(bid.pricePerUnit * 0.92)})`}
+                    className="py-2.5"
+                  />
+                  <Button onClick={() => submitCounter(bid)} disabled={!Number(counterPrice)}>Send</Button>
+                  <Button variant="ghost" onClick={() => setCounterFor(null)}>Cancel</Button>
+                </div>
+              ) : (
+                <div className="mt-3 flex gap-2">
+                  <Button variant="secondary" size="sm" icon={MessageSquare} onClick={() => onChat(bid.supplier)}>Chat</Button>
+                  <Button variant="secondary" size="sm" onClick={() => { setCounterFor(bid.id); setCounterPrice(''); }}>Counter-offer</Button>
+                  <Button size="sm" icon={Check} className="ml-auto" onClick={() => onAccept(bid)}>Accept</Button>
+                </div>
+              )}
+              {bid.revised && bid.status === 'pending' && (
+                <p className="mt-2 text-[12px] text-emerald-700">{bid.supplier.shortName} revised their offer to {peso(bid.pricePerUnit, 2)}/pc.</p>
+              )}
+            </article>
+          );
+        })}
       </div>
-    </div>
+    </Sheet>
   );
 }

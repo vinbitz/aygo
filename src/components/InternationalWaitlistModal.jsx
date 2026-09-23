@@ -1,113 +1,68 @@
 import React, { useState } from 'react';
-import {
-  X,
-  Globe,
-  CheckCircle2
-} from 'lucide-react';
+import { Globe, CheckCircle2, Percent, Users, Rocket } from 'lucide-react';
+import { Sheet, Button, Field, Input, Select, Chip, ListRow } from './ui';
 
+const COUNTRIES = ['Singapore', 'Malaysia', 'Indonesia', 'Vietnam', 'Thailand', 'United Arab Emirates', 'United States', 'Australia', 'Other'];
+const ROLES = ['Event organizer', 'Supplier / maker', 'Launch partner'];
+
+/** Waitlist for countries outside the Philippines; launch partners earn commission */
 export default function InternationalWaitlistModal({ onClose }) {
   const [email, setEmail] = useState('');
-  const [country, setCountry] = useState('Singapore');
-  const [role, setRole] = useState('Organizer');
+  const [country, setCountry] = useState(COUNTRIES[0]);
+  const [role, setRole] = useState(ROLES[2]);
   const [submitted, setSubmitted] = useState(false);
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    setSubmitted(true);
-  };
+  const valid = /\S+@\S+\.\S+/.test(email);
+
+  if (submitted) {
+    return (
+      <Sheet title="You're on the list" icon={CheckCircle2} onClose={onClose} size="sm"
+        footer={<Button size="lg" full onClick={onClose}>Done</Button>}>
+        <p className="text-[15px] text-slate-700">
+          Thanks! We'll email <span className="font-semibold text-slate-900">{email}</span> when Aygo opens in {country}
+          {role === 'Launch partner' ? ', with details on the partner commission.' : '.'}
+        </p>
+      </Sheet>
+    );
+  }
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-sm flex justify-center items-center p-3 sm:p-6">
-      <div className="relative w-full max-w-md bg-white rounded-3xl shadow-2xl overflow-hidden border border-slate-200 flex flex-col">
-        <div className="flex items-center justify-between p-6 border-b border-slate-200 bg-white">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-brand-50 text-brand-600 flex items-center justify-center">
-              <Globe className="w-5 h-5" />
-            </div>
-            <div>
-              <h2 className="text-base font-bold text-ink-950">Aygo Global Partner Program</h2>
-              <p className="text-xs text-slate-500">Launch Aygo in your country & earn partner commission.</p>
-            </div>
+    <Sheet
+      title="Bring Aygo to your country"
+      subtitle="Aygo is live in the Philippines first. Tell us where you want it next."
+      icon={Globe}
+      onClose={onClose}
+      size="sm"
+      footer={
+        <Button size="lg" full disabled={!valid} onClick={() => setSubmitted(true)}>
+          Join the waitlist
+        </Button>
+      }
+    >
+      <div className="space-y-4">
+        <Field label="Email">
+          <Input type="email" inputMode="email" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@company.com" />
+        </Field>
+        <Field label="Country">
+          <Select value={country} onChange={(e) => setCountry(e.target.value)}>
+            {COUNTRIES.map((c) => <option key={c}>{c}</option>)}
+          </Select>
+        </Field>
+        <div>
+          <span className="block mb-1.5 text-[13px] font-medium text-slate-700">I am a…</span>
+          <div className="flex flex-wrap gap-2">
+            {ROLES.map((r) => <Chip key={r} selected={role === r} onClick={() => setRole(r)}>{r}</Chip>)}
           </div>
-          <button
-            onClick={onClose}
-            className="w-8 h-8 bg-slate-100 hover:bg-slate-200 rounded-full flex items-center justify-center text-slate-700 transition-colors"
-          >
-            <X className="w-4 h-4" />
-          </button>
         </div>
 
-        <div className="p-6 space-y-4 text-xs text-slate-700">
-          <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200">
-            <p className="text-slate-900 font-semibold mb-1">Philippines First, Expanding Globally</p>
-            <p className="text-slate-500">
-              We are scaling the Aygo Sourcing & Bidding marketplace across Southeast Asia and beyond. If you want to introduce Aygo to event organizers and suppliers in your market, register your email for our localized affiliate and partner commission program.
-            </p>
+        {role === 'Launch partner' && (
+          <div className="rounded-2xl bg-[#F4F3F0] px-3">
+            <ListRow icon={Percent} tone="green" title="Earn commission" subtitle="On every booking in your country" />
+            <ListRow icon={Users} tone="blue" title="Build the local network" subtitle="Onboard and verify suppliers" />
+            <ListRow icon={Rocket} tone="violet" title="Launch support" subtitle="Brand kit, playbook and platform" />
           </div>
-
-          {submitted ? (
-            <div className="p-6 rounded-2xl bg-emerald-50 border border-emerald-200 text-center space-y-2">
-              <CheckCircle2 className="w-8 h-8 text-emerald-600 mx-auto" />
-              <h3 className="text-sm font-bold text-emerald-950">Application Registered</h3>
-              <p className="text-xs text-emerald-800">
-                Thank you! Our international expansion team will reach out to {email} with partnership and commission terms.
-              </p>
-            </div>
-          ) : (
-            <form onSubmit={handleSubmit} className="space-y-3.5">
-              <div>
-                <label className="block font-bold text-slate-700 uppercase mb-1">Your Work Email</label>
-                <input
-                  type="email"
-                  required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="name@organization.com"
-                  className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2.5 font-semibold focus:outline-none focus:ring-2 focus:ring-brand-600"
-                />
-              </div>
-
-              <div>
-                <label className="block font-bold text-slate-700 uppercase mb-1">Target Country</label>
-                <select
-                  value={country}
-                  onChange={(e) => setCountry(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2.5 font-semibold focus:outline-none focus:ring-2 focus:ring-brand-600"
-                >
-                  <option value="Singapore">Singapore</option>
-                  <option value="Malaysia">Malaysia</option>
-                  <option value="Indonesia">Indonesia</option>
-                  <option value="Vietnam">Vietnam</option>
-                  <option value="Thailand">Thailand</option>
-                  <option value="United States">United States</option>
-                  <option value="Australia">Australia</option>
-                  <option value="Other">Other Region</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block font-bold text-slate-700 uppercase mb-1">Your Role in the Ecosystem</label>
-                <select
-                  value={role}
-                  onChange={(e) => setRole(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2.5 font-semibold focus:outline-none focus:ring-2 focus:ring-brand-600"
-                >
-                  <option value="Organizer">Event Organizer / Agency</option>
-                  <option value="Supplier">Merchandise Supplier / Print Factory</option>
-                  <option value="Affiliate">Regional Growth Partner / Affiliate</option>
-                </select>
-              </div>
-
-              <button
-                type="submit"
-                className="w-full py-3 rounded-xl bg-brand-600 hover:bg-brand-700 text-white font-bold transition-all shadow-md shadow-brand-600/20"
-              >
-                Join Partner Waitlist
-              </button>
-            </form>
-          )}
-        </div>
+        )}
       </div>
-    </div>
+    </Sheet>
   );
 }

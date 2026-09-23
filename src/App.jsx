@@ -3,6 +3,8 @@ import SideDrawer from './components/SideDrawer';
 import AygoSourcingView from './components/AygoSourcingView';
 import Toaster from './components/Toaster';
 import { toast } from './lib/toast';
+import useMarketplace from './state/useMarketplace';
+import { peso } from './lib/marketplace';
 
 // Popups are loaded on first open so the home screen ships a smaller bundle
 const SupplierProfileModal = lazy(() => import('./components/SupplierProfileModal'));
@@ -17,6 +19,9 @@ const ReferralRewardsModal = lazy(() => import('./components/ReferralRewardsModa
 const SupplierOnboardingModal = lazy(() => import('./components/SupplierOnboardingModal'));
 const VerifiedSuppliersModal = lazy(() => import('./components/VerifiedSuppliersModal'));
 const RequestHistoryModal = lazy(() => import('./components/RequestHistoryModal'));
+const BiddingComparisonModal = lazy(() => import('./components/BiddingComparisonModal'));
+const EventWorkspace = lazy(() => import('./components/EventWorkspace'));
+const InternationalWaitlistModal = lazy(() => import('./components/InternationalWaitlistModal'));
 const SupplierPortalView = lazy(() => import('./components/SupplierPortalView'));
 const UserProfileModal = lazy(() => import('./components/UserProfileModal'));
 const AppSettingsModal = lazy(() => import('./components/AppSettingsModal'));
@@ -41,6 +46,33 @@ export default function App() {
   const [isAppSettingsOpen, setIsAppSettingsOpen] = useState(false);
   const [createMode, setCreateMode] = useState('single');
   const [createCategory, setCreateCategory] = useState('apparel');
+  const [isCompareOpen, setIsCompareOpen] = useState(false);
+  const [isWaitlistOpen, setIsWaitlistOpen] = useState(false);
+  const [isWorkspaceOpen, setIsWorkspaceOpen] = useState(false);
+
+  // Requests, live offers, counter-offers and bookings
+  const market = useMarketplace({
+    onEvent: (e) => {
+      if (e.type === 'bid') {
+        toast(`New offer from ${e.bid.supplier.shortName}: ${peso(e.bid.pricePerUnit, 2)}/pc`);
+      } else if (e.type === 'counterReply') {
+        toast(e.accepted
+          ? `${e.bid.supplier.shortName} accepted your counter-offer of ${peso(e.pricePerUnit, 2)}/pc`
+          : `${e.bid.supplier.shortName} met you halfway: ${peso(e.pricePerUnit, 2)}/pc`);
+      }
+    },
+  });
+
+  const acceptOffer = (bid) => {
+    market.acceptBid(market.activeRequestId, bid.id);
+    setIsCompareOpen(false);
+    toast(`Booked with ${bid.supplier.shortName}. Your order is now in proofing.`);
+  };
+
+  const openChat = (supplier) => {
+    setChatSupplier(supplier);
+    setIsMessagesOpen(true);
+  };
 
   // Customer / User Profile State (First Name, Last Name, Email, +63 Phone, City)
   const [userProfile, setUserProfile] = useState({
@@ -81,8 +113,11 @@ export default function App() {
     isPackage: false
   });
 
+  // Accept from a supplier profile or chat: book that maker's offer on the active request
   const handleAcceptBid = (supplier) => {
-    toast(`Bid successfully accepted with ${supplier.name}. Purchase order generated and Aygo Chat workspace initiated.`);
+    const bid = market.activeRequest?.bids.find((b) => b.supplierId === supplier?.id);
+    if (bid && market.activeRequest.status !== 'booked') acceptOffer(bid);
+    else toast(`Ask ${supplier?.name || 'this maker'} to send an offer on your request first.`);
   };
 
   return (
@@ -143,6 +178,14 @@ export default function App() {
               setCreateCategory(cat);
               setIsCreateOpen(true);
             }}
+            request={market.activeRequest}
+            onAcceptBid={acceptOffer}
+            onCompareBids={() => setIsCompareOpen(true)}
+            onOpenMockupStudio={() => setIsMockupOpen(true)}
+            onOpenDocs={() => setIsDocsOpen(true)}
+            onOpenSponsorship={() => setIsSponsorshipOpen(true)}
+            onOpenWaitlist={() => setIsWaitlistOpen(true)}
+            onOpenWorkspace={() => setIsWorkspaceOpen(true)}
           />
         )}
       </main>
@@ -198,16 +241,19 @@ export default function App() {
           initialDeliveryDate={deliveryDate}
           onClose={() => setIsCreateOpen(false)}
           onOpenMockupStudio={() => setIsMockupOpen(true)}
-          onCreateRequest={(newReq) => {
+          onCreateRequest={(draft) => {
+            const req = market.createRequest(draft);
             setActiveItem({
-              title: newReq.title,
-              qty: newReq.quantity + (newReq.isPackage ? ' attendee sets' : ' pcs'),
-              budget: `₱${Number(newReq.budget || 0).toLocaleString()}`,
-              specs: newReq.specs,
-              isPackage: newReq.isPackage,
-              categories: newReq.categories
+              title: req.title,
+              qty: `${req.quantity} ${req.unit}`,
+              budget: peso(req.targetBudget),
+              specs: req.specs,
+              isPackage: req.isPackage,
+              categories: req.categories,
+              mockupImage: req.mockupImage,
+              mockupName: req.mockupName
             });
-            toast(`Request "${newReq.title}" placed and dispatched to verified craft suppliers!`);
+            toast(`Request posted. Sent to ${req.matchedCount} verified makers.`);
           }}
         />
       )}
@@ -334,6 +380,42 @@ export default function App() {
           }}
         />
       )}
+      {isCompareOpen && market.activeRequest && (
+        <BiddingComparisonModal
+          request={market.activeRequest}
+          onClose={() => setIsCompareOpen(false)}
+          onAccept={acceptOffer}
+          onCounter={(bid, price) => {
+            market.counterBid(market.activeRequest, bid, price);
+            toast(`Counter-offer of ${peso(price, 2)}/pc sent to ${bid.supplier.shortName}`);
+          }}
+          onChat={openChat}
+        />
+      )}
+
+      {isWaitlistOpen && (
+        <InternationalWaitlistModal isOpen onClose={() => setIsWaitlistOpen(false)} />
+      )}
+      {isWorkspaceOpen && (
+        <EventWorkspace
+          requests={market.requests}
+          activeRequestId={market.activeRequestId}
+          venue={activeVenue}
+          onClose={() => setIsWorkspaceOpen(false)}
+          onSelectRequest={(id) => {
+            market.selectRequest(id);
+            setIsWorkspaceOpen(false);
+          }}
+          onNewRequest={() => {
+            setIsWorkspaceOpen(false);
+            setIsCreateOpen(true);
+          }}
+          onOpenDocs={() => setIsDocsOpen(true)}
+          onOpenMockup={() => setIsMockupOpen(true)}
+          onOpenSponsorship={() => setIsSponsorshipOpen(true)}
+        />
+      )}
+
       </Suspense>
     </div>
   );
