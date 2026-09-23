@@ -972,7 +972,8 @@ export default function SupplierPortalView({
   );
 
   const content = { requests: requestsTab, bids: bidsTab, orders: ordersTab, store: storeTab }[activeTab];
-  const mapMode = activeTab === 'requests' && view === 'map';
+  // Map view keeps the map for every section; only the sheet content changes
+  const mapMode = view === 'map';
 
   const menuButton = (
     <button
@@ -1017,7 +1018,7 @@ export default function SupplierPortalView({
           <div className="desk-zoom max-w-6xl mx-auto h-16 px-4 sm:px-6 flex items-center gap-3">
             {menuButton}
             <h1 className="flex-1 min-w-0 text-[19px] font-semibold text-slate-900 tracking-tight truncate">{TAB_TITLES[activeTab]}</h1>
-            {activeTab === 'requests' && viewSwitch}
+            {viewSwitch}
           </div>
         </header>
       )}
@@ -1029,8 +1030,10 @@ export default function SupplierPortalView({
           selectedId={selectedReqId}
           onSelect={(id) => {
             setSelectedReqId(id);
+            if (id) setActiveTab('requests');
             if (id === incomingId) setIncomingId(null);
           }}
+          sectionTitle={TAB_TITLES[activeTab]}
           incomingId={incomingId}
           onDismissIncoming={() => setIncomingId(null)}
           onBid={openBid}
@@ -1055,7 +1058,9 @@ export default function SupplierPortalView({
               <span className="pointer-events-auto">{viewSwitch}</span>
             </div>
           }
-        />
+        >
+          {activeTab !== 'requests' ? content : null}
+        </SupplierMap>
       )}
 
       {!mapMode && (

@@ -90,7 +90,11 @@ export default function SupplierMap({
   onAsk,
   workshopName,
   topBar,
+  sectionTitle,
+  children,
 }) {
+  // My bids, Orders and Storefront show their own content in the same sheet
+  const otherSection = Boolean(children);
   const selected = requests.find((r) => r.id === selectedId);
   const incoming = requests.find((r) => r.id === incomingId);
 
@@ -148,7 +152,10 @@ export default function SupplierMap({
       {/* Sheet over the map on phones, floating panel on desktop */}
       <div className="absolute inset-0 z-20 overflow-y-auto no-scrollbar overscroll-contain pointer-events-none lg:inset-auto lg:top-24 lg:bottom-5 lg:left-7 lg:w-[460px] 2xl:top-28 2xl:w-[520px] lg:rounded-[32px]">
         <div className="h-[42vh] lg:hidden" />
-        <div className="desk-zoom pointer-events-auto bg-white rounded-t-[28px] lg:rounded-[32px] min-h-[58vh] lg:min-h-0 px-4 pt-2.5 pb-28 lg:pb-5 shadow-[0_-8px_30px_rgba(15,23,42,0.08)] space-y-3">
+        <div className={cx(
+          'desk-zoom pointer-events-auto rounded-t-[28px] lg:rounded-[32px] min-h-[58vh] lg:min-h-0 pt-2.5 pb-28 lg:pb-5 shadow-[0_-8px_30px_rgba(15,23,42,0.08)] space-y-3',
+          otherSection ? 'bg-[#F2F1ED] px-2' : 'bg-white px-4'
+        )}>
           <div className="flex justify-center lg:hidden">
             <div className="w-9 h-1 bg-slate-200 rounded-full" />
           </div>
@@ -178,10 +185,14 @@ export default function SupplierMap({
             </button>
           )}
 
-          {selected && (
+          {/* Each section brings its own heading */}
+          {otherSection && <div aria-label={sectionTitle} role="region">{children}</div>}
+
+          {!otherSection && selected && (
             <RequestCard req={selected} myBid={bidByRequest[selected.id]} onBid={onBid} onAsk={onAsk} onClose={() => onSelect(null)} />
           )}
 
+          {!otherSection && (
           <div>
             <div className="flex items-baseline justify-between px-1">
               <h2 className="text-[19px] font-semibold text-slate-900 tracking-tight">Requests near you</h2>
@@ -214,6 +225,7 @@ export default function SupplierMap({
               })}
             </ul>
           </div>
+          )}
         </div>
       </div>
     </div>
