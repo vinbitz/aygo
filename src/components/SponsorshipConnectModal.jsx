@@ -11,7 +11,13 @@ import {
   Sparkles,
   GraduationCap,
   Send,
-  MessagesSquare
+  MessagesSquare,
+  Phone,
+  Crown,
+  Lock,
+  ChevronLeft,
+  ChevronRight,
+  Repeat
 } from 'lucide-react';
 import { SPONSORSHIP_LISTINGS } from '../data/mockData';
 import { toast } from '../lib/toast';
@@ -20,6 +26,12 @@ import RegistrationLink from './RegistrationLink';
 import { SponsorPerksPicker, SponsorPerksList } from './SponsorPerks';
 import SponsorChat from './SponsorChat';
 import { perkLabel } from '../lib/sponsorPerks';
+import { BrandProfileForm, BrandProfileCard, BrandProfilePrompt } from './BrandProfile';
+import { EMPTY_BRAND } from '../lib/brands';
+import CallScreen from './CallScreen';
+import { callLength } from '../lib/calls';
+import { usePro } from '../state/pro';
+import { canCall } from '../lib/pro';
 import { Sheet, Button, Field, Input, Textarea, Tabs, Chip, Badge, Panel, IconCircle } from './ui';
 
 const toPeso = (s) => {
@@ -53,17 +65,38 @@ const EMPTY_PROFILE = {
 };
 
 // Brands and the kinds of events they already support
+// pro: the brand is on Aygo Pro, so anyone can call them
 const BRANDS = [
-  { id: 'b1', name: 'Kape Tayo Coffee', industry: 'Food & beverage', supports: 'Campus fairs, hackathons, org weeks', offer: 'Free coffee for up to 500 guests', tags: ['Food & drinks', 'Prizes'], wants: ['sampling', 'booth', 'posts'] },
-  { id: 'b2', name: 'Lakbay Telco', industry: 'Telecom', supports: 'Tech conferences, esports, student summits', offer: 'Cash ₱20,000–₱80,000 + data SIMs', tags: ['Cash', 'Prizes', 'Media partner'], wants: ['fb-likes', 'reels', 'logo', 'livestream', 'leads'] },
-  { id: 'b3', name: 'Habi Apparel', industry: 'Local fashion', supports: 'Fun runs, org anniversaries, cultural nights', offer: 'In-kind event shirts (up to 300 pcs)', tags: ['Event shirts', 'Lanyards & IDs'], wants: ['logo', 'reels', 'coverage'] },
-  { id: 'b4', name: 'Ulap Cloud PH', industry: 'Cloud & software', supports: 'Hackathons, dev meetups', offer: 'Cloud credits + mentors', tags: ['Cloud credits', 'Prizes'], wants: ['speaking', 'leads', 'logo'] }
+  {
+    id: 'b1', name: 'Kape Tayo Coffee', industry: 'Food & beverage', pro: false, logo: null,
+    about: 'Local roaster serving campus and office crowds. We love events where people stay and talk.',
+    supports: ['Campus fairs', 'Hackathons', 'Org anniversaries'], offer: 'Free coffee for up to 500 guests',
+    gives: ['Food & drinks', 'Prizes'], wants: ['sampling', 'booth', 'posts'], budget: 'In-kind', audience: 'Students and young professionals',
+  },
+  {
+    id: 'b2', name: 'Lakbay Telco', industry: 'Telecom', pro: true, logo: null,
+    about: 'Prepaid data for students and gamers. We sponsor events that are loud online.',
+    supports: ['Tech conferences', 'Esports', 'Hackathons'], offer: 'Cash ₱20,000–₱80,000 + data SIMs',
+    gives: ['Cash', 'Prizes', 'Media partner'], wants: ['fb-likes', 'reels', 'logo', 'livestream', 'leads'], budget: '₱20,000–₱80,000', audience: 'Gen Z, 16–24',
+  },
+  {
+    id: 'b3', name: 'Habi Apparel', industry: 'Local fashion', pro: false, logo: null,
+    about: 'Filipino-made shirts and tote bags. We dress events and show our work on the crowd.',
+    supports: ['Fun runs', 'Org anniversaries', 'Cultural nights'], offer: 'In-kind event shirts (up to 300 pcs)',
+    gives: ['Event shirts', 'Lanyards & IDs'], wants: ['logo', 'reels', 'coverage'], budget: 'In-kind', audience: 'Runners, orgs and families',
+  },
+  {
+    id: 'b4', name: 'Ulap Cloud PH', industry: 'Cloud & software', pro: true, logo: null,
+    about: 'Cloud hosting for Filipino startups. We back builders with credits and mentors.',
+    supports: ['Hackathons', 'Tech conferences'], offer: 'Cloud credits + mentors',
+    gives: ['Cloud credits', 'Prizes'], wants: ['speaking', 'leads', 'logo'], budget: '₱10,000–₱40,000 + credits', audience: 'Developers and CS students',
+  }
 ];
 
 // Mock data listing plus a few more open opportunities
 const OPPORTUNITIES = [
   ...SPONSORSHIP_LISTINGS.map((l) => ({
-    ...l, kind: 'Tech', audience: 'Student and junior developers', socialReach: '18k followers',
+    ...l, kind: 'Tech', audience: 'Student and junior developers', socialReach: '18k followers', pro: true,
     perks: { 'fb-likes': '1,000 new likes', reels: '3 reels', logo: '', speaking: '10-minute talk', leads: '~300 opt-ins' },
     logoSpots: ['Event shirts', 'Lanyards & IDs', 'Stage LED'],
   })),
@@ -235,13 +268,33 @@ function OrganizerProfileForm({ profile, setProfile, photos, onPhotosChange, reg
   );
 }
 
-function OrganizerProfileView({ profile, onEdit, photos, registrationLink, onInquiry }) {
+const brandTarget = (b) => ({ id: b.id, name: b.name, subtitle: `${b.industry} · brand`, kind: 'brand', pro: b.pro });
+
+function OrganizerProfileView({ profile, onEdit, photos, registrationLink, onInquiry, onCall, viewerIsPro }) {
+  const [openBrandId, setOpenBrandId] = useState(null);
   // Match on what the event needs and on what the brand wants in return
   const matches = BRANDS.map((b) => {
     const wantsMet = (b.wants || []).filter((w) => w in (profile.perks || {}));
-    return { ...b, wantsMet, score: b.tags.filter((t) => profile.needs.includes(t)).length + wantsMet.length };
+    return { ...b, wantsMet, score: b.gives.filter((t) => profile.needs.includes(t)).length + wantsMet.length };
   })
     .sort((a, b) => b.score - a.score);
+
+  const openBrand = matches.find((b) => b.id === openBrandId);
+  if (openBrand) {
+    return (
+      <div className="space-y-3">
+        <button type="button" onClick={() => setOpenBrandId(null)} className="inline-flex items-center gap-1 h-11 pr-3 text-[15px] font-medium text-[#003CF5]">
+          <ChevronLeft className="w-5 h-5" /> Matched brands
+        </button>
+        <BrandProfileCard
+          brand={openBrand}
+          onInquiry={() => onInquiry(brandTarget(openBrand))}
+          onCall={() => onCall(brandTarget(openBrand))}
+          callLocked={!canCall(viewerIsPro, openBrand.pro)}
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-5">
@@ -307,29 +360,37 @@ function OrganizerProfileView({ profile, onEdit, photos, registrationLink, onInq
         <div className="space-y-2">
           {matches.map((b) => (
             <div key={b.id} className="rounded-2xl bg-[#F4F3F0] p-3.5 flex flex-col sm:flex-row sm:items-center gap-3">
-              <div className="flex items-start gap-3 flex-1 min-w-0">
+              <button type="button" onClick={() => setOpenBrandId(b.id)} className="flex items-start gap-3 flex-1 min-w-0 text-left" aria-label={`View ${b.name} brand profile`}>
                 <IconCircle icon={Building2} tone={b.score > 0 ? 'blue' : 'slate'} className={b.score > 0 ? '' : 'bg-white'} />
-                <div className="min-w-0">
+                <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2 flex-wrap">
                     <p className="text-[15px] font-medium text-slate-900">{b.name}</p>
+                    {b.pro && <Badge tone="violet" icon={Crown}>Pro</Badge>}
                     {b.score > 0 && <Badge tone="blue">{b.score === 1 ? '1 match' : `${b.score} matches`}</Badge>}
                   </div>
-                  <p className="text-[13px] text-slate-500">{b.industry} · supports {b.supports.toLowerCase()}</p>
+                  <p className="text-[13px] text-slate-500">{b.industry} · supports {b.supports.join(', ').toLowerCase()}</p>
                   <p className="text-[13px] text-slate-700 mt-0.5">{b.offer}</p>
                   {b.wantsMet.length > 0 && (
                     <p className="text-[12px] text-emerald-700 mt-0.5">Wants what you offer: {b.wantsMet.map(perkLabel).join(', ')}</p>
                   )}
+                  <p className="mt-0.5 text-[12px] font-medium text-[#003CF5] inline-flex items-center">View brand profile <ChevronRight className="w-3.5 h-3.5" /></p>
                 </div>
+              </button>
+              <div className="flex gap-2 shrink-0">
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  icon={canCall(viewerIsPro, b.pro) ? Phone : Crown}
+                  className="h-11"
+                  aria-label={`Call ${b.name}`}
+                  onClick={() => onCall(brandTarget(b))}
+                >
+                  Call
+                </Button>
+                <Button size="sm" variant="outline" icon={Send} className="h-11" onClick={() => onInquiry(brandTarget(b))}>
+                  Send inquiry
+                </Button>
               </div>
-              <Button
-                size="sm"
-                variant="outline"
-                icon={Send}
-                className="h-11 shrink-0"
-                onClick={() => onInquiry({ id: b.id, name: b.name, subtitle: `${b.industry} · brand`, kind: 'brand' })}
-              >
-                Send inquiry
-              </Button>
             </div>
           ))}
         </div>
@@ -338,22 +399,39 @@ function OrganizerProfileView({ profile, onEdit, photos, registrationLink, onInq
   );
 }
 
-function BrandsView({ onInquiry }) {
+function BrandsView({ brand, onEditBrand, onInquiry, onCall, viewerIsPro }) {
   const [kind, setKind] = useState('All');
-  const list = OPPORTUNITIES.filter((o) => kind === 'All' || o.kind === kind);
+  const [showBrand, setShowBrand] = useState(false);
+  const wants = brand?.wants || [];
+  // Events that give what this brand wants come first
+  const list = OPPORTUNITIES.filter((o) => kind === 'All' || o.kind === kind)
+    .map((o) => ({ ...o, wantsMet: wants.filter((w) => w in (o.perks || {})) }))
+    .sort((a, b) => b.wantsMet.length - a.wantsMet.length);
+  const eventTarget = (item) => ({ id: item.id, name: item.eventTitle, subtitle: item.organization, kind: 'organizer', pro: item.pro });
 
   return (
     <div className="space-y-4">
-      <Panel className="flex items-center gap-3">
-        <IconCircle icon={Building2} tone="blue" size="sm" className="bg-white" />
-        <div className="flex-1 min-w-0">
-          <p className="text-[15px] font-medium text-slate-900">Your brand profile</p>
-          <p className="text-[13px] text-slate-500 truncate">Kape Tayo Coffee · supports campus fairs and hackathons</p>
+      {!brand?.name ? (
+        <BrandProfilePrompt onSetup={onEditBrand} />
+      ) : showBrand ? (
+        <div className="space-y-2">
+          <BrandProfileCard brand={{ ...brand, pro: viewerIsPro }} isOwn onEdit={onEditBrand} />
+          <button type="button" onClick={() => setShowBrand(false)} className="h-11 text-[13px] font-medium text-[#003CF5]">Hide brand profile</button>
         </div>
-        <Button size="sm" variant="ghost" className="h-11 shrink-0" onClick={() => toast('Brand profile editing is coming soon')}>
-          Edit
-        </Button>
-      </Panel>
+      ) : (
+        <Panel className="flex items-center gap-3">
+          {brand.logo?.src
+            ? <img src={brand.logo.src} alt="" className="w-10 h-10 rounded-xl object-cover shrink-0" />
+            : <IconCircle icon={Building2} tone="blue" size="sm" className="bg-white" />}
+          <button type="button" onClick={() => setShowBrand(true)} className="flex-1 min-w-0 text-left">
+            <p className="text-[15px] font-medium text-slate-900 truncate">{brand.name}</p>
+            <p className="text-[13px] text-slate-500 truncate">Your brand profile · tap to view</p>
+          </button>
+          <Button size="sm" variant="ghost" icon={Pencil} className="h-11 shrink-0" onClick={onEditBrand}>
+            Edit
+          </Button>
+        </Panel>
+      )}
 
       <div className="flex gap-2 overflow-x-auto no-scrollbar">
         {KIND_FILTERS.map((k) => (
@@ -365,7 +443,10 @@ function BrandsView({ onInquiry }) {
         <article key={item.id} className="rounded-[28px] border border-slate-200 p-4 sm:p-5 space-y-3">
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
-              <h3 className="text-[17px] font-semibold text-slate-900 leading-snug">{item.eventTitle}</h3>
+              <h3 className="text-[17px] font-semibold text-slate-900 leading-snug">
+                {item.eventTitle}
+                {item.pro && <Badge tone="violet" icon={Crown} className="ml-2 align-middle">Pro</Badge>}
+              </h3>
               <p className="text-[13px] text-slate-500">{item.organization}</p>
             </div>
             <Badge tone="violet" className="shrink-0">{item.kind}</Badge>
@@ -391,17 +472,19 @@ function BrandsView({ onInquiry }) {
               <p className="text-[13px] text-slate-500 mb-1.5">Sponsors get</p>
               <SponsorPerksList value={item.perks} compact />
               {item.logoSpots?.length > 0 && <p className="mt-1.5 text-[12px] text-slate-500">Logo on: {item.logoSpots.join(', ')}</p>}
+              {item.wantsMet.length > 0 && (
+                <p className="mt-1.5 text-[12px] text-emerald-700">Gives what you want: {item.wantsMet.map(perkLabel).join(', ')}</p>
+              )}
             </div>
           )}
 
           <PackageList packages={item.packages} />
 
-          <div className="flex justify-end">
-            <Button
-              icon={Handshake}
-              className="w-full sm:w-auto"
-              onClick={() => onInquiry({ id: item.id, name: item.eventTitle, subtitle: item.organization, kind: 'organizer' })}
-            >
+          <div className="flex gap-2 sm:justify-end">
+            <Button variant="secondary" icon={canCall(viewerIsPro, item.pro) ? Phone : Crown} onClick={() => onCall(eventTarget(item))}>
+              Call
+            </Button>
+            <Button icon={Handshake} className="flex-1 sm:flex-none" onClick={() => onInquiry(eventTarget(item))}>
               Send inquiry
             </Button>
           </div>
@@ -432,6 +515,15 @@ function timeLeft(ms) {
   return h > 0 ? `${h}h ${m}m` : `${m}m`;
 }
 const PROFILE_KEY = 'aygo.sponsorProfile';
+const BRAND_KEY = 'aygo.brandProfile';
+
+function loadBrandProfile() {
+  try {
+    return JSON.parse(readStorage(BRAND_KEY)) || null;
+  } catch {
+    return null;
+  }
+}
 const chatTime = () => new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
 function readStorage(key) {
@@ -462,13 +554,13 @@ function loadPublishedProfile() {
 const SEED_THREADS = {
   organizer: [
     {
-      id: 'b2', name: 'Lakbay Telco', subtitle: 'Telecom · brand', kind: 'brand', unread: 1,
+      id: 'b2', name: 'Lakbay Telco', subtitle: 'Telecom · brand', kind: 'brand', unread: 1, pro: true,
       messages: [{ id: 'm1', from: 'them', text: 'Hi! We saw your event on Aygo. How many reels can you do for our data promo?', time: '9:12 AM' }],
     },
   ],
   brand: [
     {
-      id: 'spon-1', name: 'DevCon Manila Hackathon 2026', subtitle: 'Junior Developers Society', kind: 'organizer', unread: 1,
+      id: 'spon-1', name: 'DevCon Manila Hackathon 2026', subtitle: 'Junior Developers Society', kind: 'organizer', unread: 1, pro: true,
       messages: [{ id: 'm1', from: 'them', text: 'Thanks for checking our event! Our Swag sponsor package includes your logo on 450 tote bags.', time: '8:40 AM' }],
     },
   ],
@@ -528,12 +620,54 @@ export default function SponsorshipConnectModal({ onClose, photos, onPhotosChang
   const [pendingLock, setPendingLock] = useState(null);
   const [threadsByRole, setThreadsByRole] = useState(SEED_THREADS);
   const [activeThreadId, setActiveThreadId] = useState(null);
+  const pro = usePro();
+  const [brand, setBrand] = useState(loadBrandProfile);
+  const [brandDraft, setBrandDraft] = useState(null); // non-null while editing the brand profile
+  const [call, setCall] = useState(null); // { target }
 
   const threads = role ? threadsByRole[role] : [];
   const unread = threads.reduce((n, t) => n + (t.unread || 0), 0);
 
   const canPublish = profile.eventName.trim() && profile.org.trim() && profile.attendance.trim();
   const showForm = role === 'organizer' && activeTab === 'main' && !published;
+  const editingBrand = role === 'brand' && activeTab === 'main' && brandDraft;
+
+  const saveBrand = () => {
+    if (!brandDraft.name.trim()) {
+      toast('Add your brand or company name.');
+      return;
+    }
+    setBrand(brandDraft);
+    writeStorage(BRAND_KEY, JSON.stringify(brandDraft));
+    setBrandDraft(null);
+    toast('Brand profile saved. Organizers see it with your inquiries.');
+  };
+
+  // Calls work when either side is on Pro
+  const startCall = (target) => {
+    if (!canCall(pro.isPro, target.pro)) {
+      pro.openPaywall('calls');
+      return;
+    }
+    setCall({ target });
+  };
+
+  const endCall = (seconds) => {
+    const { target } = call;
+    setCall(null);
+    if (!seconds) return;
+    const msg = { id: `c${Date.now()}`, from: 'me', text: `Aygo call · ${callLength(seconds)}`, time: chatTime() };
+    setThreadsByRole((prev) => {
+      const list = prev[role];
+      const exists = list.some((t) => t.id === target.id);
+      return {
+        ...prev,
+        [role]: exists
+          ? list.map((t) => (t.id === target.id ? { ...t, messages: [...t.messages, msg] } : t))
+          : [{ ...target, unread: 0, messages: [msg] }, ...list],
+      };
+    });
+  };
 
   const chooseRole = (next) => {
     setRole(next);
@@ -598,6 +732,7 @@ export default function SponsorshipConnectModal({ onClose, photos, onPhotosChang
 
   const publishNow = () => {
     setPublished(true);
+    document.querySelector('[role="dialog"] .overscroll-contain')?.scrollTo({ top: 0 });
     writeStorage(PROFILE_KEY, JSON.stringify(profile));
     toast('Sponsorship profile published. Matching brands can now see it.');
   };
@@ -626,7 +761,11 @@ export default function SponsorshipConnectModal({ onClose, photos, onPhotosChang
     <Sheet
       onClose={onClose}
       title="Sponsorship Connect"
-      subtitle={!role ? 'Match events with brands' : lockedRole ? (role === 'brand' ? 'Brand account' : 'Organizer account') : `Looking around as ${role === 'brand' ? 'a brand' : 'an organizer'}`}
+      subtitle={!role
+        ? 'Match events with brands'
+        : lockedRole
+          ? `${role === 'brand' ? 'Brand' : 'Organizer'} account${msUntilSwitch > 0 ? ` · switch locked for ${timeLeft(msUntilSwitch)}` : ''}`
+          : `Looking around as ${role === 'brand' ? 'a brand' : 'an organizer'}`}
       icon={Handshake}
       size="lg"
       footer={pendingLock ? (
@@ -648,6 +787,11 @@ export default function SponsorshipConnectModal({ onClose, photos, onPhotosChang
         <Button full size="lg" onClick={handlePublish}>
           Publish sponsorship profile
         </Button>
+      ) : editingBrand ? (
+        <div className="flex gap-2">
+          <Button variant="secondary" size="lg" onClick={() => setBrandDraft(null)}>Cancel</Button>
+          <Button full size="lg" onClick={saveBrand}>Save brand profile</Button>
+        </div>
       ) : null}
     >
       {!role ? (
@@ -666,6 +810,23 @@ export default function SponsorshipConnectModal({ onClose, photos, onPhotosChang
             ]}
           />
 
+          {lockedRole && (
+            <div className="mb-4 flex items-center gap-3 rounded-2xl bg-amber-50 px-4 py-3">
+              {msUntilSwitch > 0 ? <Lock className="w-5 h-5 text-amber-700 shrink-0" /> : <Repeat className="w-5 h-5 text-amber-700 shrink-0" />}
+              <p className="flex-1 min-w-0 text-[13px] text-amber-900 leading-snug">
+                <span className="font-semibold">{role === 'brand' ? 'Brand' : 'Organizer'} account.</span>{' '}
+                {msUntilSwitch > 0
+                  ? <>You can switch to {otherRole === 'brand' ? 'a brand' : 'an organizer'} account in <span className="font-semibold tabular-nums">{timeLeft(msUntilSwitch)}</span>. You can still edit your profile.</>
+                  : <>You can switch to {otherRole === 'brand' ? 'a brand' : 'an organizer'} account now.</>}
+              </p>
+              {msUntilSwitch <= 0 && (
+                <Button size="sm" variant="secondary" className="h-11 shrink-0 bg-white" onClick={switchRole}>
+                  Switch
+                </Button>
+              )}
+            </div>
+          )}
+
           {activeTab === 'chats' ? (
             <SponsorChat
               threads={threads}
@@ -673,25 +834,35 @@ export default function SponsorshipConnectModal({ onClose, photos, onPhotosChang
               onOpen={openThread}
               onBack={() => setActiveThreadId(null)}
               onSend={sendMessage}
+              onCall={startCall}
+              viewerIsPro={pro.isPro}
             />
           ) : role === 'brand' ? (
-            <BrandsView onInquiry={startInquiry} />
+            brandDraft ? (
+              <BrandProfileForm brand={brandDraft} onChange={setBrandDraft} />
+            ) : (
+              <BrandsView
+                brand={brand}
+                onEditBrand={() => setBrandDraft(brand || EMPTY_BRAND)}
+                onInquiry={startInquiry}
+                onCall={startCall}
+                viewerIsPro={pro.isPro}
+              />
+            )
           ) : published ? (
-            <OrganizerProfileView profile={profile} photos={photos} registrationLink={registrationLink} onEdit={() => setPublished(false)} onInquiry={startInquiry} />
+            <OrganizerProfileView profile={profile} photos={photos} registrationLink={registrationLink} onEdit={() => setPublished(false)} onInquiry={startInquiry} onCall={startCall} viewerIsPro={pro.isPro} />
           ) : (
             <OrganizerProfileForm profile={profile} setProfile={setProfile} photos={photos} onPhotosChange={onPhotosChange} registrationLink={registrationLink} onRegistrationLinkChange={onRegistrationLinkChange} />
           )}
 
-          {lockedRole && activeTab === 'main' && (
-            <div className="mt-6 flex items-center justify-between gap-3 rounded-2xl bg-[#F4F3F0] px-4 py-3">
-              <span className="text-[13px] text-slate-500">
-                {role === 'brand' ? 'Brand' : 'Organizer'} account
-                {msUntilSwitch > 0 && ` · switch available in ${timeLeft(msUntilSwitch)}`}
-              </span>
-              <Button size="sm" variant="ghost" className="shrink-0 text-[#003CF5]" disabled={msUntilSwitch > 0} onClick={switchRole}>
-                Switch to {otherRole}
-              </Button>
-            </div>
+          {call && (
+            <CallScreen
+              name={call.target.name}
+              subtitle={call.target.subtitle}
+              initial={call.target.name.slice(0, 1)}
+              proNote={pro.isPro ? 'You have Pro' : `${call.target.name} has Pro`}
+              onEnd={endCall}
+            />
           )}
         </>
       )}

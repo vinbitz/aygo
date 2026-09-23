@@ -39,6 +39,8 @@ export default function App() {
   const [isSponsorshipOpen, setIsSponsorshipOpen] = useState(false);
   const [isMessagesOpen, setIsMessagesOpen] = useState(false);
   const [chatSupplier, setChatSupplier] = useState(null);
+  // Package a maker sent from the portal, posted into the chat thread
+  const [chatPackage, setChatPackage] = useState(null);
   const [isSupplierSetupOpen, setIsSupplierSetupOpen] = useState(false);
   const [isSupplierMode, setIsSupplierMode] = useState(false);
   const [isBalanceOpen, setIsBalanceOpen] = useState(false);
@@ -184,8 +186,9 @@ export default function App() {
             <SupplierPortalView
               onOpenDrawer={() => setIsDrawerOpen(true)}
               onSwitchToCustomer={() => setIsSupplierMode(false)}
-              onOpenChatWithCustomer={(supplier) => {
+              onOpenChatWithCustomer={(supplier, pkg = null) => {
                 setChatSupplier(supplier);
+                setChatPackage(pkg);
                 setIsMessagesOpen(true);
               }}
               onOpenMockupStudio={openMockup}
@@ -244,6 +247,7 @@ export default function App() {
           isOpen={isMessagesOpen}
           onClose={() => setIsMessagesOpen(false)}
           initialSupplier={chatSupplier}
+          incomingPackage={chatPackage}
           activeVenue={activeVenue}
           activeItem={activeItem}
           onAcceptBid={handleAcceptBid}

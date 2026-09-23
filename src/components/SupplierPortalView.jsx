@@ -25,7 +25,8 @@ import {
   ArrowLeftRight,
   Search,
   CornerDownRight,
-  Users
+  Users,
+  Boxes
 } from 'lucide-react';
 import { SUPPLIERS } from '../data/mockData';
 import { toast } from '../lib/toast';
@@ -331,6 +332,29 @@ export default function SupplierPortalView({
     setBidReq(null);
     setBidForm(null);
     toast('Bid sent');
+  };
+
+  // Send the offer straight into the organizer's chat as a payable package
+  const sendPackage = () => {
+    const price = parseFloat(bidForm.price);
+    if (!price || price <= 0) {
+      toast('Enter your price per piece');
+      return;
+    }
+    submitBid();
+    const contact = SUPPLIERS.find((s) => s.id === 's3') || SUPPLIERS[0];
+    onOpenChatWithCustomer?.(contact, {
+      id: `pkg-${Date.now()}`,
+      note: `Hi ${bidReq.organizer}! Here is our package. You can pay the downpayment right here in chat.`,
+      packageData: {
+        title: bidReq.item,
+        items: [{ name: bidReq.item, qty: bidReq.qty, unitPrice: price }],
+        ready: new Date(bidForm.delivery).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+        delivery: bidForm.inclusions.length ? bidForm.inclusions.join(' · ') : 'Delivery to venue',
+        downpaymentPct: 50,
+        status: 'open'
+      }
+    });
   };
 
   const toggleInclusion = (label) =>
@@ -946,9 +970,14 @@ export default function SupplierPortalView({
           subtitle={`${bidReq.qty.toLocaleString()} ${bidReq.item.toLowerCase()} · ${bidReq.organizer}`}
           icon={Gavel}
           footer={
-            <Button type="submit" form="bid-form" full size="lg">
-              Send bid · {peso(bidTotal)}
-            </Button>
+            <div className="flex flex-col sm:flex-row gap-2">
+              <Button type="button" variant="secondary" size="lg" icon={Boxes} className="sm:flex-1" onClick={sendPackage}>
+                Send as package in chat
+              </Button>
+              <Button type="submit" form="bid-form" size="lg" className="sm:flex-1">
+                Send bid · {peso(bidTotal)}
+              </Button>
+            </div>
           }
         >
           <form id="bid-form" onSubmit={submitBid} className="space-y-4">

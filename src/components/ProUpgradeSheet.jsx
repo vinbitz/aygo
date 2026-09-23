@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import {
-  Crown, Infinity as InfinityIcon, Sparkles, FileText, ArrowLeftRight, Bookmark, CalendarDays, Users, Zap, HardDrive, Check,
+  Crown, Infinity as InfinityIcon, Sparkles, FileText, ArrowLeftRight, Bookmark, CalendarDays, Users, Zap, HardDrive, Check, Phone,
 } from 'lucide-react';
 import { Sheet, Button, Tabs, Logo, cx } from './ui';
 import { FREE_USES, PRO_FEATURES } from '../lib/pro';
@@ -19,6 +19,7 @@ const BENEFITS = [
   { icon: ArrowLeftRight, title: 'Supplier comparison tools', text: 'Compare every offer side by side' },
   { icon: Bookmark, title: 'Saved supplier lists', text: 'Keep your go-to makers' },
   { icon: CalendarDays, title: 'Event workspaces', text: 'Budget, suppliers and checklist per event' },
+  { icon: Phone, title: 'In-app calls', text: 'Call makers, brands and organizers. Works if either side has Pro' },
   { icon: Users, title: 'Team collaboration', text: 'Plan with your org mates' },
   { icon: Zap, title: 'Priority sourcing', text: 'Your requests reach makers first' },
   { icon: HardDrive, title: 'More document storage', text: 'Keep every quote and PO' },
@@ -56,10 +57,10 @@ export default function ProUpgradeSheet({ feature, isPro, onClose, onUpgrade, on
       <div className="rounded-[22px] bg-[#003CF5] p-5 text-white relative overflow-hidden">
         <Logo tone="white" className="h-6" />
         <p className="mt-3 text-[19px] font-semibold leading-snug">
-          {info ? `You've used your ${FREE_USES} free ${info.noun}.` : 'Plan every event in one place.'}
+          {info?.headline || (info ? `You've used your ${FREE_USES} free ${info.noun}.` : 'Plan every event in one place.')}
         </p>
         <p className="mt-1 text-[13px] text-blue-100">
-          {info ? `Go Pro to keep using ${info.label} and every other tool without limits.` : `Free accounts get ${FREE_USES} tries of each Pro tool.`}
+          {info?.text || (info ? `Go Pro to keep using ${info.label} and every other tool without limits.` : `Free accounts get ${FREE_USES} tries of each Pro tool.`)}
         </p>
         <Logo variant="icon" className="absolute -right-4 -bottom-4 w-24 h-24 opacity-20 rotate-12" />
       </div>

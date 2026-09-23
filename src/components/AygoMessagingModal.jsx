@@ -14,12 +14,23 @@ import {
   Tag,
   MessageSquare,
   Download,
-  Wallet
+  Wallet,
+  Boxes,
+  CreditCard,
+  ShieldCheck,
+  PhoneCall,
+  Crown,
+  X
 } from 'lucide-react';
 import { SUPPLIERS } from '../data/mockData';
 import { toast } from '../lib/toast';
 import SupplierDetailsPanel from './SupplierDetailsPanel';
 import { maskContactInfo } from '../lib/contactGuard';
+import { peso } from '../lib/marketplace';
+import { usePro } from '../state/pro';
+import { canCall } from '../lib/pro';
+import CallScreen from './CallScreen';
+import { callLength } from '../lib/calls';
 import { Sheet, Button, Chip, VerifiedBadge, Badge, IconCircle, cx, inputClass } from './ui';
 
 const ME_NAME = 'Marvin (Organizer)';
@@ -90,6 +101,25 @@ const INITIAL_CONVERSATIONS = {
         time: '10:35 AM',
         type: 'text',
         text: 'Artwork checked, the vector is sharp. We can dispatch via Lalamove straight to your venue as soon as it is finished.'
+      },
+      {
+        id: 'm6',
+        sender: 'supplier',
+        time: '10:40 AM',
+        type: 'package',
+        text: 'We bundled everything for your registration table. You can pay here to lock the slot.',
+        packageData: {
+          title: 'Registration ID kit',
+          items: [
+            { name: 'Satin lanyard, 20mm full-color', qty: 300, unitPrice: 46 },
+            { name: 'PVC ID card, 2-sided print', qty: 300, unitPrice: 18 },
+            { name: 'Clear ID holder', qty: 300, unitPrice: 12 }
+          ],
+          ready: 'Oct 8',
+          delivery: 'Free delivery to your venue',
+          downpaymentPct: 50,
+          status: 'open'
+        }
       }
     ]
   },
@@ -175,8 +205,20 @@ const ATTACH_OPTIONS = [
   { id: 'location', label: 'Venue', icon: MapPin, tone: 'green' }
 ];
 
+const PAYMENT_METHODS = [
+  { id: 'gcash', label: 'GCash' },
+  { id: 'maya', label: 'Maya' },
+  { id: 'card', label: 'Card' },
+  { id: 'bank', label: 'Bank transfer' }
+];
+
+const packageTotal = (pkg) => pkg.items.reduce((sum, i) => sum + i.qty * i.unitPrice, 0);
+
 const lastMessagePreview = (m) => {
   switch (m.type) {
+    case 'package': return 'Sent a package';
+    case 'payment': return 'Payment sent';
+    case 'call': return `Call · ${m.callData.length}`;
     case 'bid_card': return 'Sent a quotation';
     case 'mockup_attachment': return 'Shared a mockup';
     case 'product_ref': return 'Shared a product';
@@ -216,10 +258,87 @@ const shortName = (s) =>
     : s.name.split(' ').slice(0, 2).join(' ');
 
 /** Rich attachment cards rendered inside the thread */
-function MessageCard({ m, isMine, onAccept, onCounter, onOpenStudio }) {
+function MessageCard({ m, isMine, onAccept, onCounter, onOpenStudio, onPay }) {
   const cardBase = 'w-[280px] max-w-full bg-white rounded-2xl border border-slate-200/80 overflow-hidden';
 
   switch (m.type) {
+    case 'package': {
+      const pkg = m.packageData;
+      const total = packageTotal(pkg);
+      const paid = pkg.status === 'paid';
+      return (
+        <div className={cx(cardBase, 'w-[300px]')}>
+          <div className="flex items-center gap-2.5 px-4 pt-4">
+            <IconCircle icon={Boxes} tone="violet" size="sm" />
+            <div className="flex-1 min-w-0">
+              <p className="text-[12px] text-slate-500">Package</p>
+              <p className="text-[15px] font-semibold text-slate-900 leading-tight">{pkg.title}</p>
+            </div>
+            <Badge tone={paid ? 'green' : 'amber'}>{paid ? 'Paid' : 'Ready to pay'}</Badge>
+          </div>
+          <ul className="px-4 pt-3 space-y-1.5">
+            {pkg.items.map((i) => (
+              <li key={i.name} className="flex items-start justify-between gap-3 text-[13px]">
+                <span className="text-slate-700"><span className="font-medium text-slate-900">{i.qty}×</span> {i.name}</span>
+                <span className="text-slate-900 tabular-nums shrink-0">{peso(i.qty * i.unitPrice)}</span>
+              </li>
+            ))}
+          </ul>
+          <div className="mx-4 mt-3 pt-3 border-t border-slate-100 flex items-end justify-between">
+            <span className="text-[13px] text-slate-500">Total</span>
+            <span className="text-[20px] font-semibold text-slate-900 leading-none">{peso(total)}</span>
+          </div>
+          <p className="px-4 pt-1.5 text-[12px] text-slate-500">Ready {pkg.ready} · {pkg.delivery}</p>
+          <div className="p-4 pt-3">
+            {paid ? (
+              <p className="flex items-center gap-1.5 text-[13px] font-medium text-emerald-700">
+                <CheckCheck className="w-4 h-4" /> {peso(pkg.paidAmount)} paid · order confirmed
+              </p>
+            ) : isMine ? (
+              <p className="text-[13px] text-slate-500">Waiting for payment</p>
+            ) : (
+              <div className="flex gap-2">
+                <Button size="sm" icon={CreditCard} className="flex-1 h-11" onClick={() => onPay(m)}>
+                  Pay {peso(total * (pkg.downpaymentPct / 100))} now
+                </Button>
+                <Button size="sm" variant="secondary" className="h-11" onClick={onCounter}>Counter</Button>
+              </div>
+            )}
+            {!paid && !isMine && (
+              <p className="mt-1.5 text-[11.5px] text-slate-500">{pkg.downpaymentPct}% downpayment, the rest on delivery</p>
+            )}
+          </div>
+        </div>
+      );
+    }
+
+    case 'payment':
+      return (
+        <div className="w-[280px] max-w-full rounded-2xl bg-emerald-50 p-3.5">
+          <div className="flex items-start gap-2.5">
+            <ShieldCheck className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
+            <div className="min-w-0">
+              <p className="text-[15px] font-medium text-emerald-900">{peso(m.paymentData.amount)} paid via {m.paymentData.method}</p>
+              <p className="text-[13px] text-emerald-800/80">
+                {m.paymentData.kind} for {m.paymentData.title}. Aygo holds it until you confirm delivery.
+              </p>
+              <p className="mt-1 text-[11.5px] text-emerald-800/60">Ref {m.paymentData.ref}</p>
+            </div>
+          </div>
+        </div>
+      );
+
+    case 'call':
+      return (
+        <div className="w-fit max-w-full rounded-2xl bg-white border border-slate-200/80 px-3.5 py-2.5 flex items-center gap-2.5">
+          <IconCircle icon={PhoneCall} tone="blue" size="sm" />
+          <div>
+            <p className="text-[14px] font-medium text-slate-900">Aygo call</p>
+            <p className="text-[12px] text-slate-500">{m.callData.length}</p>
+          </div>
+        </div>
+      );
+
     case 'bid_card':
       return (
         <div className={cx(cardBase, 'p-4')}>
@@ -360,8 +479,10 @@ export default function AygoMessagingModal({
   activeVenue = null,
   activeItem = null,
   onAcceptBid = null,
-  onViewSupplier = null
+  onViewSupplier = null,
+  incomingPackage = null
 }) {
+  const pro = usePro();
   const [conversations, setConversations] = useState(INITIAL_CONVERSATIONS);
   const [activeSupplierId, setActiveSupplierId] = useState(initialSupplier?.id || 's3');
   const [trackedInitialId, setTrackedInitialId] = useState(initialSupplier?.id);
@@ -373,6 +494,13 @@ export default function AygoMessagingModal({
   const [showAttachMenu, setShowAttachMenu] = useState(false);
   // Maker details panel, opened by tapping the maker's name in the thread header
   const [showDetails, setShowDetails] = useState(false);
+  // In-chat checkout for a package: { msgId, pkg }
+  const [checkout, setCheckout] = useState(null);
+  const [payMethod, setPayMethod] = useState('gcash');
+  const [payFull, setPayFull] = useState(false);
+  const [inCall, setInCall] = useState(false);
+  // Package a maker just sent from their portal
+  const [trackedPackageId, setTrackedPackageId] = useState(null);
 
   const scrollRef = useRef(null);
 
@@ -381,6 +509,23 @@ export default function AygoMessagingModal({
     setTrackedInitialId(initialSupplier.id);
     setActiveSupplierId(initialSupplier.id);
     setMobileView('thread');
+  }
+
+  if (incomingPackage && incomingPackage.id !== trackedPackageId && initialSupplier?.id) {
+    setTrackedPackageId(incomingPackage.id);
+    const sid = initialSupplier.id;
+    const msg = {
+      id: incomingPackage.id,
+      sender: 'supplier',
+      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      type: 'package',
+      text: incomingPackage.note || 'Here is our package for your request. You can pay right here.',
+      packageData: incomingPackage.packageData
+    };
+    setConversations((prev) => {
+      const base = prev[sid] || { supplier: initialSupplier, unreadCount: 0, request: null, messages: [] };
+      return { ...prev, [sid]: { ...base, messages: [...base.messages, msg] } };
+    });
   }
 
   useEffect(() => {
@@ -520,6 +665,63 @@ export default function AygoMessagingModal({
     if (onAcceptBid) onAcceptBid(currentSupplier);
   };
 
+  const appendMessage = (msg) =>
+    setConversations((prev) => {
+      const base = prev[convoKey] || currentConvo;
+      return { ...prev, [convoKey]: { ...base, messages: [...base.messages, msg] } };
+    });
+
+  const nowTime = () => new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+  const openCheckout = (m) => {
+    setCheckout({ msgId: m.id, pkg: m.packageData });
+    setPayFull(false);
+  };
+
+  const payPackage = () => {
+    const { msgId, pkg } = checkout;
+    const total = packageTotal(pkg);
+    const amount = payFull ? total : total * (pkg.downpaymentPct / 100);
+    const method = PAYMENT_METHODS.find((x) => x.id === payMethod)?.label || 'GCash';
+    setConversations((prev) => {
+      const base = prev[convoKey] || currentConvo;
+      const messages = base.messages.map((x) =>
+        x.id === msgId ? { ...x, packageData: { ...x.packageData, status: 'paid', paidAmount: amount } } : x
+      );
+      messages.push({
+        id: 'pay-' + Date.now(),
+        sender: 'customer',
+        time: nowTime(),
+        type: 'payment',
+        text: '',
+        paymentData: {
+          amount,
+          method,
+          kind: payFull ? 'Full payment' : `${pkg.downpaymentPct}% downpayment`,
+          title: pkg.title,
+          ref: 'AYG-' + String(Date.now()).slice(-6)
+        }
+      });
+      return { ...prev, [convoKey]: { ...base, messages } };
+    });
+    setCheckout(null);
+    if (onAcceptBid) onAcceptBid(currentSupplier);
+    else toast(`Paid ${peso(amount)}. Order confirmed.`);
+  };
+
+  const supplierIsPro = Boolean(currentSupplier.proStorefront);
+  const startCall = () => {
+    if (!canCall(pro.isPro, supplierIsPro)) {
+      pro.openPaywall('calls');
+      return;
+    }
+    setInCall(true);
+  };
+  const endCall = (seconds) => {
+    setInCall(false);
+    if (seconds > 0) appendMessage({ id: 'call-' + Date.now(), sender: 'customer', time: nowTime(), type: 'call', text: '', callData: { length: callLength(seconds) } });
+  };
+
   const unreadTotal = Object.values(conversations).reduce((n, c) => n + (c.unreadCount || 0), 0);
 
   return (
@@ -531,7 +733,7 @@ export default function AygoMessagingModal({
       size="xl"
       bodyClassName="!px-0 !pb-0 !overflow-hidden flex"
     >
-      <div className="flex w-full h-[calc(92vh-96px)] sm:h-[min(680px,calc(88vh-100px))] border-t border-slate-100">
+      <div className="flex w-full h-[calc(92vh-96px)] sm:h-[min(680px,calc(88vh/var(--dz)-100px))] border-t border-slate-100">
         {/* Conversation list */}
         <aside
           className={cx(
@@ -599,7 +801,7 @@ export default function AygoMessagingModal({
         {/* Active thread */}
         <section
           className={cx(
-            'flex-1 min-w-0 flex-col min-h-0 md:flex',
+            'relative flex-1 min-w-0 flex-col min-h-0 md:flex',
             mobileView === 'thread' ? 'flex' : 'hidden'
           )}
         >
@@ -625,19 +827,24 @@ export default function AygoMessagingModal({
                 <span className="flex items-center gap-1.5 min-w-0">
                   <span className="text-[15px] font-semibold text-slate-900 truncate">{currentSupplier.name}</span>
                   <VerifiedBadge className="shrink-0" />
+                  {supplierIsPro && <Badge tone="violet" icon={Crown} className="shrink-0 hidden sm:inline-flex">Pro</Badge>}
                 </span>
                 <span className="block text-[13px] text-slate-500 truncate">
-                  {showDetails ? 'Tap to go back to chat' : <><span className="text-emerald-600">Online</span> · <span className="text-[#003CF5] font-medium">Details</span> · {currentSupplier.contactPerson}</>}
+                  {showDetails ? 'Tap to go back to chat' : <><span className="text-emerald-600">Online</span>{supplierIsPro && <span className="sm:hidden text-violet-700 font-medium"> · Pro</span>} · <span className="text-[#003CF5] font-medium">Details</span> · {currentSupplier.contactPerson}</>}
                 </span>
               </span>
               <ChevronDown className={cx('w-4 h-4 text-slate-400 shrink-0 transition-transform', showDetails && 'rotate-180')} />
             </button>
             <button
               type="button"
-              onClick={() => toast('Calls are coming soon')}
-              aria-label="Call maker"
-              className="w-11 h-11 rounded-full bg-[#F4F3F0] hover:bg-[#ECEAE5] text-slate-700 flex items-center justify-center shrink-0"
+              onClick={startCall}
+              aria-label={canCall(pro.isPro, supplierIsPro) ? `Call ${currentSupplier.name}` : 'Calls need Pro'}
+              title={canCall(pro.isPro, supplierIsPro) ? 'Aygo call' : 'Calls need Pro on either side'}
+              className="relative w-11 h-11 rounded-full bg-[#F4F3F0] hover:bg-[#ECEAE5] text-slate-700 flex items-center justify-center shrink-0"
             >
+              {!canCall(pro.isPro, supplierIsPro) && (
+                <Crown className="absolute -top-0.5 -right-0.5 w-4 h-4 p-0.5 rounded-full bg-violet-600 text-white" />
+              )}
               <Phone className="w-4 h-4" />
             </button>
           </div>
@@ -679,7 +886,7 @@ export default function AygoMessagingModal({
               const hasCard = m.type !== 'text';
               return (
                 <div key={m.id} className={cx('flex flex-col gap-1', isMine ? 'items-end' : 'items-start')}>
-                  {m.text && (
+                  {m.text && m.type !== 'payment' && m.type !== 'call' && (
                     <div
                       className={cx(
                         'max-w-[85%] sm:max-w-md px-3.5 py-2.5 rounded-2xl text-[15px] leading-snug',
@@ -696,6 +903,7 @@ export default function AygoMessagingModal({
                       onAccept={handleAcceptSupplierBid}
                       onCounter={() => setShowCounterBox(true)}
                       onOpenStudio={onClose}
+                      onPay={openCheckout}
                     />
                   )}
                   <span className="px-1 text-[11px] text-slate-400">
@@ -791,8 +999,95 @@ export default function AygoMessagingModal({
           </div>
           </>
           )}
+
+          {checkout && (
+            <CheckoutPanel
+              pkg={checkout.pkg}
+              supplier={currentSupplier}
+              method={payMethod}
+              onMethod={setPayMethod}
+              full={payFull}
+              onFull={setPayFull}
+              onPay={payPackage}
+              onClose={() => setCheckout(null)}
+            />
+          )}
         </section>
+        {inCall && (
+          <CallScreen
+            name={currentSupplier.name}
+            subtitle={currentSupplier.contactPerson}
+            initial={currentSupplier.name.slice(0, 1)}
+            proNote={pro.isPro ? 'You have Pro' : `${currentSupplier.shortName || currentSupplier.name} has Pro`}
+            onEnd={endCall}
+          />
+        )}
       </div>
     </Sheet>
+  );
+}
+
+/** Pay for a package without leaving the chat */
+function CheckoutPanel({ pkg, supplier, method, onMethod, full, onFull, onPay, onClose }) {
+  const total = packageTotal(pkg);
+  const down = total * (pkg.downpaymentPct / 100);
+  const amount = full ? total : down;
+  const options = [
+    { id: false, title: `${pkg.downpaymentPct}% downpayment`, value: down, note: `${peso(total - down)} on delivery` },
+    { id: true, title: 'Pay in full', value: total, note: 'Nothing due on delivery' }
+  ];
+  return (
+    <div className="absolute inset-0 z-10 bg-white flex flex-col animate-fade-in">
+      <div className="flex items-center gap-2 px-4 py-3 border-b border-slate-100">
+        <div className="flex-1 min-w-0">
+          <p className="text-[17px] font-semibold text-slate-900">Pay for package</p>
+          <p className="text-[13px] text-slate-500 truncate">{pkg.title} · {supplier.name}</p>
+        </div>
+        <button type="button" onClick={onClose} aria-label="Close payment" className="w-11 h-11 rounded-full hover:bg-[#F4F3F0] flex items-center justify-center">
+          <X className="w-5 h-5" />
+        </button>
+      </div>
+      <div className="flex-1 overflow-y-auto px-4 py-4 space-y-5">
+        <div>
+          <p className="mb-2 text-[13px] font-semibold text-slate-500">How much</p>
+          <div className="space-y-2">
+            {options.map((o) => (
+              <button
+                key={String(o.id)}
+                type="button"
+                onClick={() => onFull(o.id)}
+                aria-pressed={full === o.id}
+                className={cx(
+                  'w-full flex items-center justify-between gap-3 rounded-2xl p-3.5 text-left border transition-colors',
+                  full === o.id ? 'border-[#003CF5] bg-blue-50/60' : 'border-slate-200 hover:bg-slate-50'
+                )}
+              >
+                <span>
+                  <span className="block text-[15px] font-medium text-slate-900">{o.title}</span>
+                  <span className="block text-[12px] text-slate-500">{o.note}</span>
+                </span>
+                <span className="text-[17px] font-semibold text-slate-900">{peso(o.value)}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+        <div>
+          <p className="mb-2 text-[13px] font-semibold text-slate-500">Pay with</p>
+          <div className="flex flex-wrap gap-2">
+            {PAYMENT_METHODS.map((pm) => (
+              <Chip key={pm.id} selected={method === pm.id} onClick={() => onMethod(pm.id)}>{pm.label}</Chip>
+            ))}
+          </div>
+        </div>
+        <p className="flex items-start gap-2 rounded-2xl bg-[#F4F3F0] p-3 text-[13px] text-slate-600">
+          <ShieldCheck className="w-4 h-4 text-[#003CF5] shrink-0 mt-0.5" />
+          Aygo holds your payment and releases it to the maker after you confirm delivery. Paying outside the app is not protected.
+        </p>
+      </div>
+      <div className="border-t border-slate-100 p-4 pb-[max(16px,env(safe-area-inset-bottom))]">
+        <Button size="lg" full icon={CreditCard} onClick={onPay}>Pay {peso(amount)}</Button>
+        <p className="mt-2 text-center text-[12px] text-slate-500">Preview only: no money moves.</p>
+      </div>
+    </div>
   );
 }

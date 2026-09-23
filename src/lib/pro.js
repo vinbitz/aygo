@@ -8,4 +8,13 @@ export const PRO_FEATURES = {
   documents: { label: 'Branded documents', noun: 'document sessions' },
   compare: { label: 'Offer comparison', noun: 'comparisons' },
   workspace: { label: 'Event workspace', noun: 'workspace visits' },
+  // Calls have no free tries: they work when either side of the chat has Pro
+  calls: {
+    label: 'In-app calls',
+    headline: 'Calls are a Pro feature.',
+    text: 'Call makers, brands and organizers inside Aygo. It works when either of you has Pro.',
+  },
 };
+
+/** A call can start when the viewer or the other person is on Pro */
+export const canCall = (viewerIsPro, otherIsPro) => Boolean(viewerIsPro || otherIsPro);

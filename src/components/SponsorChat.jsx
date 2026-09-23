@@ -1,14 +1,15 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { ChevronLeft, Send, Building2, GraduationCap, MessagesSquare, ShieldCheck } from 'lucide-react';
+import { ChevronLeft, Send, Building2, GraduationCap, MessagesSquare, ShieldCheck, Phone, Crown } from 'lucide-react';
 import { Input, EmptyState, cx } from './ui';
 import { maskContactInfo } from '../lib/contactGuard';
 import { toast } from '../lib/toast';
+import { canCall } from '../lib/pro';
 
 /**
  * Brand ↔ organizer chat inside Sponsorship Connect.
  * threads: [{ id, name, subtitle, kind: 'brand'|'organizer', messages: [{ id, from: 'me'|'them', text, time }] }]
  */
-export default function SponsorChat({ threads, activeId, onOpen, onBack, onSend }) {
+export default function SponsorChat({ threads, activeId, onOpen, onBack, onSend, onCall, viewerIsPro }) {
   const active = threads.find((t) => t.id === activeId);
   const [draft, setDraft] = useState('');
   const endRef = useRef(null);
@@ -75,10 +76,23 @@ export default function SponsorChat({ threads, activeId, onOpen, onBack, onSend 
         <button type="button" onClick={onBack} aria-label="Back to chats" className="w-10 h-10 rounded-full hover:bg-[#F4F3F0] flex items-center justify-center">
           <ChevronLeft className="w-5 h-5" />
         </button>
-        <span className="min-w-0">
+        <span className="flex-1 min-w-0">
           <span className="block text-[15px] font-semibold text-slate-900 truncate">{active.name}</span>
-          <span className="block text-[12px] text-slate-500 truncate">{active.subtitle}</span>
+          <span className="block text-[12px] text-slate-500 truncate">{active.subtitle}{active.pro ? ' · Pro' : ''}</span>
         </span>
+        {onCall && (
+          <button
+            type="button"
+            onClick={() => onCall(active)}
+            aria-label={canCall(viewerIsPro, active.pro) ? `Call ${active.name}` : 'Calls need Pro'}
+            className="relative w-11 h-11 rounded-full bg-[#F4F3F0] hover:bg-[#ECEAE5] text-slate-700 flex items-center justify-center shrink-0"
+          >
+            <Phone className="w-4 h-4" />
+            {!canCall(viewerIsPro, active.pro) && (
+              <Crown className="absolute -top-0.5 -right-0.5 w-4 h-4 p-0.5 rounded-full bg-violet-600 text-white" />
+            )}
+          </button>
+        )}
       </div>
 
       <div className="flex-1 overflow-y-auto bg-[#F7F6F3] px-4 py-3 space-y-2">
