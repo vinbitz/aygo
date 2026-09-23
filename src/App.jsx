@@ -306,10 +306,6 @@ export default function App() {
             setSelectedSupplier(null);
             openChat(supplier, { id: `call-${Date.now()}`, type: 'text', text: `Booked a call with you: ${when}. See you then!` });
           }}
-          onClaimBusiness={() => {
-            setSelectedSupplier(null);
-            setIsOnboardingOpen(true);
-          }}
         />
       )}
 
