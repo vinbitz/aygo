@@ -35,3 +35,21 @@ Live preview of this version: https://claude.ai/artifact/E3oHgi3iLeh8XqHjF6G2cP 
 ```bash
 git checkout c0e11f4 -- src/components/AygoSourcingView.jsx src/components/AygoGoogleMap.jsx src/index.css
 ```
+
+## UI kit (`src/components/ui`)
+Use these instead of hand-rolled markup so every screen feels the same:
+
+| Component | Use for |
+| --- | --- |
+| `Sheet` | Every popup. Bottom sheet on phones, centered dialog on desktop. Props: `title`, `subtitle`, `icon`, `onClose`, `footer`, `size` (sm/md/lg/xl). Handles Esc, backdrop click, scroll lock. |
+| `Button` | `variant`: primary (one per view), secondary, outline, ghost, danger, success. `size`: sm/md/lg. `full`, `icon`. |
+| `Field` + `Input`/`Textarea`/`Select` | Forms. Label above, hint/error below. |
+| `Badge`, `VerifiedBadge` | Status labels. Verified suppliers always show `VerifiedBadge`. |
+| `Chip` | Filters and quick picks (selected = dark). |
+| `Tabs` | Segmented switch between views inside a sheet. |
+| `ListRow` + `IconCircle` | Menu items and settings rows. |
+| `Section`, `Panel` | Titled groups; soft grey panel. |
+| `EmptyState` | Lists with no items. |
+| `toast()` (`src/lib/toast`) | Feedback after actions. Never use `alert()`. |
+
+Rules: one primary button per view, sticky in the `footer` when it completes the flow; 44px minimum tap targets; sentence-case labels (no ALL CAPS), no text under 11px.
