@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import {
   MapPin,
-  ChevronRight,
   Search,
   Check,
   X,
@@ -10,7 +9,8 @@ import {
   Printer,
   Coffee,
   ShoppingBag,
-  Ruler,
+  Handshake,
+  Tag,
   MessageSquare
 } from 'lucide-react';
 import { SUPPLIERS, PRESET_VENUES, PRESET_HOMES } from '../data/mockData';
@@ -21,6 +21,11 @@ const CATEGORY_TILES = [
   { id: 'event-print', label: 'Event Print', Icon: Printer, tint: { bg: 'bg-amber-100', fg: 'text-amber-600' } },
   { id: 'drinkware', label: 'Drinkware', Icon: Coffee, tint: { bg: 'bg-emerald-100', fg: 'text-emerald-600' } },
   { id: 'bags', label: 'Bags & Swag', Icon: ShoppingBag, tint: { bg: 'bg-rose-100', fg: 'text-rose-500' } }
+];
+
+const REQUEST_TYPES = [
+  { mode: 'single', label: 'Single Category', hint: 'One item or service type', Icon: Tag, tint: { bg: 'bg-blue-100', fg: 'text-[#003CF5]' } },
+  { mode: 'package', label: 'Event Package', hint: 'Multi-category bundle', Icon: Package, tint: { bg: 'bg-violet-100', fg: 'text-violet-600' } }
 ];
 
 const MAKER_BIDS = [
@@ -145,17 +150,18 @@ export default function AygoSourcingView({
 
           </section>
 
-          {/* SECTION 2: Categories */}
+          {/* SECTION 2: Request type (single category vs event package) + popular categories */}
           <section className="bg-white rounded-[28px] p-3">
             <div className="grid grid-cols-2 gap-2">
-              {CATEGORY_TILES.map(({ id, label, Icon, tint }) => (
+              {REQUEST_TYPES.map(({ mode, label, hint, Icon, tint }) => (
                 <button
-                  key={id}
+                  key={mode}
                   type="button"
-                  onClick={() => onRequestNewJob && onRequestNewJob('single', id)}
-                  className="relative h-[92px] flex items-start rounded-2xl bg-[#F4F3F0] hover:bg-[#ECEAE5] p-3.5 text-left overflow-hidden transition-colors active:scale-[0.98]"
+                  onClick={() => onRequestNewJob && onRequestNewJob(mode, mode === 'single' ? 'apparel' : undefined)}
+                  className="relative h-[108px] flex flex-col items-start rounded-2xl bg-[#F4F3F0] hover:bg-[#ECEAE5] p-3.5 text-left overflow-hidden transition-colors active:scale-[0.98]"
                 >
-                  <span className="relative z-10 text-[15px] font-medium text-slate-900">{label}</span>
+                  <span className="relative z-10 text-[15px] font-semibold text-slate-900">{label}</span>
+                  <span className="relative z-10 text-[12px] text-slate-500 leading-snug max-w-[70%]">{hint}</span>
                   <span className={`absolute -bottom-4 -right-3 w-20 h-20 rounded-full flex items-center justify-center ${tint.bg}`}>
                     <Icon className={`w-9 h-9 -translate-x-1 -translate-y-1.5 ${tint.fg}`} strokeWidth={1.75} />
                   </span>
@@ -163,27 +169,28 @@ export default function AygoSourcingView({
               ))}
             </div>
 
-            <button
-              type="button"
-              onClick={() => onRequestNewJob && onRequestNewJob('package')}
-              className="mt-2 w-full rounded-2xl bg-[#F4F3F0] hover:bg-[#ECEAE5] px-3.5 py-3 flex items-center gap-3 text-left transition-colors active:scale-[0.99]"
-            >
-              <span className="w-9 h-9 rounded-xl bg-white flex items-center justify-center text-[#003CF5] shrink-0">
-                <Package className="w-5 h-5" />
-              </span>
-              <span className="flex-1 min-w-0">
-                <span className="block text-[15px] font-medium text-slate-900">Full event package</span>
-                <span className="block text-[13px] text-slate-500 truncate">Bundle several items in one request</span>
-              </span>
-              <ChevronRight className="w-4 h-4 text-slate-400 shrink-0" />
-            </button>
+            <div className="mt-3 flex gap-2 overflow-x-auto no-scrollbar -mx-3 px-3">
+              {CATEGORY_TILES.map(({ id, label, Icon, tint }) => (
+                <button
+                  key={id}
+                  type="button"
+                  onClick={() => onRequestNewJob && onRequestNewJob('single', id)}
+                  className="shrink-0 flex items-center gap-2 pl-1.5 pr-3.5 py-1.5 rounded-full bg-[#F4F3F0] hover:bg-[#ECEAE5] text-[13px] font-medium text-slate-800 transition-colors active:scale-95"
+                >
+                  <span className={`w-7 h-7 rounded-full flex items-center justify-center ${tint.bg}`}>
+                    <Icon className={`w-4 h-4 ${tint.fg}`} />
+                  </span>
+                  {label}
+                </button>
+              ))}
+            </div>
           </section>
 
           {/* SECTION 3: Maker bids */}
           <section className="bg-white rounded-[28px] py-4">
             <div className="px-4 flex items-center gap-3">
-              <span className="w-11 h-11 rounded-2xl bg-[#003CF5] flex items-center justify-center text-white shrink-0 shadow-md shadow-blue-500/25">
-                <Ruler className="w-5 h-5 -rotate-45" strokeWidth={2.25} />
+              <span className="w-11 h-11 rounded-full bg-blue-50 flex items-center justify-center text-[#003CF5] shrink-0">
+                <Handshake className="w-5 h-5" />
               </span>
               <div className="flex-1 min-w-0">
                 <h4 className="text-[19px] font-semibold text-slate-900 tracking-tight leading-tight">Choose a maker</h4>
